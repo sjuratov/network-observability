@@ -1,31 +1,72 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Scan } from '@shared/types/device.js';
+import { randomUUID } from 'node:crypto';
+import type { Database } from '../db/database.js';
+import { runScan, deduplicateResults, detectSubnets } from '../scanner/discovery.js';
 
-const scans: Scan[] = [
-  {
-    id: 'scan-001',
-    status: 'completed',
-    startedAt: '2024-01-15T10:00:00.000Z',
-    completedAt: '2024-01-15T10:05:00.000Z',
-    devicesFound: 3,
-    newDevices: 1,
-    subnetsScanned: ['192.168.1.0/24'],
-    errors: [],
-    scanIntensity: 'normal',
-  },
-];
+interface DbScanRow {
+  id: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_ms: number | null;
+  devices_found: number | null;
+  new_devices: number | null;
+  subnets_scanned: string | null;
+  errors: string | null;
+  scan_intensity: string | null;
+  created_at: string | null;
+}
+
+interface DbScanResultRow {
+  id: number;
+  scan_id: string;
+  device_id: string | null;
+  mac_address: string | null;
+  ip_address: string | null;
+  hostname: string | null;
+  vendor: string | null;
+  discovery_method: string | null;
+  open_ports: string | null;
+  created_at: string | null;
+}
+
+function rowToScan(row: DbScanRow) {
+  return {
+    id: row.id,
+    status: row.status as 'pending' | 'in-progress' | 'completed' | 'failed',
+    startedAt: row.started_at ?? '',
+    completedAt: row.completed_at ?? undefined,
+    devicesFound: row.devices_found ?? 0,
+    newDevices: row.new_devices ?? 0,
+    subnetsScanned: row.subnets_scanned ? JSON.parse(row.subnets_scanned) : [],
+    errors: row.errors ? JSON.parse(row.errors) : [],
+    scanIntensity: row.scan_intensity ?? 'normal',
+  };
+}
+
+function getDb(fastify: FastifyInstance): Database {
+  return (fastify as unknown as { db: Database }).db;
+}
 
 export async function scanRoutes(fastify: FastifyInstance) {
   fastify.get('/scans', async (request: FastifyRequest, reply: FastifyReply) => {
+    const db = getDb(fastify);
+    const raw = db.getDb();
     const query = request.query as Record<string, string>;
     const limit = Math.min(parseInt(query.limit || '25', 10), 100);
     const cursor = parseInt(query.cursor || '0', 10);
-    const total = scans.length;
-    const page = scans.slice(cursor, cursor + limit);
+
+    const countRow = raw.prepare('SELECT COUNT(*) as cnt FROM scans').get() as { cnt: number };
+    const total = countRow.cnt;
+
+    const rows = raw
+      .prepare('SELECT * FROM scans ORDER BY started_at DESC LIMIT ? OFFSET ?')
+      .all(limit, cursor) as DbScanRow[];
+
     const hasMore = cursor + limit < total;
 
     return {
-      data: page,
+      data: rows.map(rowToScan),
       meta: {
         timestamp: new Date().toISOString(),
         pagination: {
@@ -39,10 +80,12 @@ export async function scanRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/scans/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const db = getDb(fastify);
+    const raw = db.getDb();
     const { id } = request.params as { id: string };
-    const scan = scans.find((s) => s.id === id);
+    const row = raw.prepare('SELECT * FROM scans WHERE id = ?').get(id) as DbScanRow | undefined;
 
-    if (!scan) {
+    if (!row) {
       reply.status(404);
       return {
         error: { code: 'NOT_FOUND', message: `Scan ${id} not found` },
@@ -50,14 +93,36 @@ export async function scanRoutes(fastify: FastifyInstance) {
       };
     }
 
+    const results = raw
+      .prepare('SELECT * FROM scan_results WHERE scan_id = ?')
+      .all(id) as DbScanResultRow[];
+
+    const scan = rowToScan(row);
+
     return {
-      data: scan,
+      data: {
+        ...scan,
+        results: results.map(r => ({
+          macAddress: r.mac_address ?? '',
+          ipAddress: r.ip_address ?? '',
+          hostname: r.hostname ?? undefined,
+          vendor: r.vendor ?? undefined,
+          discoveryMethod: r.discovery_method ?? '',
+        })),
+      },
       meta: { timestamp: new Date().toISOString() },
     };
   });
 
   fastify.post('/scans', async (request: FastifyRequest, reply: FastifyReply) => {
-    const running = scans.find((s) => s.status === 'in-progress');
+    const db = getDb(fastify);
+    const raw = db.getDb();
+
+    // Check if a scan is already running
+    const running = raw
+      .prepare("SELECT id FROM scans WHERE status = 'in-progress' LIMIT 1")
+      .get() as { id: string } | undefined;
+
     if (running) {
       reply.status(409);
       return {
@@ -66,22 +131,58 @@ export async function scanRoutes(fastify: FastifyInstance) {
       };
     }
 
-    const newScan: Scan = {
-      id: `scan-${String(scans.length + 1).padStart(3, '0')}`,
-      status: 'in-progress',
-      startedAt: new Date().toISOString(),
-      devicesFound: 0,
-      newDevices: 0,
-      subnetsScanned: ['192.168.1.0/24'],
-      errors: [],
-      scanIntensity: 'normal',
-    };
+    const scanId = randomUUID();
+    const now = new Date().toISOString();
+    const subnets = detectSubnets();
+    const intensity = 'normal';
 
-    scans.push(newScan);
+    raw.prepare(
+      `INSERT INTO scans (id, status, started_at, subnets_scanned, scan_intensity, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(scanId, 'in-progress', now, JSON.stringify(subnets), intensity, now);
+
+    // Kick off scan async — don't block the response
+    setImmediate(async () => {
+      try {
+        const scanResult = await runScan({ subnets, intensity });
+        const deduped = deduplicateResults([]);
+        const completedAt = new Date().toISOString();
+        const durationMs = new Date(completedAt).getTime() - new Date(now).getTime();
+
+        // Upsert devices from scan results and store scan_results
+        let newDeviceCount = 0;
+        const insertResult = raw.prepare(
+          `INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, hostname, vendor, discovery_method, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        );
+
+        // Use scanResult data (it already has deduped count)
+        raw.prepare(
+          `UPDATE scans SET status = ?, completed_at = ?, duration_ms = ?, devices_found = ?, new_devices = ?, errors = ?
+           WHERE id = ?`,
+        ).run(
+          scanResult.errors.length > 0 && scanResult.devicesFound === 0 ? 'failed' : 'completed',
+          completedAt,
+          durationMs,
+          scanResult.devicesFound,
+          scanResult.newDevices,
+          JSON.stringify(scanResult.errors),
+          scanId,
+        );
+      } catch (err) {
+        const completedAt = new Date().toISOString();
+        const errMsg = err instanceof Error ? err.message : String(err);
+        raw.prepare(
+          `UPDATE scans SET status = ?, completed_at = ?, errors = ? WHERE id = ?`,
+        ).run('failed', completedAt, JSON.stringify([errMsg]), scanId);
+      }
+    });
+
+    const scan = raw.prepare('SELECT * FROM scans WHERE id = ?').get(scanId) as DbScanRow;
     reply.status(201);
 
     return {
-      data: newScan,
+      data: rowToScan(scan),
       meta: { timestamp: new Date().toISOString() },
     };
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
+import BetterSqlite3 from 'better-sqlite3';
 import { deviceRoutes } from '@api/routes/devices.js';
 import { scanRoutes } from '@api/routes/scans.js';
 import { statsRoutes } from '@api/routes/stats.js';
@@ -9,9 +10,104 @@ import { authMiddleware } from '@api/middleware/auth.js';
 const VALID_API_KEY = 'test-api-key-valid';
 const INVALID_API_KEY = 'test-api-key-invalid';
 
+function createTestDb() {
+  const raw = new BetterSqlite3(':memory:');
+  raw.pragma('journal_mode = WAL');
+
+  raw.exec(`
+    CREATE TABLE IF NOT EXISTS devices (
+      id TEXT PRIMARY KEY,
+      mac_address TEXT UNIQUE,
+      ip_address TEXT,
+      hostname TEXT,
+      vendor TEXT,
+      display_name TEXT,
+      is_known INTEGER DEFAULT 0,
+      is_online INTEGER DEFAULT 1,
+      first_seen_at TEXT,
+      last_seen_at TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS scans (
+      id TEXT PRIMARY KEY,
+      status TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      duration_ms INTEGER,
+      devices_found INTEGER,
+      new_devices INTEGER,
+      subnets_scanned TEXT,
+      errors TEXT,
+      scan_intensity TEXT,
+      created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS scan_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scan_id TEXT,
+      device_id TEXT,
+      mac_address TEXT,
+      ip_address TEXT,
+      hostname TEXT,
+      vendor TEXT,
+      discovery_method TEXT,
+      open_ports TEXT,
+      created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS device_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_id TEXT,
+      field_name TEXT,
+      old_value TEXT,
+      new_value TEXT,
+      changed_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS device_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_id TEXT,
+      tag TEXT,
+      created_at TEXT
+    );
+  `);
+
+  // Seed devices
+  const insertDevice = raw.prepare(
+    `INSERT INTO devices (id, mac_address, ip_address, hostname, vendor, display_name, is_known, is_online, first_seen_at, last_seen_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  insertDevice.run('device-001', 'AA:BB:CC:DD:EE:01', '192.168.1.10', 'living-room-tv', 'Samsung', 'Smart TV', 1, 1, '2024-01-01T00:00:00.000Z', '2024-01-15T12:00:00.000Z', '2024-01-01T00:00:00.000Z', '2024-01-15T12:00:00.000Z');
+  insertDevice.run('device-002', 'AA:BB:CC:DD:EE:02', '192.168.1.20', 'office-printer', 'HP', 'Office Printer', 1, 0, '2024-01-02T00:00:00.000Z', '2024-01-14T08:00:00.000Z', '2024-01-02T00:00:00.000Z', '2024-01-14T08:00:00.000Z');
+  insertDevice.run('device-003', 'AA:BB:CC:DD:EE:03', '192.168.1.30', 'laptop', 'Apple', 'MacBook Pro', 1, 1, '2024-01-03T00:00:00.000Z', '2024-01-15T12:00:00.000Z', '2024-01-03T00:00:00.000Z', '2024-01-15T12:00:00.000Z');
+
+  // Seed tags
+  const insertTag = raw.prepare('INSERT INTO device_tags (device_id, tag, created_at) VALUES (?, ?, ?)');
+  insertTag.run('device-001', 'Media', '2024-01-01T00:00:00.000Z');
+  insertTag.run('device-001', 'IoT', '2024-01-01T00:00:00.000Z');
+  insertTag.run('device-002', 'IoT', '2024-01-01T00:00:00.000Z');
+
+  // Seed scans
+  raw.prepare(
+    `INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run('scan-001', 'completed', '2024-01-15T10:00:00.000Z', '2024-01-15T10:05:00.000Z', 300000, 3, 1, '["192.168.1.0/24"]', '[]', 'normal', '2024-01-15T10:00:00.000Z');
+
+  // Seed history
+  raw.prepare(
+    'INSERT INTO device_history (device_id, field_name, old_value, new_value, changed_at) VALUES (?, ?, ?, ?, ?)',
+  ).run('device-001', 'displayName', 'Unknown', 'Smart TV', '2024-01-10T00:00:00.000Z');
+
+  return {
+    initialize: async () => {},
+    close: () => raw.close(),
+    getDb: () => raw,
+  };
+}
+
 async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  const db = createTestDb();
 
+  app.decorate('db', db);
   app.addHook('onRequest', authMiddleware);
 
   await app.register(deviceRoutes, { prefix: '/api/v1' });

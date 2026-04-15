@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { createApiClient } from '../api-client';
 
-const getApiKey = () => localStorage.getItem('netobserver-api-key') || '';
-
 export function useApi() {
-  return createApiClient('/api/v1', getApiKey());
+  const apiKey = typeof window !== 'undefined'
+    ? localStorage.getItem('netobserver-api-key') || ''
+    : '';
+  return useMemo(() => createApiClient('/api/v1', apiKey), [apiKey]);
 }

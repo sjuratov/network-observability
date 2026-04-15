@@ -54,6 +54,11 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
     }
   });
 
+  // Decorate server with db reference for route handlers (must be before route registration)
+  if (deps?.db) {
+    server.decorate('db', deps.db);
+  }
+
   // Register route modules under /api/v1
   await server.register(
     async (api) => {
@@ -86,11 +91,6 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
     });
   } catch {
     // Static dir may not exist yet — that's fine during development
-  }
-
-  // Decorate server with db reference for route handlers (if provided)
-  if (deps?.db) {
-    server.decorate('db', deps.db);
   }
 
   return server;
