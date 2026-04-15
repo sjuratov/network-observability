@@ -133,8 +133,9 @@ export async function scanRoutes(fastify: FastifyInstance) {
 
     const scanId = randomUUID();
     const now = new Date().toISOString();
-    const subnets = detectSubnets();
-    const intensity = 'normal';
+    const configuredSubnets = (fastify as any).appConfig?.subnets;
+    const subnets = configuredSubnets && configuredSubnets.length > 0 ? configuredSubnets : detectSubnets();
+    const intensity = (fastify as any).appConfig?.scanIntensity || 'normal';
 
     raw.prepare(
       `INSERT INTO scans (id, status, started_at, subnets_scanned, scan_intensity, created_at)
@@ -145,31 +146,61 @@ export async function scanRoutes(fastify: FastifyInstance) {
     setImmediate(async () => {
       try {
         const scanResult = await runScan({ subnets, intensity });
-        const deduped = deduplicateResults([]);
+        const deviceResults = (scanResult as any).results || [];
+        console.log(`Scan completed: subnets=${JSON.stringify(subnets)}, ${scanResult.devicesFound} found, ${deviceResults.length} results to store`);
         const completedAt = new Date().toISOString();
         const durationMs = new Date(completedAt).getTime() - new Date(now).getTime();
 
-        // Upsert devices from scan results and store scan_results
+        // Upsert devices and store scan_results
         let newDeviceCount = 0;
+        const upsertDevice = raw.prepare(
+          `INSERT INTO devices (id, mac_address, ip_address, hostname, vendor, is_online, first_seen_at, last_seen_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+           ON CONFLICT(mac_address) DO UPDATE SET
+             ip_address = excluded.ip_address,
+             hostname = COALESCE(excluded.hostname, devices.hostname),
+             vendor = COALESCE(excluded.vendor, devices.vendor),
+             is_online = 1,
+             last_seen_at = excluded.last_seen_at,
+             updated_at = excluded.updated_at`,
+        );
         const insertResult = raw.prepare(
           `INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, hostname, vendor, discovery_method, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         );
 
-        // Use scanResult data (it already has deduped count)
+        const upsertMany = raw.transaction((devices: typeof deviceResults) => {
+          for (const dev of devices) {
+            const deviceId = randomUUID();
+            const mac = dev.macAddress || `unknown-${dev.ipAddress}`;
+            
+            // Check if device already exists
+            const existing = raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string } | undefined;
+            if (!existing) newDeviceCount++;
+            
+            const existingId = existing?.id || deviceId;
+            upsertDevice.run(existingId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, completedAt, completedAt, completedAt, completedAt);
+            
+            const actualId = (raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string }).id;
+            insertResult.run(scanId, actualId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, dev.discoveryMethod, completedAt);
+          }
+        });
+        upsertMany(deviceResults);
+
         raw.prepare(
           `UPDATE scans SET status = ?, completed_at = ?, duration_ms = ?, devices_found = ?, new_devices = ?, errors = ?
            WHERE id = ?`,
         ).run(
-          scanResult.errors.length > 0 && scanResult.devicesFound === 0 ? 'failed' : 'completed',
+          scanResult.errors.length > 0 && deviceResults.length === 0 ? 'failed' : 'completed',
           completedAt,
           durationMs,
-          scanResult.devicesFound,
-          scanResult.newDevices,
+          deviceResults.length,
+          newDeviceCount,
           JSON.stringify(scanResult.errors),
           scanId,
         );
       } catch (err) {
+        console.error('Scan pipeline error:', err);
         const completedAt = new Date().toISOString();
         const errMsg = err instanceof Error ? err.message : String(err);
         raw.prepare(

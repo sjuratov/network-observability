@@ -57,6 +57,7 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   // Decorate server with db reference for route handlers (must be before route registration)
   if (deps?.db) {
     server.decorate('db', deps.db);
+  server.decorate('appConfig', deps.config);
   }
 
   // Register route modules under /api/v1

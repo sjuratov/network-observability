@@ -1,9 +1,13 @@
+# Default compose file — works on macOS Docker Desktop and Linux.
+# On macOS, the scanner auto-detects restricted mode and uses TCP connect scans.
+# On Linux, for full ARP/SYN scanning use: docker compose -f docker-compose.yml -f docker-compose.linux.yml up
+# You can also set SCAN_SUBNETS to target your real LAN from macOS Docker:
+#   environment:
+#     - SCAN_SUBNETS=192.168.1.0/24
 services:
   netobserver:
     build: .
     container_name: netobserver
-    # On Linux, use network_mode: host for Layer 2 ARP scanning
-    # On macOS/Windows Docker Desktop, use ports mapping instead
     ports:
       - "8080:8080"
     cap_add:
@@ -14,7 +18,10 @@ services:
     environment:
       - WEB_UI_PORT=8080
       - LOG_LEVEL=info
-      - HOST=0.0.0.0
+      # Set your LAN subnet for scanning (auto-detected on Linux host networking)
+      - SCAN_SUBNETS=192.168.1.0/24
+      # Set SCAN_SUBNETS to scan your real LAN from macOS Docker Desktop:
+      # - SCAN_SUBNETS=192.168.1.0/24
     restart: unless-stopped
 
 volumes:

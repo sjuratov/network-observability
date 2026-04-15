@@ -188,13 +188,18 @@ export function detectSubnets(): string[] {
       if (addr.family !== 'IPv4' || addr.internal) continue;
 
       const ip = addr.address;
-      // Filter out loopback, link-local, Docker bridge subnet
-      if (ip.startsWith('127.') || ip.startsWith('169.254.') || ip.startsWith('172.17.')) continue;
+      // Filter out loopback, link-local, Docker bridge subnets (172.16-31.x.x)
+      if (ip.startsWith('127.') || ip.startsWith('169.254.')) continue;
+      const firstOctet = parseInt(ip.split('.')[0], 10);
+      const secondOctet = parseInt(ip.split('.')[1], 10);
+      if (firstOctet === 172 && secondOctet >= 16 && secondOctet <= 31) continue;
 
       const mask = addr.netmask;
       const prefix = netmaskToPrefix(mask);
-      const network = applyMask(ip, mask);
-      subnets.push(`${network}/${prefix}`);
+      // Skip subnets larger than /24 — too many hosts to scan practically
+      const effectivePrefix = Math.max(prefix, 24);
+      const network = applyMask(ip, prefix >= 24 ? mask : '255.255.255.0');
+      subnets.push(`${network}/${effectivePrefix}`);
     }
   }
 

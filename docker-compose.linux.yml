@@ -1,0 +1,6 @@
+# Linux production override — enables host networking for full ARP/SYN scanning.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.linux.yml up -d
+services:
+  netobserver:
+    network_mode: host
+    ports: []  # not needed with host networking

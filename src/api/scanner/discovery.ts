@@ -1,11 +1,62 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
+import { XMLParser } from 'fast-xml-parser';
 import type { ScanResult, Scan } from '@shared/types/device.js';
+
+export type ScanCapability = 'full' | 'restricted';
 
 export interface ScanOptions {
   subnets: string[];
   intensity: 'quick' | 'normal' | 'thorough';
+}
+
+let cachedCapability: ScanCapability | null = null;
+
+/** Check if running inside Docker on a bridge network (macOS Docker Desktop). */
+function isDockerBridgeNetwork(): boolean {
+  if (!existsSync('/.dockerenv')) return false;
+  const subnets = detectSubnets();
+  return subnets.length > 0 && subnets.every(s => {
+    const [ip] = s.split('/');
+    return isDockerBridgeSubnet(ip);
+  });
+}
+
+/** Detect whether raw sockets (ARP/SYN) are available on a real network. Result is cached. */
+export async function detectScanCapabilities(): Promise<ScanCapability> {
+  if (cachedCapability) return cachedCapability;
+
+  // Docker bridge networks can do ARP technically, but only see VM-internal IPs — not the real LAN
+  if (isDockerBridgeNetwork()) {
+    cachedCapability = 'restricted';
+    return cachedCapability;
+  }
+
+  try {
+    const subnets = detectSubnets();
+    const testSubnet = subnets[0] ?? '192.168.1.0/24';
+    const [network] = testSubnet.split('/');
+    const parts = network.split('.');
+    parts[3] = '1';
+    const gatewayIp = parts.join('.');
+
+    const xml = await execNmap(['--privileged', '-sn', '-PR', gatewayIp, '-oX', '-'], 10000);
+    if (xml.includes('state="up"') || xml.includes('<host ')) {
+      cachedCapability = 'full';
+    } else {
+      cachedCapability = 'restricted';
+    }
+  } catch {
+    cachedCapability = 'restricted';
+  }
+  return cachedCapability;
+}
+
+/** Reset cached capability (for testing). */
+export function resetCachedCapability(): void {
+  cachedCapability = null;
 }
 
 /** Detect local subnets from network interfaces. */
@@ -21,7 +72,14 @@ export function detectSubnets(): string[] {
         // Normalise to network address from CIDR
         const [ip, prefix] = cidr.split('/');
         const parts = ip.split('.').map(Number);
-        const mask = prefix ? Number(prefix) : 24;
+        let mask = prefix ? Number(prefix) : 24;
+
+        // Docker bridge networks are typically /16 — narrow to /24 around our IP
+        // to avoid scanning 65K hosts on a virtual network
+        if (mask < 24 && isDockerBridgeSubnet(ip)) {
+          mask = 24;
+        }
+
         const maskBits = (0xffffffff << (32 - mask)) >>> 0;
         const ipNum = ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
         const netNum = (ipNum & maskBits) >>> 0;
@@ -33,41 +91,77 @@ export function detectSubnets(): string[] {
   return subnets.length > 0 ? subnets : ['192.168.1.0/24'];
 }
 
+/** Check if an IP is in Docker's default bridge ranges (172.16-31.x.x). */
+function isDockerBridgeSubnet(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
 /** Run nmap with given args and return XML stdout. */
 function execNmap(args: string[], timeoutMs = 30000): Promise<string> {
+  console.log(JSON.stringify({ msg: `execNmap called`, args: args.join(' '), timeoutMs }));
   return new Promise((resolve, reject) => {
-    const child = execFile('nmap', args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+    const child = execFile('nmap', args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
+        console.error(`nmap error: ${error.message}, stderr: ${stderr}`);
         reject(error);
         return;
+      }
+      if (stderr) {
+        console.log(`nmap stderr: ${stderr.substring(0, 200)}`);
       }
       resolve(stdout);
     });
   });
 }
 
-/** Run an ARP scan on a subnet. */
+/** Calculate a reasonable timeout (ms) based on subnet prefix length. */
+function subnetTimeoutMs(subnet: string): number {
+  const parts = subnet.split('/');
+  const prefix = parseInt(parts[1] ?? '24', 10);
+  // /24 = 256 hosts → 60s, /16 = 65536 hosts → 300s
+  if (prefix >= 24) return 60_000;
+  if (prefix >= 20) return 120_000;
+  return 300_000;
+}
+
+// ─── Full-capability scans (Linux / host networking with raw sockets) ───
+
+/** Run an ARP scan on a subnet. Requires raw sockets. */
 async function runArpScan(subnet: string, scanId: string): Promise<ScanResult[]> {
-  const xml = await execNmap(['-sn', '-PR', subnet, '-oX', '-']);
+  const xml = await execNmap(['-sn', '-PR', subnet, '-oX', '-'], subnetTimeoutMs(subnet));
   return parseNmapXml(xml, scanId, 'arp');
 }
 
-/** Run an ICMP ping sweep on a subnet. */
+/** Run an ICMP ping sweep on a subnet. Requires raw sockets. */
 async function runIcmpScan(subnet: string, scanId: string): Promise<ScanResult[]> {
-  const xml = await execNmap(['-sn', '-PE', subnet, '-oX', '-']);
+  const xml = await execNmap(['-sn', '-PE', subnet, '-oX', '-'], subnetTimeoutMs(subnet));
   return parseNmapXml(xml, scanId, 'icmp');
 }
 
-/** Run a TCP SYN scan on a subnet. */
+/** Run a TCP SYN scan on a subnet. Requires raw sockets. */
 async function runTcpSynScan(subnet: string, scanId: string, ports = '22,80,443,8080,8443'): Promise<ScanResult[]> {
-  const xml = await execNmap(['-sS', '-p', ports, subnet, '-oX', '-']);
+  const xml = await execNmap(['-sS', '-p', ports, subnet, '-oX', '-'], subnetTimeoutMs(subnet));
   return parseNmapXml(xml, scanId, 'tcp_syn');
+}
+
+// ─── Restricted scans (macOS Docker Desktop / no raw sockets) ───
+
+/** Run a default ping scan (TCP ACK port 80 + ICMP). Works without raw sockets. */
+async function runDefaultPingScan(subnet: string, scanId: string): Promise<ScanResult[]> {
+  const xml = await execNmap(['-sn', subnet, '-oX', '-'], subnetTimeoutMs(subnet));
+  return parseNmapXml(xml, scanId, 'ping');
+}
+
+/** Run a TCP connect scan. Works as unprivileged user. */
+async function runTcpConnectScan(subnet: string, scanId: string, ports = '22,80,443,8080,8443'): Promise<ScanResult[]> {
+  const xml = await execNmap(['-sT', '-p', ports, subnet, '-oX', '-'], subnetTimeoutMs(subnet));
+  return parseNmapXml(xml, scanId, 'tcp_connect');
 }
 
 /** Parse nmap XML output into ScanResult[]. */
 function parseNmapXml(xml: string, scanId: string, method: string): ScanResult[] {
   try {
-    const { XMLParser } = require('fast-xml-parser');
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
     const doc = parser.parse(xml);
 
@@ -76,6 +170,8 @@ function parseNmapXml(xml: string, scanId: string, method: string): ScanResult[]
       : doc?.nmaprun?.host
         ? [doc.nmaprun.host]
         : [];
+
+    console.log(JSON.stringify({ msg: `parseNmapXml: ${method}, XML length: ${xml.length}, hosts found: ${hosts.length}` }));
 
     const results: ScanResult[] = [];
     for (const host of hosts) {
@@ -115,12 +211,47 @@ function parseNmapXml(xml: string, scanId: string, method: string): ScanResult[]
       });
     }
     return results;
-  } catch {
+  } catch (err) {
+    console.error(`parseNmapXml error for method ${method}:`, err instanceof Error ? err.message : err);
     return [];
   }
 }
 
-/** Run a full network scan. */
+/** Build scan tasks based on detected capability and requested intensity. */
+function buildScanTasks(
+  capability: ScanCapability,
+  intensity: ScanOptions['intensity'],
+  subnet: string,
+  scanId: string,
+  errors: string[],
+): Promise<ScanResult[]>[] {
+  if (capability === 'full') {
+    // Full mode: ARP + ICMP always, TCP SYN for thorough
+    const tasks: Promise<ScanResult[]>[] = [
+      runArpScan(subnet, scanId).catch(err => { errors.push(`ARP scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
+      runIcmpScan(subnet, scanId).catch(err => { errors.push(`ICMP scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
+    ];
+    if (intensity === 'thorough') {
+      tasks.push(
+        runTcpSynScan(subnet, scanId).catch(err => { errors.push(`TCP SYN scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
+      );
+    }
+    return tasks;
+  }
+
+  // Restricted mode: default ping always, TCP connect for normal/thorough
+  const tasks: Promise<ScanResult[]>[] = [
+    runDefaultPingScan(subnet, scanId).catch(err => { errors.push(`Ping scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
+  ];
+  if (intensity !== 'quick') {
+    tasks.push(
+      runTcpConnectScan(subnet, scanId).catch(err => { errors.push(`TCP connect scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
+    );
+  }
+  return tasks;
+}
+
+/** Run a full network scan. Adapts strategy based on raw-socket availability. */
 export async function runScan(options: ScanOptions): Promise<Scan> {
   const scanId = randomUUID();
   const startedAt = new Date().toISOString();
@@ -128,22 +259,17 @@ export async function runScan(options: ScanOptions): Promise<Scan> {
   const errors: string[] = [];
   let allResults: ScanResult[] = [];
 
+  const capability = await detectScanCapabilities();
+  const modeLabel = capability === 'full' ? 'full (ARP + SYN mode)' : 'restricted (TCP connect mode)';
+  console.log(JSON.stringify({ msg: `Scan capabilities detected: ${modeLabel}`, capability }));
+
   for (const subnet of subnets) {
-    // ARP + ICMP always run
-    const scanners: Promise<ScanResult[]>[] = [
-      runArpScan(subnet, scanId).catch(err => { errors.push(`ARP scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
-      runIcmpScan(subnet, scanId).catch(err => { errors.push(`ICMP scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
-    ];
-
-    // TCP SYN only for thorough
-    if (options.intensity === 'thorough') {
-      scanners.push(
-        runTcpSynScan(subnet, scanId).catch(err => { errors.push(`TCP SYN scan failed for ${subnet}: ${classifyError(err)}`); return []; }),
-      );
-    }
-
+    console.log(JSON.stringify({ msg: `Scanning subnet`, subnet, capability, intensity: options.intensity }));
+    const scanners = buildScanTasks(capability, options.intensity, subnet, scanId, errors);
+    console.log(JSON.stringify({ msg: `Built ${scanners.length} scan tasks for ${subnet}` }));
     const batchResults = await Promise.all(scanners);
     for (const batch of batchResults) {
+      console.log(JSON.stringify({ msg: `Batch returned ${batch.length} results` }));
       allResults = allResults.concat(batch);
     }
   }
@@ -151,9 +277,9 @@ export async function runScan(options: ScanOptions): Promise<Scan> {
   const deduped = deduplicateResults(allResults);
   const completedAt = new Date().toISOString();
 
-  return {
+  const scanMeta = {
     id: scanId,
-    status: 'completed',
+    status: 'completed' as const,
     startedAt,
     completedAt,
     devicesFound: deduped.length,
@@ -162,6 +288,8 @@ export async function runScan(options: ScanOptions): Promise<Scan> {
     errors,
     scanIntensity: options.intensity,
   };
+
+  return Object.assign(scanMeta, { results: deduped });
 }
 
 /** Deduplicate scan results. Key on MAC address when present, otherwise IP. */
