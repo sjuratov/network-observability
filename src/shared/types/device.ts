@@ -10,6 +10,76 @@ export interface Device {
   firstSeenAt: string;
   lastSeenAt: string;
   discoveryMethod: string;
+  tags: string[];
+  notes?: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  nameLower: string;
+  createdAt: string;
+}
+
+export interface DashboardStats {
+  totalDevices: number;
+  newDevices24h: number;
+  offlineDevices: number;
+  lastScanAt: string | null;
+  lastScanStatus: string | null;
+}
+
+export interface DeviceHistory {
+  ipHistory: IPHistoryEntry[];
+  portHistory: PortHistoryEntry[];
+}
+
+export interface IPHistoryEntry {
+  ipAddress: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+export interface PortHistoryEntry {
+  port: number;
+  protocol: 'tcp' | 'udp';
+  service?: string;
+  event: 'opened' | 'closed';
+  timestamp: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    timestamp: string;
+    pagination: {
+      limit: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+      total: number;
+    };
+  };
+}
+
+export interface DeviceListParams {
+  limit?: number;
+  cursor?: string;
+  search?: string;
+  tag?: string;
+  status?: 'online' | 'offline';
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
+
+export interface ScanListParams {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface FilterParams {
+  status?: 'online' | 'offline';
+  tag?: string;
+  vendor?: string;
 }
 
 export interface Scan {
