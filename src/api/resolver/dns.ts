@@ -69,7 +69,7 @@ export async function discoverSsdp(timeout: number = 5000): Promise<Map<string, 
         resolve(results);
       }, timeout);
 
-      client.on('response', (headers: Record<string, string>, statusCode: number, rinfo: { address: string }) => {
+      client.on('response', (headers: any, statusCode: number, rinfo: { address: string }) => {
         if (!results.has(rinfo.address)) {
           results.set(rinfo.address, {
             friendlyName: headers.SERVER ?? headers.USN ?? rinfo.address,

@@ -12,21 +12,28 @@
     "lint": "eslint src/ tests/"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/multicast-dns": "^7.2.4",
     "@types/node": "^22.0.0",
-    "@types/better-sqlite3": "^7.6.0"
+    "@types/node-ssdp": "^4.0.5",
+    "@types/nodemailer": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^12.0.0",
-    "fastify": "^5.0.0",
     "@fastify/cors": "^11.0.0",
     "@fastify/static": "^8.0.0",
+    "better-sqlite3": "^12.0.0",
     "croner": "^9.0.0",
+    "dotenv": "^16.4.0",
     "fast-xml-parser": "^5.0.0",
-    "oui": "^13.0.0",
-    "pino": "^9.0.0",
+    "fastify": "^5.0.0",
     "js-yaml": "^4.1.0",
-    "dotenv": "^16.4.0"
+    "multicast-dns": "^7.2.5",
+    "node-ssdp": "^4.0.1",
+    "nodemailer": "^8.0.5",
+    "oui": "^13.0.0",
+    "pino": "^9.0.0"
   }
 }

@@ -37,9 +37,14 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
     return { status: 'ok', database: 'connected' };
   });
 
-  // Auth middleware for all /api routes
+  // Health check also at /api/v1/health (unauthenticated)
+  server.get('/api/v1/health', async () => {
+    return { status: 'ok', database: 'connected' };
+  });
+
+  // Auth middleware for all /api routes (except health)
   server.addHook('onRequest', async (request, reply) => {
-    if (request.url.startsWith('/api/')) {
+    if (request.url.startsWith('/api/') && !request.url.includes('/health')) {
       await authMiddleware(request, reply);
     }
   });

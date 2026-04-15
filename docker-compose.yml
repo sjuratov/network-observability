@@ -2,7 +2,10 @@ services:
   netobserver:
     build: .
     container_name: netobserver
-    network_mode: host
+    # On Linux, use network_mode: host for Layer 2 ARP scanning
+    # On macOS/Windows Docker Desktop, use ports mapping instead
+    ports:
+      - "8080:8080"
     cap_add:
       - NET_RAW
       - NET_ADMIN
@@ -11,6 +14,7 @@ services:
     environment:
       - WEB_UI_PORT=8080
       - LOG_LEVEL=info
+      - HOST=0.0.0.0
     restart: unless-stopped
 
 volumes:
