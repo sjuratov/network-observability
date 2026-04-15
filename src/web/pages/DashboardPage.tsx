@@ -125,11 +125,16 @@ export function DashboardPage() {
 
   const handleScan = async () => {
     setScanning(true);
+    setError(null);
     try {
       await api.triggerScan();
       await fetchData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed');
+    } catch (err: any) {
+      if (err?.status === 409) {
+        setError('A scan is already in progress. Please wait for it to complete.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Scan failed');
+      }
     } finally {
       setScanning(false);
     }
