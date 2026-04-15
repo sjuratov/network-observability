@@ -20,6 +20,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "include": ["src/api/**/*", "src/shared/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "src/web"]
 }

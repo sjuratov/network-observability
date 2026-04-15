@@ -3,8 +3,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY tsconfig.json ./
+COPY vite.config.web.ts ./
 COPY src/ ./src/
 RUN npx tsc
+RUN npx vite build --config vite.config.web.ts
 
 FROM node:22-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/public ./public
 COPY package.json ./
-COPY public/ ./public/
 VOLUME /data
 ENV NODE_ENV=production
 ENV DB_PATH=/data/network-obs.db
