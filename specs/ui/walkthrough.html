@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetObserver — User Flow Walkthrough</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+      padding: 0;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 2rem 2rem 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 0.25rem;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .toc h2 {
+      font-size: 1.1rem;
+      color: #38bdf8;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .toc ol {
+      list-style: none;
+      counter-reset: toc-counter;
+      padding: 0;
+    }
+
+    .toc ol li {
+      counter-increment: toc-counter;
+      margin-bottom: 0.5rem;
+    }
+
+    .toc ol li a {
+      color: #cbd5e1;
+      text-decoration: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .toc ol li a::before {
+      content: counter(toc-counter, decimal-leading-zero);
+      color: #38bdf8;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .toc ol li a:hover {
+      background: #334155;
+      color: #f1f5f9;
+    }
+
+    /* Flow Sections */
+    .flow {
+      margin-bottom: 3rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .flow-header {
+      background: #334155;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .flow-number {
+      background: #38bdf8;
+      color: #0f172a;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .flow-header h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .flow-body {
+      padding: 1.5rem;
+    }
+
+    .flow-description {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+
+    .flow-meta {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .flow-meta-item {
+      font-size: 0.8rem;
+    }
+
+    .flow-meta-item strong {
+      color: #38bdf8;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.7rem;
+    }
+
+    .flow-meta-item span {
+      color: #cbd5e1;
+    }
+
+    /* Steps */
+    .steps {
+      list-style: none;
+      padding: 0;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 0.9rem;
+      top: 0.5rem;
+      bottom: 0.5rem;
+      width: 2px;
+      background: #334155;
+    }
+
+    .step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .step:last-child { margin-bottom: 0; }
+
+    .step-number {
+      width: 1.8rem;
+      height: 1.8rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    .step-user .step-number {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .step-system .step-number {
+      background: #334155;
+      color: #94a3b8;
+      border: 1px solid #475569;
+    }
+
+    .step-content {
+      padding-top: 0.25rem;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    .step-content code {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    /* Screenshot placeholder */
+    .screenshot-placeholder {
+      background: #0f172a;
+      border: 1px dashed #475569;
+      border-radius: 6px;
+      padding: 2rem;
+      text-align: center;
+      color: #475569;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .screenshot-placeholder::before {
+      content: '🖼';
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #475569;
+      font-size: 0.8rem;
+      border-top: 1px solid #1e293b;
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .flow-meta { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NetObserver</h1>
+    <p>User Flow Walkthrough — 10 core user journeys</p>
+  </header>
+
+  <div class="container">
+    <!-- Table of Contents -->
+    <nav class="toc">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#flow-1">First-Run Experience</a></li>
+        <li><a href="#flow-2">Browse and Search Devices</a></li>
+        <li><a href="#flow-3">View Device Details</a></li>
+        <li><a href="#flow-4">Tag Multiple Devices</a></li>
+        <li><a href="#flow-5">Trigger Manual Scan</a></li>
+        <li><a href="#flow-6">Configure Scan Settings</a></li>
+        <li><a href="#flow-7">Set Up Webhook Alerts</a></li>
+        <li><a href="#flow-8">Export Device Data</a></li>
+        <li><a href="#flow-9">View Scan History</a></li>
+        <li><a href="#flow-10">Device Identity Merge</a></li>
+      </ol>
+    </nav>
+
+    <!-- Flow 1 -->
+    <section class="flow" id="flow-1">
+      <div class="flow-header">
+        <div class="flow-number">1</div>
+        <h3>First-Run Experience</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User opens the app for the first time, sees an empty dashboard, triggers the first scan, watches progress, and sees discovered devices.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Dashboard Overview</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device List (populated)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>Fresh install, no prior scans</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User navigates to the application root URL.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content">System renders Dashboard with <code>nav-header</code> and <code>empty-state</code> showing "No Devices Yet".</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>empty-state-action</code> ("Run Your First Scan").</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content">System shows <code>confirm-dialog</code> asking "Start a network scan?".</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User clicks <code>confirm-dialog-confirm</code>.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">System triggers scan — <code>scan-progress-bar</code> appears, polling every 5 seconds.</div></li>
+          <li class="step step-system"><div class="step-number">7</div><div class="step-content">Scan completes — metric cards update with discovered device counts.</div></li>
+          <li class="step step-user"><div class="step-number">8</div><div class="step-content">User clicks <code>nav-header-link-devices</code> to view discovered devices.</div></li>
+          <li class="step step-system"><div class="step-number">9</div><div class="step-content">System displays <code>device-table</code> populated with discovered devices.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Empty state → Scan progress → Populated dashboard</div>
+      </div>
+    </section>
+
+    <!-- Flow 2 -->
+    <section class="flow" id="flow-2">
+      <div class="flow-header">
+        <div class="flow-number">2</div>
+        <h3>Browse and Search Devices</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User navigates to the device list, searches by name, filters by status, sorts by last seen, and clicks a device to view details.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Device List</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device Detail</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>10+ devices with various names, vendors, statuses</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User navigates to Device List via <code>nav-header-link-devices</code>.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content">System displays <code>device-table</code> sorted by last-seen descending.</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User types "printer" in <code>search-bar-input</code>.</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content">System filters table in real-time — <code>device-table-row-count</code> updates.</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User clicks <code>filter-chips-status-online</code>.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">System narrows results to "printer" AND online devices.</div></li>
+          <li class="step step-user"><div class="step-number">7</div><div class="step-content">User clicks <code>device-table-sort-last-seen</code> to sort.</div></li>
+          <li class="step step-user"><div class="step-number">8</div><div class="step-content">User clicks <code>device-row-{deviceId}-name</code> to open device detail.</div></li>
+          <li class="step step-system"><div class="step-number">9</div><div class="step-content">System navigates to Device Detail showing <code>device-identity-card</code>.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Device list with search bar, filter chips, and sorted results</div>
+      </div>
+    </section>
+
+    <!-- Flow 3 -->
+    <section class="flow" id="flow-3">
+      <div class="flow-header">
+        <div class="flow-number">3</div>
+        <h3>View Device Details</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User opens a device, views identity info, switches between tabs (History, Ports, Presence, Tags), adds a tag, and saves.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Device Detail</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device Detail (Tags tab)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>Device exists with history, ports, presence data, and tags</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-system"><div class="step-number">1</div><div class="step-content">System shows <code>device-identity-card</code> with name, MAC, vendor, hostname, confidence.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>tab-bar</code> displays: History (active), Ports, Presence, Tags.</div></li>
+          <li class="step step-system"><div class="step-number">3</div><div class="step-content"><code>ip-history-table</code> shows all historical IPs.</div></li>
+          <li class="step step-user"><div class="step-number">4</div><div class="step-content">User clicks <code>tab-bar-tab-ports</code>.</div></li>
+          <li class="step step-system"><div class="step-number">5</div><div class="step-content"><code>port-table</code> shows open ports with services and changelog.</div></li>
+          <li class="step step-user"><div class="step-number">6</div><div class="step-content">User clicks <code>tab-bar-tab-presence</code>.</div></li>
+          <li class="step step-system"><div class="step-number">7</div><div class="step-content"><code>presence-timeline-chart</code> renders online/offline bar chart (30 days default).</div></li>
+          <li class="step step-user"><div class="step-number">8</div><div class="step-content">User clicks <code>tab-bar-tab-tags</code>.</div></li>
+          <li class="step step-user"><div class="step-number">9</div><div class="step-content">User types "Serv" in <code>tag-input-field</code> — selects "Server" from dropdown.</div></li>
+          <li class="step step-system"><div class="step-number">10</div><div class="step-content">System adds <code>tag-pill-server</code> and shows success <code>alert-banner</code>.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Device detail tabs — History, Ports, Presence, Tags</div>
+      </div>
+    </section>
+
+    <!-- Flow 4 -->
+    <section class="flow" id="flow-4">
+      <div class="flow-header">
+        <div class="flow-number">4</div>
+        <h3>Tag Multiple Devices</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User selects 3 devices via checkboxes, applies the "IoT" tag to all of them in a single bulk operation.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Device List</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device List (tags applied)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>5+ devices exist, "IoT" tag exists</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User selects 3 devices via <code>device-row-{id}-checkbox</code>.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>bulk-action-bar</code> appears — <code>bulk-action-bar-count</code> shows "3 selected".</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>bulk-action-bar-tag</code> ("Tag Selected").</div></li>
+          <li class="step step-user"><div class="step-number">4</div><div class="step-content">User types "IoT" in <code>tag-input-field</code> and selects it.</div></li>
+          <li class="step step-system"><div class="step-number">5</div><div class="step-content"><code>confirm-dialog</code> asks "Apply tag 'IoT' to 3 devices?".</div></li>
+          <li class="step step-user"><div class="step-number">6</div><div class="step-content">User clicks <code>confirm-dialog-confirm</code>.</div></li>
+          <li class="step step-system"><div class="step-number">7</div><div class="step-content">System applies tags, shows success <code>alert-banner</code>. All 3 rows show <code>tag-pill-iot</code>.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Bulk selection → Tag dialog → Tags applied</div>
+      </div>
+    </section>
+
+    <!-- Flow 5 -->
+    <section class="flow" id="flow-5">
+      <div class="flow-header">
+        <div class="flow-number">5</div>
+        <h3>Trigger Manual Scan</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User clicks "Scan Now", confirms, watches progress update in real-time, and sees metrics refresh after completion.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Dashboard Overview</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Dashboard Overview (updated)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>No scan in progress, prior scans completed</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User clicks <code>nav-header-scan-button</code> ("Scan Now").</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>confirm-dialog</code> asks "Start Network Scan?".</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>confirm-dialog-confirm</code>.</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content"><code>scan-progress-bar</code> appears. <code>nav-header-scan-button</code> becomes disabled.</div></li>
+          <li class="step step-system"><div class="step-number">5</div><div class="step-content">System polls every 5s — <code>scan-progress-bar-percentage</code> and <code>scan-progress-bar-fill</code> update.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">Scan completes — progress bar fades, button re-enables, metric cards refresh.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Scan Now → Progress bar → Updated metrics</div>
+      </div>
+    </section>
+
+    <!-- Flow 6 -->
+    <section class="flow" id="flow-6">
+      <div class="flow-header">
+        <div class="flow-number">6</div>
+        <h3>Configure Scan Settings</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User changes the scan cadence to every 4 hours and the data retention period to 180 days, then saves.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Settings</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Settings (saved)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>Default settings active</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User clicks <code>nav-header-link-settings</code>.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>settings-form</code> with <code>tab-bar</code> — Scanning tab active.</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User changes <code>settings-form-scan-cadence</code> to "every 4 hours".</div></li>
+          <li class="step step-user"><div class="step-number">4</div><div class="step-content">User clicks <code>tab-bar-tab-retention</code> and sets <code>settings-form-retention-days</code> to "180".</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User clicks <code>settings-form-save</code>.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">System saves and shows success <code>alert-banner</code> "Settings saved successfully".</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Settings form with Scanning and Retention tabs</div>
+      </div>
+    </section>
+
+    <!-- Flow 7 -->
+    <section class="flow" id="flow-7">
+      <div class="flow-header">
+        <div class="flow-number">7</div>
+        <h3>Set Up Webhook Alerts</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User configures a webhook URL for alerts, tests the connection, and saves the configuration.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Settings</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Settings (Alerts tab, saved)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>No webhook configured</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User navigates to Settings, clicks <code>tab-bar-tab-alerts</code>.</div></li>
+          <li class="step step-user"><div class="step-number">2</div><div class="step-content">User types webhook URL into <code>settings-form-webhook-url</code>.</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>settings-form-webhook-test</code> ("Test Webhook").</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content"><code>settings-form-webhook-status</code> shows green checkmark — "Success".</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User clicks <code>settings-form-save</code>.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">Success <code>alert-banner</code> — "Alert settings saved".</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Alerts settings with webhook URL, test button, and status</div>
+      </div>
+    </section>
+
+    <!-- Flow 8 -->
+    <section class="flow" id="flow-8">
+      <div class="flow-header">
+        <div class="flow-number">8</div>
+        <h3>Export Device Data</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User exports the current (optionally filtered) device list as a CSV file via the export button.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Device List</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device List (file downloaded)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>10+ devices exist</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User navigates to Device List. Optionally applies filters.</div></li>
+          <li class="step step-user"><div class="step-number">2</div><div class="step-content">User clicks <code>export-button-trigger</code> ("Export").</div></li>
+          <li class="step step-system"><div class="step-number">3</div><div class="step-content"><code>export-button-dropdown</code> shows: "Export CSV" and "Export JSON".</div></li>
+          <li class="step step-user"><div class="step-number">4</div><div class="step-content">User clicks <code>export-button-csv</code>.</div></li>
+          <li class="step step-system"><div class="step-number">5</div><div class="step-content">Browser downloads <code>devices_YYYY-MM-DD_HH-mm-ss.csv</code>. Success <code>alert-banner</code> shown.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Export dropdown with CSV/JSON options</div>
+      </div>
+    </section>
+
+    <!-- Flow 9 -->
+    <section class="flow" id="flow-9">
+      <div class="flow-header">
+        <div class="flow-number">9</div>
+        <h3>View Scan History</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User navigates to Scan History, views the list of past scans, and expands a scan to see detailed results.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Scan History</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Scan History (expanded row)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>5+ completed scans exist</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User clicks <code>nav-header-link-scans</code>.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>scan-history-table</code> shows paginated list of past scans, newest first.</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>scan-history-table-row-{scanId}-expand</code> on the most recent scan.</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content">Row expands to show <code>scan-history-table-row-{scanId}-details</code> — list of devices with status changes.</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User clicks expand again to collapse. Clicks <code>pagination-next</code> for older scans.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">System loads next page of scan history.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Scan history table with expanded row showing device list</div>
+      </div>
+    </section>
+
+    <!-- Flow 10 -->
+    <section class="flow" id="flow-10">
+      <div class="flow-header">
+        <div class="flow-number">10</div>
+        <h3>Device Identity Merge</h3>
+      </div>
+      <div class="flow-body">
+        <p class="flow-description">User identifies duplicate device entries, selects them, merges into a single device identity preserving all history.</p>
+        <div class="flow-meta">
+          <div class="flow-meta-item"><strong>Start</strong><span>Device List</span></div>
+          <div class="flow-meta-item"><strong>End</strong><span>Device Detail (merged)</span></div>
+          <div class="flow-meta-item"><strong>Preconditions</strong><span>Two devices representing the same physical device exist</span></div>
+        </div>
+        <ol class="steps">
+          <li class="step step-user"><div class="step-number">1</div><div class="step-content">User selects two duplicate devices via <code>device-row-{id}-checkbox</code>.</div></li>
+          <li class="step step-system"><div class="step-number">2</div><div class="step-content"><code>bulk-action-bar</code> shows — <code>bulk-action-bar-count</code> = "2 selected".</div></li>
+          <li class="step step-user"><div class="step-number">3</div><div class="step-content">User clicks <code>bulk-action-bar-merge</code>.</div></li>
+          <li class="step step-system"><div class="step-number">4</div><div class="step-content"><code>confirm-dialog</code> — "Merge Devices" with primary device selection.</div></li>
+          <li class="step step-user"><div class="step-number">5</div><div class="step-content">User selects primary device and clicks <code>confirm-dialog-confirm</code>.</div></li>
+          <li class="step step-system"><div class="step-number">6</div><div class="step-content">Merge succeeds — success <code>alert-banner</code>. Device list updates (duplicate removed).</div></li>
+          <li class="step step-user"><div class="step-number">7</div><div class="step-content">User clicks merged device name to view detail.</div></li>
+          <li class="step step-system"><div class="step-number">8</div><div class="step-content"><code>device-identity-card</code> shows combined identity. <code>ip-history-table</code> includes history from both devices.</div></li>
+        </ol>
+        <div class="screenshot-placeholder">Screenshot: Merge dialog → Merged device detail with combined history</div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    NetObserver — User Flow Walkthrough &middot; Generated for spec2cloud pipeline
+  </footer>
+</body>
+</html>

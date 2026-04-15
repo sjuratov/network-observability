@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetObserver — Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+  /* ---------- Header ---------- */
+  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
+  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
+  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
+  nav a:hover, nav a.active { color: #e2e8f0; }
+  /* ---------- Layout ---------- */
+  .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+  /* ---------- Metric Cards ---------- */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .metric-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; }
+  .metric-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem; }
+  .metric-card .value { font-size: 2rem; font-weight: 700; }
+  .metric-card .sub { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+  .value.primary { color: #0ea5e9; }
+  .value.success { color: #22c55e; }
+  .value.danger { color: #ef4444; }
+  .value.warning { color: #eab308; }
+  /* ---------- Two-column ---------- */
+  .columns { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+  @media (max-width: 768px) { .columns { grid-template-columns: 1fr; } }
+  /* ---------- Card ---------- */
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+  /* ---------- Activity list ---------- */
+  .activity-list { list-style: none; }
+  .activity-list li { padding: 0.6rem 0; border-bottom: 1px solid #334155; display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.875rem; }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .dot-green { background: #22c55e; }
+  .dot-red { background: #ef4444; }
+  .dot-blue { background: #0ea5e9; }
+  .dot-yellow { background: #eab308; }
+  .activity-time { color: #64748b; font-size: 0.75rem; margin-left: auto; white-space: nowrap; }
+  /* ---------- Buttons ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; text-decoration: none; }
+  .btn-primary { background: #0ea5e9; color: #fff; }
+  .btn-primary:hover { background: #0284c7; }
+  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
+  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
+  .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  /* ---------- Status badge ---------- */
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+  .badge-success { background: rgba(34,197,94,0.15); color: #22c55e; }
+</style>
+</head>
+<body>
+<header data-testid="header">
+  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
+  <nav data-testid="nav">
+    <a href="dashboard.html" class="active" data-testid="nav-dashboard">Dashboard</a>
+    <a href="device-list.html" data-testid="nav-devices">Devices</a>
+    <a href="scan-history.html" data-testid="nav-scans">Scans</a>
+    <a href="settings.html" data-testid="nav-settings">Settings</a>
+  </nav>
+</header>
+
+<div class="page">
+  <h2>Dashboard</h2>
+
+  <!-- Metric Cards -->
+  <div class="metrics" data-testid="metrics">
+    <div class="metric-card" data-testid="metric-total-devices">
+      <div class="label">Total Devices</div>
+      <div class="value primary">47</div>
+      <div class="sub">across 2 subnets</div>
+    </div>
+    <div class="metric-card" data-testid="metric-new-devices">
+      <div class="label">New (24h)</div>
+      <div class="value success">3</div>
+      <div class="sub">since yesterday</div>
+    </div>
+    <div class="metric-card" data-testid="metric-offline-devices">
+      <div class="label">Offline</div>
+      <div class="value danger">2</div>
+      <div class="sub">not seen in last scan</div>
+    </div>
+    <div class="metric-card" data-testid="metric-last-scan">
+      <div class="label">Last Scan</div>
+      <div class="value" style="font-size:1.25rem;">14:32:05</div>
+      <div class="sub"><span class="badge badge-success">Completed</span> · 3 min 45 sec</div>
+    </div>
+  </div>
+
+  <div class="columns">
+    <!-- Recent Activity -->
+    <div class="card" data-testid="recent-activity">
+      <div class="card-title">Recent Activity</div>
+      <ul class="activity-list">
+        <li data-testid="activity-item-1">
+          <span class="activity-dot dot-green"></span>
+          <span><strong>New device found</strong> — Samsung Galaxy (AA:BB:CC:11:22:33) on 192.168.1.55</span>
+          <span class="activity-time">2 min ago</span>
+        </li>
+        <li data-testid="activity-item-2">
+          <span class="activity-dot dot-green"></span>
+          <span><strong>New device found</strong> — Unknown (DD:EE:FF:44:55:66) on 192.168.1.71</span>
+          <span class="activity-time">2 min ago</span>
+        </li>
+        <li data-testid="activity-item-3">
+          <span class="activity-dot dot-red"></span>
+          <span><strong>Device offline</strong> — Raspberry Pi 4 (last seen 192.168.1.30)</span>
+          <span class="activity-time">18 min ago</span>
+        </li>
+        <li data-testid="activity-item-4">
+          <span class="activity-dot dot-blue"></span>
+          <span><strong>Scan completed</strong> — 47 devices found, 3 new</span>
+          <span class="activity-time">20 min ago</span>
+        </li>
+        <li data-testid="activity-item-5">
+          <span class="activity-dot dot-red"></span>
+          <span><strong>Device offline</strong> — Office Printer (last seen 192.168.1.15)</span>
+          <span class="activity-time">1 hr ago</span>
+        </li>
+        <li data-testid="activity-item-6">
+          <span class="activity-dot dot-yellow"></span>
+          <span><strong>Port change</strong> — NAS Server: port 8080 opened</span>
+          <span class="activity-time">2 hr ago</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Quick Actions -->
+    <div>
+      <div class="card" data-testid="quick-actions">
+        <div class="card-title">Quick Actions</div>
+        <div class="actions" style="flex-direction:column;">
+          <button class="btn btn-primary" data-testid="btn-scan-now">⟳ Scan Now</button>
+          <button class="btn btn-outline" data-testid="btn-export-devices">↓ Export Devices</button>
+        </div>
+      </div>
+
+      <div class="card" data-testid="network-summary">
+        <div class="card-title">Network Summary</div>
+        <div style="font-size:0.85rem;color:#94a3b8;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>Online</span><span style="color:#22c55e;font-weight:600;">45</span></div>
+          <div style="width:100%;background:#334155;border-radius:4px;height:8px;margin-bottom:0.75rem;">
+            <div style="width:95.7%;background:#22c55e;border-radius:4px;height:8px;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>Offline</span><span style="color:#ef4444;font-weight:600;">2</span></div>
+          <div style="width:100%;background:#334155;border-radius:4px;height:8px;margin-bottom:0.75rem;">
+            <div style="width:4.3%;background:#ef4444;border-radius:4px;height:8px;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>New (24h)</span><span style="color:#eab308;font-weight:600;">3</span></div>
+          <div style="width:100%;background:#334155;border-radius:4px;height:8px;">
+            <div style="width:6.4%;background:#eab308;border-radius:4px;height:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

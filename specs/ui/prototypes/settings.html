@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetObserver — Settings</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
+  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
+  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
+  nav a:hover, nav a.active { color: #e2e8f0; }
+  .page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+  h2 { font-size: 1.25rem; margin-bottom: 1.25rem; }
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid #334155; margin-bottom: 1.5rem; }
+  .tab { padding: 0.6rem 1.25rem; font-size: 0.85rem; color: #94a3b8; cursor: pointer; border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; }
+  .tab:hover { color: #e2e8f0; }
+  .tab.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
+  /* Tab content */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  /* Card */
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+  /* Form fields */
+  .form-group { margin-bottom: 1rem; }
+  .form-group:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.3rem; }
+  input[type="text"], input[type="number"], input[type="password"], input[type="email"] {
+    width: 100%; padding: 0.5rem 0.75rem; background: #0f172a; border: 1px solid #334155;
+    border-radius: 6px; color: #e2e8f0; font-size: 0.85rem; font-family: inherit;
+  }
+  input:focus { outline: none; border-color: #0ea5e9; }
+  .input-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+  .input-row .form-group { flex: 1; margin-bottom: 0; }
+  .hint { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+  /* Radio group */
+  .radio-group { display: flex; gap: 1.25rem; margin-top: 0.35rem; }
+  .radio-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; cursor: pointer; color: #e2e8f0; }
+  input[type="radio"] { accent-color: #0ea5e9; }
+  /* Checkbox */
+  .checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; padding: 0.3rem 0; }
+  input[type="checkbox"] { accent-color: #0ea5e9; width: 16px; height: 16px; }
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+  .btn-primary { background: #0ea5e9; color: #fff; }
+  .btn-primary:hover { background: #0284c7; }
+  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
+  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
+  .btn-danger { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+  .btn-danger:hover { background: rgba(239,68,68,0.1); }
+  .btn-success { background: transparent; border: 1px solid #22c55e; color: #22c55e; }
+  .btn-success:hover { background: rgba(34,197,94,0.1); }
+  .btn-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+  /* Subnet list */
+  .subnet-list { list-style: none; margin-bottom: 1rem; }
+  .subnet-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; font-size: 0.85rem; }
+  /* API key display */
+  .key-display { display: flex; align-items: center; gap: 0.5rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.5rem 0.75rem; font-family: monospace; font-size: 0.85rem; color: #94a3b8; }
+  .key-display .key { flex: 1; }
+  /* Save bar */
+  .save-bar { display: flex; justify-content: flex-end; margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+<header data-testid="header">
+  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
+  <nav data-testid="nav">
+    <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+    <a href="device-list.html" data-testid="nav-devices">Devices</a>
+    <a href="scan-history.html" data-testid="nav-scans">Scans</a>
+    <a href="settings.html" class="active" data-testid="nav-settings">Settings</a>
+  </nav>
+</header>
+
+<div class="page">
+  <h2>Settings</h2>
+
+  <div class="tabs" data-testid="settings-tabs">
+    <button class="tab active" data-testid="tab-general" onclick="showTab('general')">General</button>
+    <button class="tab" data-testid="tab-network" onclick="showTab('network')">Network</button>
+    <button class="tab" data-testid="tab-alerts" onclick="showTab('alerts')">Alerts</button>
+    <button class="tab" data-testid="tab-api" onclick="showTab('api')">API</button>
+  </div>
+
+  <!-- ===== General Tab ===== -->
+  <div id="tab-general" class="tab-content active" data-testid="panel-general">
+    <div class="card">
+      <div class="card-title">Scan Schedule</div>
+      <div class="form-group">
+        <label for="cron-input">Scan Cadence (cron expression)</label>
+        <input type="text" id="cron-input" value="*/30 * * * *" data-testid="input-cron" />
+        <div class="hint" data-testid="cron-preview">Runs every 30 minutes</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Scan Intensity</div>
+      <div class="radio-group" data-testid="scan-intensity">
+        <label class="radio-label"><input type="radio" name="intensity" value="quick" data-testid="radio-quick" /> Quick</label>
+        <label class="radio-label"><input type="radio" name="intensity" value="normal" checked data-testid="radio-normal" /> Normal</label>
+        <label class="radio-label"><input type="radio" name="intensity" value="thorough" data-testid="radio-thorough" /> Thorough</label>
+      </div>
+      <div class="hint">Quick: ARP only (~30s) · Normal: ARP + basic ports (~3min) · Thorough: full port scan (~10min)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Data Retention</div>
+      <div class="form-group">
+        <label for="retention-days">Keep historical data for</label>
+        <div class="input-row">
+          <div class="form-group">
+            <input type="number" id="retention-days" value="90" min="1" max="365" data-testid="input-retention-days" />
+          </div>
+          <span style="font-size:0.85rem;padding-bottom:0.5rem;">days</span>
+        </div>
+        <div class="hint">Older scan results and presence data will be automatically purged.</div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="btn btn-primary" data-testid="btn-save-general">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- ===== Network Tab ===== -->
+  <div id="tab-network" class="tab-content" data-testid="panel-network">
+    <div class="card">
+      <div class="card-title">Detected Subnets</div>
+      <ul class="subnet-list" data-testid="subnet-list">
+        <li>
+          <label class="checkbox-label"><input type="checkbox" checked data-testid="subnet-check-1" /> 192.168.1.0/24</label>
+          <span style="font-size:0.75rem;color:#64748b;">(eth0 — primary)</span>
+        </li>
+        <li>
+          <label class="checkbox-label"><input type="checkbox" checked data-testid="subnet-check-2" /> 192.168.2.0/24</label>
+          <span style="font-size:0.75rem;color:#64748b;">(wlan0 — wireless)</span>
+        </li>
+        <li>
+          <label class="checkbox-label"><input type="checkbox" data-testid="subnet-check-3" /> 172.17.0.0/16</label>
+          <span style="font-size:0.75rem;color:#64748b;">(docker0 — containers)</span>
+        </li>
+      </ul>
+      <div class="hint">Uncheck subnets you don't want to scan.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Add Subnet Manually</div>
+      <div class="input-row">
+        <div class="form-group">
+          <label for="manual-subnet">Subnet (CIDR notation)</label>
+          <input type="text" id="manual-subnet" placeholder="10.0.0.0/24" data-testid="input-manual-subnet" />
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:0;" data-testid="btn-add-subnet">Add</button>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="btn btn-primary" data-testid="btn-save-network">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- ===== Alerts Tab ===== -->
+  <div id="tab-alerts" class="tab-content" data-testid="panel-alerts">
+    <div class="card">
+      <div class="card-title">Webhook</div>
+      <div class="form-group">
+        <label for="webhook-url">Webhook URL</label>
+        <input type="text" id="webhook-url" placeholder="https://hooks.example.com/netobserver" data-testid="input-webhook-url" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" data-testid="btn-test-webhook">Test Webhook</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Email (SMTP)</div>
+      <div class="input-row" style="margin-bottom:1rem;">
+        <div class="form-group">
+          <label for="smtp-server">SMTP Server</label>
+          <input type="text" id="smtp-server" placeholder="smtp.gmail.com" data-testid="input-smtp-server" />
+        </div>
+        <div class="form-group" style="max-width:100px;">
+          <label for="smtp-port">Port</label>
+          <input type="number" id="smtp-port" value="587" data-testid="input-smtp-port" />
+        </div>
+      </div>
+      <div class="input-row" style="margin-bottom:1rem;">
+        <div class="form-group">
+          <label for="smtp-user">Username</label>
+          <input type="text" id="smtp-user" placeholder="alerts@example.com" data-testid="input-smtp-user" />
+        </div>
+        <div class="form-group">
+          <label for="smtp-password">Password</label>
+          <input type="password" id="smtp-password" placeholder="••••••••" data-testid="input-smtp-password" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="smtp-recipient">Recipient Email</label>
+        <input type="email" id="smtp-recipient" placeholder="admin@example.com" data-testid="input-smtp-recipient" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" data-testid="btn-test-email">Test Email</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Alert Cooldown</div>
+      <div class="form-group">
+        <label for="cooldown">Minimum time between repeated alerts</label>
+        <div class="input-row">
+          <div class="form-group">
+            <input type="number" id="cooldown" value="300" min="0" data-testid="input-alert-cooldown" />
+          </div>
+          <span style="font-size:0.85rem;padding-bottom:0.5rem;">seconds</span>
+        </div>
+        <div class="hint">Default: 300 seconds (5 minutes). Set to 0 for no cooldown.</div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="btn btn-primary" data-testid="btn-save-alerts">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- ===== API Tab ===== -->
+  <div id="tab-api" class="tab-content" data-testid="panel-api">
+    <div class="card">
+      <div class="card-title">API Key</div>
+      <div class="form-group">
+        <label>Current API Key</label>
+        <div class="key-display" data-testid="api-key-display">
+          <span class="key" data-testid="api-key-value">nobs_••••••••••••••••••••••••</span>
+          <button class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.75rem;" data-testid="btn-show-key">Show</button>
+          <button class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.75rem;" data-testid="btn-copy-key">Copy</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-danger" data-testid="btn-regenerate-key">Regenerate Key</button>
+      </div>
+      <div class="hint" style="margin-top:0.5rem;">⚠ Regenerating will invalidate the current key immediately. All integrations using this key will need to be updated.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">API Documentation</div>
+      <div style="font-size:0.85rem;color:#94a3b8;">
+        <p>Base URL: <code style="color:#0ea5e9;">http://localhost:8080/api/v1</code></p>
+        <p style="margin-top:0.5rem;">Include your API key in the <code style="color:#0ea5e9;">X-API-Key</code> header with every request.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-testid="tab-${id}"]`).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+</script>
+</body>
+</html>

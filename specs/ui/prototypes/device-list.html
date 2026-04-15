@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetObserver — Device List</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
+  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
+  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
+  nav a:hover, nav a.active { color: #e2e8f0; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 1.5rem; }
+  h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+  /* ---------- Toolbar ---------- */
+  .toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .search-box { flex: 1; min-width: 220px; padding: 0.5rem 0.75rem; background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 0.875rem; }
+  .search-box::placeholder { color: #64748b; }
+  .search-box:focus { outline: none; border-color: #0ea5e9; }
+  /* ---------- Filters ---------- */
+  .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+  .chip { padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; }
+  .chip:hover { border-color: #0ea5e9; color: #e2e8f0; }
+  .chip.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+  select.filter-select { padding: 0.3rem 0.5rem; border-radius: 6px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 0.75rem; cursor: pointer; }
+  select.filter-select:focus { outline: none; border-color: #0ea5e9; }
+  /* ---------- Buttons ---------- */
+  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+  .btn-primary { background: #0ea5e9; color: #fff; }
+  .btn-primary:hover { background: #0284c7; }
+  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
+  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
+  .btn-danger { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+  /* ---------- Bulk bar ---------- */
+  .bulk-bar { background: #1e293b; border: 1px solid #0ea5e9; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+  .bulk-bar .count { color: #0ea5e9; font-weight: 600; }
+  /* ---------- Table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; padding: 0.6rem 0.75rem; color: #94a3b8; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #334155; }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1e293b; }
+  tr:nth-child(even) td { background: #1e293b; }
+  tr:hover td { background: #334155; }
+  /* Status dots */
+  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .status-online { background: #22c55e; }
+  .status-offline { background: #ef4444; }
+  .status-new { background: #eab308; }
+  /* Tag pills */
+  .tag { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.7rem; background: rgba(14,165,233,0.15); color: #0ea5e9; margin-right: 0.25rem; }
+  /* Checkbox */
+  input[type="checkbox"] { accent-color: #0ea5e9; width: 15px; height: 15px; cursor: pointer; }
+  /* Pagination */
+  .pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; }
+  .page-btns { display: flex; gap: 0.25rem; }
+  .page-btn { padding: 0.3rem 0.6rem; border: 1px solid #334155; background: transparent; color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+  .page-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+  .page-btn:hover:not(.active) { border-color: #0ea5e9; color: #e2e8f0; }
+  /* Export row */
+  .export-row { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<header data-testid="header">
+  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
+  <nav data-testid="nav">
+    <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+    <a href="device-list.html" class="active" data-testid="nav-devices">Devices</a>
+    <a href="scan-history.html" data-testid="nav-scans">Scans</a>
+    <a href="settings.html" data-testid="nav-settings">Settings</a>
+  </nav>
+</header>
+
+<div class="page">
+  <div class="toolbar">
+    <h2 style="margin-bottom:0;">Devices</h2>
+    <input type="text" class="search-box" placeholder="Search by name, MAC, IP, vendor, tag…" data-testid="search-input" />
+  </div>
+
+  <!-- Filters -->
+  <div class="filters" data-testid="filters">
+    <span style="font-size:0.75rem;color:#64748b;margin-right:0.25rem;">Status:</span>
+    <button class="chip active" data-testid="filter-status-all">All</button>
+    <button class="chip" data-testid="filter-status-online">Online</button>
+    <button class="chip" data-testid="filter-status-offline">Offline</button>
+    <button class="chip" data-testid="filter-status-new">New</button>
+    <select class="filter-select" data-testid="filter-tags">
+      <option value="">Tags ▾</option>
+      <option>IoT</option>
+      <option>Critical</option>
+      <option>Printer</option>
+      <option>Media</option>
+      <option>Workstation</option>
+      <option>Network</option>
+      <option>Trusted</option>
+      <option>Guest</option>
+    </select>
+    <select class="filter-select" data-testid="filter-vendor">
+      <option value="">Vendor ▾</option>
+      <option>Apple</option>
+      <option>Samsung</option>
+      <option>TP-Link</option>
+      <option>Raspberry Pi</option>
+      <option>HP</option>
+      <option>Intel</option>
+      <option>Sonos</option>
+      <option>Unknown</option>
+    </select>
+  </div>
+
+  <!-- Bulk action bar (shown when items selected) -->
+  <div class="bulk-bar" data-testid="bulk-actions">
+    <span class="count">3 selected</span>
+    <button class="btn btn-primary" data-testid="bulk-tag">Tag Selected</button>
+    <button class="btn btn-outline" data-testid="bulk-mark-known">Mark Known</button>
+    <button class="btn btn-outline" data-testid="bulk-export">Export Selected</button>
+  </div>
+
+  <!-- Device Table -->
+  <div class="table-wrap">
+    <table data-testid="device-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" data-testid="select-all" /></th>
+          <th>Status</th>
+          <th>Name</th>
+          <th>MAC Address</th>
+          <th>IP Address</th>
+          <th>Vendor</th>
+          <th>Tags</th>
+          <th>First Seen</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-testid="device-row-1">
+          <td><input type="checkbox" data-testid="select-device-1" checked /></td>
+          <td><span class="status-dot status-online" data-testid="status-1"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-1">Living Room TV</a></td>
+          <td>AA:BB:CC:11:22:33</td>
+          <td>192.168.1.42</td>
+          <td>Samsung</td>
+          <td><span class="tag">Media</span><span class="tag">IoT</span></td>
+          <td>2024-01-15</td>
+          <td>2024-06-15 14:30</td>
+        </tr>
+        <tr data-testid="device-row-2">
+          <td><input type="checkbox" data-testid="select-device-2" checked /></td>
+          <td><span class="status-dot status-online" data-testid="status-2"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-2">Office MacBook</a></td>
+          <td>A4:83:E7:2F:00:B1</td>
+          <td>192.168.1.10</td>
+          <td>Apple</td>
+          <td><span class="tag">Workstation</span><span class="tag">Trusted</span></td>
+          <td>2024-02-01</td>
+          <td>2024-06-15 14:32</td>
+        </tr>
+        <tr data-testid="device-row-3">
+          <td><input type="checkbox" data-testid="select-device-3" checked /></td>
+          <td><span class="status-dot status-offline" data-testid="status-3"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-3">Office Printer</a></td>
+          <td>C8:B5:AD:10:20:30</td>
+          <td>192.168.1.15</td>
+          <td>HP</td>
+          <td><span class="tag">Printer</span><span class="tag">Critical</span></td>
+          <td>2024-01-20</td>
+          <td>2024-06-15 13:10</td>
+        </tr>
+        <tr data-testid="device-row-4">
+          <td><input type="checkbox" data-testid="select-device-4" /></td>
+          <td><span class="status-dot status-online" data-testid="status-4"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-4">WiFi Router</a></td>
+          <td>14:CC:20:AA:BB:CC</td>
+          <td>192.168.1.1</td>
+          <td>TP-Link</td>
+          <td><span class="tag">Network</span><span class="tag">Critical</span></td>
+          <td>2024-01-10</td>
+          <td>2024-06-15 14:32</td>
+        </tr>
+        <tr data-testid="device-row-5">
+          <td><input type="checkbox" data-testid="select-device-5" /></td>
+          <td><span class="status-dot status-offline" data-testid="status-5"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-5">Raspberry Pi 4</a></td>
+          <td>DC:A6:32:FF:EE:DD</td>
+          <td>192.168.1.30</td>
+          <td>Raspberry Pi</td>
+          <td><span class="tag">IoT</span></td>
+          <td>2024-03-05</td>
+          <td>2024-06-15 14:14</td>
+        </tr>
+        <tr data-testid="device-row-6">
+          <td><input type="checkbox" data-testid="select-device-6" /></td>
+          <td><span class="status-dot status-online" data-testid="status-6"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-6">Kitchen Speaker</a></td>
+          <td>B8:E9:37:12:34:56</td>
+          <td>192.168.1.60</td>
+          <td>Sonos</td>
+          <td><span class="tag">Media</span></td>
+          <td>2024-04-10</td>
+          <td>2024-06-15 14:28</td>
+        </tr>
+        <tr data-testid="device-row-7">
+          <td><input type="checkbox" data-testid="select-device-7" /></td>
+          <td><span class="status-dot status-new" data-testid="status-7"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-7">Samsung Galaxy</a></td>
+          <td>DD:EE:FF:44:55:66</td>
+          <td>192.168.1.55</td>
+          <td>Samsung</td>
+          <td></td>
+          <td>2024-06-15</td>
+          <td>2024-06-15 14:30</td>
+        </tr>
+        <tr data-testid="device-row-8">
+          <td><input type="checkbox" data-testid="select-device-8" /></td>
+          <td><span class="status-dot status-online" data-testid="status-8"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-8">NAS Server</a></td>
+          <td>00:11:32:AB:CD:EF</td>
+          <td>192.168.1.50</td>
+          <td>Intel</td>
+          <td><span class="tag">Critical</span><span class="tag">Trusted</span></td>
+          <td>2024-01-12</td>
+          <td>2024-06-15 14:31</td>
+        </tr>
+        <tr data-testid="device-row-9">
+          <td><input type="checkbox" data-testid="select-device-9" /></td>
+          <td><span class="status-dot status-new" data-testid="status-9"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-9">Unknown Device</a></td>
+          <td>F0:F0:F0:AA:BB:CC</td>
+          <td>192.168.1.71</td>
+          <td>Unknown</td>
+          <td></td>
+          <td>2024-06-15</td>
+          <td>2024-06-15 14:30</td>
+        </tr>
+        <tr data-testid="device-row-10">
+          <td><input type="checkbox" data-testid="select-device-10" /></td>
+          <td><span class="status-dot status-online" data-testid="status-10"></span></td>
+          <td><a href="device-detail.html" data-testid="device-link-10">Guest iPhone</a></td>
+          <td>3C:06:30:11:22:33</td>
+          <td>192.168.1.80</td>
+          <td>Apple</td>
+          <td><span class="tag">Guest</span><span class="tag">Mobile</span></td>
+          <td>2024-06-14</td>
+          <td>2024-06-15 14:20</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" data-testid="pagination">
+    <span>Showing 1–10 of 47 devices</span>
+    <div class="page-btns">
+      <button class="page-btn" data-testid="page-prev">← Prev</button>
+      <button class="page-btn active" data-testid="page-1">1</button>
+      <button class="page-btn" data-testid="page-2">2</button>
+      <button class="page-btn" data-testid="page-3">3</button>
+      <button class="page-btn" data-testid="page-4">4</button>
+      <button class="page-btn" data-testid="page-5">5</button>
+      <button class="page-btn" data-testid="page-next">Next →</button>
+    </div>
+  </div>
+
+  <!-- Export buttons -->
+  <div class="export-row" data-testid="export-actions">
+    <button class="btn btn-outline" data-testid="export-csv">↓ Export CSV</button>
+    <button class="btn btn-outline" data-testid="export-json">↓ Export JSON</button>
+  </div>
+</div>
+</body>
+</html>
