@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
+import dns from 'node:dns';
 import type { Database } from '../db/database.js';
 import { runScan, deduplicateResults, detectSubnets } from '../scanner/discovery.js';
 
@@ -148,6 +149,19 @@ export async function scanRoutes(fastify: FastifyInstance) {
         const scanResult = await runScan({ subnets, intensity });
         const deviceResults = (scanResult as any).results || [];
         console.log(`Scan completed: subnets=${JSON.stringify(subnets)}, ${scanResult.devicesFound} found, ${deviceResults.length} results to store`);
+
+        // Enrich with reverse DNS lookups
+        await Promise.allSettled(deviceResults.map(async (dev: any) => {
+          if (!dev.hostname && dev.ipAddress) {
+            try {
+              const hostnames = await dns.promises.reverse(dev.ipAddress);
+              if (hostnames.length > 0) {
+                dev.hostname = hostnames[0];
+              }
+            } catch { /* ignore DNS lookup failures */ }
+          }
+        }));
+
         const completedAt = new Date().toISOString();
         const durationMs = new Date(completedAt).getTime() - new Date(now).getTime();
 

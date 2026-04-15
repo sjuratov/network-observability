@@ -173,10 +173,17 @@ function parseNmapXml(xml: string, scanId: string, method: string): ScanResult[]
 
     console.log(JSON.stringify({ msg: `parseNmapXml: ${method}, XML length: ${xml.length}, hosts found: ${hosts.length}` }));
 
+    // Reasons that indicate a genuinely alive host (not NAT/routing artifacts)
+    const validReasons = new Set(['echo-reply', 'syn-ack', 'arp-response', 'udp-response', 'localhost-response', 'user-set']);
+
     const results: ScanResult[] = [];
     for (const host of hosts) {
       const status = host?.status?.['@_state'] ?? host?.status;
       if (status === 'down') continue;
+
+      // Filter out false positives from Docker NAT (TCP RST responses)
+      const reason = host?.status?.['@_reason'] ?? '';
+      if (reason && !validReasons.has(reason)) continue;
 
       let ip = '';
       let mac = '';
