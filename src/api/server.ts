@@ -60,8 +60,8 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
     { prefix: '/api/v1' },
   );
 
-  // Serve SPA static files (when built)
-  const publicDir = path.join(__dirname, '..', '..', 'dist', 'public');
+  // Serve SPA static files
+  const publicDir = path.join(__dirname, '..', '..', '..', 'public');
   try {
     await server.register(fastifyStatic, {
       root: publicDir,

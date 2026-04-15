@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetObserver — Network Observability</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    .header h1 { font-size: 20px; color: #0ea5e9; }
+    .header span { color: #94a3b8; font-size: 14px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .card .label { color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+    .card .value { font-size: 28px; font-weight: 700; }
+    .card .value.online { color: #22c55e; }
+    .card .value.new { color: #eab308; }
+    .card .value.offline { color: #ef4444; }
+    .card .value.scan { color: #0ea5e9; }
+    .section { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .section h2 { font-size: 16px; margin-bottom: 12px; color: #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 8px 12px; color: #94a3b8; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #334155; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 14px; }
+    tr:hover td { background: #334155; }
+    .status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status.online { background: #22c55e; }
+    .status.offline { background: #ef4444; }
+    .btn { background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #0284c7; }
+    .btn:disabled { background: #334155; cursor: not-allowed; }
+    .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
+    input[type="text"] { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 300px; }
+    .tag { display: inline-block; background: #334155; color: #94a3b8; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 4px; }
+    .empty { text-align: center; padding: 40px; color: #64748b; }
+    .error { color: #ef4444; padding: 12px; background: #1e293b; border: 1px solid #ef4444; border-radius: 8px; margin: 12px 0; }
+    .api-key-box { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; margin-top: 8px; word-break: break-all; }
+    .loading { color: #0ea5e9; }
+    .nav { display: flex; gap: 4px; margin-bottom: 24px; }
+    .nav button { background: transparent; border: 1px solid #334155; color: #94a3b8; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .nav button.active { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+    .nav button:hover:not(.active) { border-color: #0ea5e9; color: #e2e8f0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔭 NetObserver</h1>
+    <span>Network Observability</span>
+  </div>
+
+  <div class="container">
+    <div class="nav">
+      <button class="active" onclick="showTab('dashboard')">Dashboard</button>
+      <button onclick="showTab('devices')">Devices</button>
+      <button onclick="showTab('scans')">Scans</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard">
+      <div class="cards">
+        <div class="card"><div class="label">Total Devices</div><div class="value online" id="total-devices">—</div></div>
+        <div class="card"><div class="label">Online</div><div class="value online" id="online-devices">—</div></div>
+        <div class="card"><div class="label">Offline</div><div class="value offline" id="offline-devices">—</div></div>
+        <div class="card"><div class="label">Last Scan</div><div class="value scan" id="last-scan" style="font-size:16px">—</div></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" onclick="triggerScan()" id="scan-btn">⚡ Scan Now</button>
+      </div>
+    </div>
+
+    <!-- Devices Tab -->
+    <div id="tab-devices" class="hidden">
+      <div class="toolbar">
+        <input type="text" placeholder="Search devices..." oninput="filterDevices(this.value)" id="search-input">
+      </div>
+      <div class="section">
+        <table>
+          <thead><tr><th>Status</th><th>Name</th><th>MAC Address</th><th>IP Address</th><th>Vendor</th><th>First Seen</th><th>Last Seen</th></tr></thead>
+          <tbody id="device-table"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Scans Tab -->
+    <div id="tab-scans" class="hidden">
+      <div class="section">
+        <h2>Scan History</h2>
+        <table>
+          <thead><tr><th>Status</th><th>Started</th><th>Duration</th><th>Devices Found</th></tr></thead>
+          <tbody id="scan-table"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="api-key-notice" class="section hidden">
+      <h2>🔑 API Key Required</h2>
+      <p style="color:#94a3b8;margin-bottom:8px">Enter your API key to connect. Check container logs or <code style="color:#0ea5e9">data/.api-key</code></p>
+      <div class="toolbar">
+        <input type="text" id="api-key-input" placeholder="Paste your API key...">
+        <button class="btn" onclick="saveApiKey()">Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let API_KEY = localStorage.getItem('netobserver-api-key') || '';
+    let allDevices = [];
+
+    async function api(path, opts = {}) {
+      const res = await fetch(`/api/v1${path}`, {
+        ...opts,
+        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json', ...opts.headers }
+      });
+      if (res.status === 401) {
+        document.getElementById('api-key-notice').classList.remove('hidden');
+        throw new Error('Unauthorized');
+      }
+      return res.json();
+    }
+
+    function saveApiKey() {
+      API_KEY = document.getElementById('api-key-input').value.trim();
+      localStorage.setItem('netobserver-api-key', API_KEY);
+      document.getElementById('api-key-notice').classList.add('hidden');
+      loadDashboard();
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      event.target.classList.add('active');
+      if (tab === 'devices') loadDevices();
+      if (tab === 'scans') loadScans();
+    }
+
+    async function loadDashboard() {
+      try {
+        const data = await api('/stats/overview');
+        const stats = data.data || data;
+        document.getElementById('total-devices').textContent = stats.totalDevices ?? 0;
+        document.getElementById('online-devices').textContent = stats.onlineDevices ?? 0;
+        document.getElementById('offline-devices').textContent = stats.offlineDevices ?? 0;
+        document.getElementById('last-scan').textContent = stats.lastScan
+          ? new Date(stats.lastScan.completedAt || stats.lastScan.startedAt).toLocaleString()
+          : 'Never';
+      } catch(e) { if (e.message !== 'Unauthorized') console.error(e); }
+    }
+
+    async function loadDevices() {
+      try {
+        const data = await api('/devices');
+        allDevices = data.data || data || [];
+        renderDevices(allDevices);
+      } catch(e) { if (e.message !== 'Unauthorized') console.error(e); }
+    }
+
+    function renderDevices(devices) {
+      const tbody = document.getElementById('device-table');
+      if (!devices.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No devices discovered yet. Run a scan!</td></tr>'; return; }
+      tbody.innerHTML = devices.map(d => `<tr>
+        <td><span class="status ${d.isOnline ? 'online' : 'offline'}"></span>${d.isOnline ? 'Online' : 'Offline'}</td>
+        <td>${d.displayName || d.hostname || '—'}</td>
+        <td style="font-family:monospace;font-size:13px">${d.macAddress || '—'}</td>
+        <td style="font-family:monospace">${d.ipAddress || '—'}</td>
+        <td>${d.vendor || '—'}</td>
+        <td>${d.firstSeenAt ? new Date(d.firstSeenAt).toLocaleDateString() : '—'}</td>
+        <td>${d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : '—'}</td>
+      </tr>`).join('');
+    }
+
+    function filterDevices(query) {
+      const q = query.toLowerCase();
+      const filtered = allDevices.filter(d =>
+        (d.displayName||'').toLowerCase().includes(q) ||
+        (d.macAddress||'').toLowerCase().includes(q) ||
+        (d.ipAddress||'').toLowerCase().includes(q) ||
+        (d.vendor||'').toLowerCase().includes(q) ||
+        (d.hostname||'').toLowerCase().includes(q)
+      );
+      renderDevices(filtered);
+    }
+
+    async function loadScans() {
+      try {
+        const data = await api('/scans');
+        const scans = data.data || data || [];
+        const tbody = document.getElementById('scan-table');
+        if (!scans.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No scans yet</td></tr>'; return; }
+        tbody.innerHTML = scans.map(s => `<tr>
+          <td><span class="tag" style="color:${s.status==='completed'?'#22c55e':s.status==='failed'?'#ef4444':'#eab308'}">${s.status}</span></td>
+          <td>${new Date(s.startedAt).toLocaleString()}</td>
+          <td>${s.durationMs ? (s.durationMs/1000).toFixed(1)+'s' : '—'}</td>
+          <td>${s.devicesFound ?? '—'}</td>
+        </tr>`).join('');
+      } catch(e) { if (e.message !== 'Unauthorized') console.error(e); }
+    }
+
+    async function triggerScan() {
+      const btn = document.getElementById('scan-btn');
+      btn.disabled = true; btn.textContent = '⏳ Scanning...';
+      try {
+        await api('/scans', { method: 'POST' });
+        setTimeout(() => { loadDashboard(); btn.disabled = false; btn.textContent = '⚡ Scan Now'; }, 5000);
+      } catch(e) {
+        btn.disabled = false; btn.textContent = '⚡ Scan Now';
+        if (e.message !== 'Unauthorized') alert('Scan failed: ' + e.message);
+      }
+    }
+
+    // Initial load
+    if (API_KEY) loadDashboard();
+    else document.getElementById('api-key-notice').classList.remove('hidden');
+  </script>
+</body>
+</html>

@@ -14,6 +14,7 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package.json ./
+COPY public/ ./public/
 VOLUME /data
 ENV NODE_ENV=production
 ENV DB_PATH=/data/network-obs.db
