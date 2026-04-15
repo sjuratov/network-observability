@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.spec2cloud
+specs
+tests
+e2e
+*.md
+!README.md
+.env*
+.vscode
+.devcontainer
+.github
