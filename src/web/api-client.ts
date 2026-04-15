@@ -30,9 +30,16 @@ export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
   };
 
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const reqHeaders: Record<string, string> = {
+      'X-API-Key': apiKey,
+      ...options?.headers as Record<string, string>,
+    };
+    if (options?.body) {
+      reqHeaders['Content-Type'] = 'application/json';
+    }
     const res = await fetch(`${baseUrl}${path}`, {
       ...options,
-      headers: { ...headers, ...options?.headers },
+      headers: reqHeaders,
     });
 
     if (!res.ok) {
@@ -48,38 +55,72 @@ export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
   }
 
   return {
-    async getDevices(_params?: DeviceListParams): Promise<PaginatedResponse<Device>> {
-      throw new Error('Not implemented');
+    async getDevices(params?: DeviceListParams): Promise<PaginatedResponse<Device>> {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.set('limit', String(params.limit));
+      if (params?.cursor) searchParams.set('cursor', params.cursor);
+      if (params?.status) searchParams.set('status', params.status);
+      if (params?.tag) searchParams.set('tag', params.tag);
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+      if (params?.order) searchParams.set('order', params.order);
+      const qs = searchParams.toString();
+      return request<PaginatedResponse<Device>>(`/devices${qs ? `?${qs}` : ''}`);
     },
-    async getDevice(_id: string): Promise<Device> {
-      throw new Error('Not implemented');
+    async getDevice(id: string): Promise<Device> {
+      const res = await request<{ data: Device }>(`/devices/${id}`);
+      return res.data;
     },
-    async updateDevice(_id: string, _data: Partial<Pick<Device, 'displayName' | 'tags' | 'notes'>>): Promise<Device> {
-      throw new Error('Not implemented');
+    async updateDevice(id: string, data: Partial<Pick<Device, 'displayName' | 'tags' | 'notes'>>): Promise<Device> {
+      const res = await request<{ data: Device }>(`/devices/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      return res.data;
     },
-    async getDeviceHistory(_id: string): Promise<DeviceHistory> {
-      throw new Error('Not implemented');
+    async getDeviceHistory(id: string): Promise<DeviceHistory> {
+      try {
+        const res = await request<DeviceHistory>(`/devices/${id}/history`);
+        return {
+          ipHistory: res.ipHistory ?? [],
+          portHistory: res.portHistory ?? [],
+        };
+      } catch {
+        // Fallback if API structure differs
+        return { ipHistory: [], portHistory: [] };
+      }
     },
-    async getScans(_params?: ScanListParams): Promise<PaginatedResponse<Scan>> {
-      throw new Error('Not implemented');
+    async getScans(params?: ScanListParams): Promise<PaginatedResponse<Scan>> {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.set('limit', String(params.limit));
+      if (params?.cursor) searchParams.set('cursor', params.cursor);
+      const qs = searchParams.toString();
+      return request<PaginatedResponse<Scan>>(`/scans${qs ? `?${qs}` : ''}`);
     },
     async triggerScan(): Promise<Scan> {
-      throw new Error('Not implemented');
+      return request<Scan>('/scans', { method: 'POST' });
     },
     async getStats(): Promise<DashboardStats> {
-      throw new Error('Not implemented');
+      const res = await request<{ data: DashboardStats }>('/stats/overview');
+      return res.data;
     },
     async getTags(): Promise<Tag[]> {
-      throw new Error('Not implemented');
+      return request<Tag[]>('/tags');
     },
-    async createTag(_name: string): Promise<Tag> {
-      throw new Error('Not implemented');
+    async createTag(name: string): Promise<Tag> {
+      return request<Tag>('/tags', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
     },
-    async deleteTag(_id: string): Promise<void> {
-      throw new Error('Not implemented');
+    async deleteTag(id: string): Promise<void> {
+      return request<void>(`/tags/${id}`, { method: 'DELETE' });
     },
-    async bulkTag(_deviceIds: string[], _tagId: string): Promise<void> {
-      throw new Error('Not implemented');
+    async bulkTag(deviceIds: string[], tagId: string): Promise<void> {
+      return request<void>('/devices/bulk-tag', {
+        method: 'POST',
+        body: JSON.stringify({ deviceIds, tagId }),
+      });
     },
   };
 }
