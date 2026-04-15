@@ -19,7 +19,7 @@ COPY --from=build /app/public ./public
 COPY package.json ./
 VOLUME /data
 ENV NODE_ENV=production
-ENV DB_PATH=/data/network-obs.db
+ENV STORAGE_DB_PATH=/data/network-obs.db
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD curl -f http://localhost:8080/api/v1/health || exit 1
