@@ -102,7 +102,15 @@ export function DashboardPage() {
       if (scansRes.status === 'fulfilled') setRecentScans((scansRes.value as PaginatedResponse<Scan>).data);
 
       if (statsRes.status === 'rejected' && devicesRes.status === 'rejected') {
-        setError('Failed to load dashboard data. Check your API key and connection.');
+        const isAuthError = [statsRes, devicesRes].some(
+          (r) => r.status === 'rejected' && (r.reason as any)?.status === 401
+        );
+        if (isAuthError) {
+          localStorage.removeItem('netobserver-api-key');
+          setHasApiKey(false);
+        } else {
+          setError('Failed to load dashboard data. Check your connection.');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
