@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { AppConfig } from '@shared/types/config.js';
 import type { Database } from './db/database.js';
 import type { Logger } from 'pino';
-import { authMiddleware } from './middleware/auth.js';
+import { authMiddleware, setApiKey } from './middleware/auth.js';
 import { deviceRoutes } from './routes/devices.js';
 import { scanRoutes } from './routes/scans.js';
 import { statsRoutes } from './routes/stats.js';
@@ -31,6 +31,11 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   });
 
   await server.register(fastifyCors);
+
+  // Set API key from config if available
+  if (config?.apiKey) {
+    setApiKey(config.apiKey);
+  }
 
   // Health check (unauthenticated)
   server.get('/health', async () => {
