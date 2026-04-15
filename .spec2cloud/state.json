@@ -1,0 +1,11 @@
+{
+  "mode": "greenfield",
+  "phase": "phase-0",
+  "status": "complete",
+  "project": "network-observability",
+  "increments": [],
+  "humanGates": [],
+  "adrs": [],
+  "currentIncrement": null,
+  "lastUpdated": "2026-04-15T15:52:47.213Z"
+}
