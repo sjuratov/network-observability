@@ -150,14 +150,24 @@ export function DeviceDetailPage() {
   const deviceName = device.displayName ?? device.hostname ?? device.macAddress;
   const deviceStatus = device.isOnline ? 'online' : 'offline';
 
-  // Build presence data for chart (placeholder based on last 7 days)
+  // Build presence data from actual device data
   const presenceData = (() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days.map((day) => ({
-      day,
-      online: Math.floor(Math.random() * 20 + 4),
-      offline: Math.floor(Math.random() * 4),
-    }));
+    if (!device) return [];
+    const now = new Date();
+    const days: { day: string; online: number; offline: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const firstSeen = new Date(device.firstSeenAt);
+      const lastSeen = new Date(device.lastSeenAt);
+      // Device is "online" for this day if the day falls within first_seen..last_seen range
+      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+      const wasOnline = firstSeen <= dayEnd && lastSeen >= dayStart;
+      days.push({ day: dayLabel, online: wasOnline ? 24 : 0, offline: wasOnline ? 0 : 24 });
+    }
+    return days;
   })();
 
   // Use port data from dedicated ports endpoint, fallback to history
