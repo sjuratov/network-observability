@@ -176,7 +176,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
           // Use SYN scan if privileged (Linux host networking), TCP connect otherwise
           const scanType = process.getuid?.() === 0 ? '-sS' : '-sT';
           // Use --top-ports for best coverage, or explicit list if configured
-          const portArgs = portRange ? ['-p', portRange] : ['--top-ports', '500'];
+          const portArgs = portRange ? ['-p', portRange] : [];
           const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', '-'];
           console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
           
