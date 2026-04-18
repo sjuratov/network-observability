@@ -1,0 +1,116 @@
+feature: device-detail-activity
+version: "1.0"
+basePath: /api/v1
+
+endpoints:
+  - path: /devices/{id}/history
+    method: GET
+    description: Return the structured Activity-tab history payload for a single device so the web client can render current presence context, IP churn, and chronological activity events without fallback parsing.
+    auth: api-key
+    request:
+      params:
+        type: object
+        required: [id]
+        properties:
+          id:
+            type: string
+            description: Stable device identifier from the device inventory.
+    responses:
+      200:
+        description: Structured activity history sections compatible with the Device Detail Activity view. Legacy or sparse records return the same shape with empty arrays for unavailable sections.
+        body:
+          type: object
+          required: [presenceSummary, ipHistory, activityEvents]
+          properties:
+            presenceSummary:
+              type: object
+              required: [status, firstSeenAt, lastSeenAt]
+              properties:
+                status:
+                  type: string
+                  enum: [online, offline, unknown]
+                firstSeenAt:
+                  type: string
+                  format: date-time
+                lastSeenAt:
+                  type: string
+                  format: date-time
+                lastChangedAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                summaryLabel:
+                  type: string
+                  description: Human-readable summary for the current presence context shown at the top of the Activity tab.
+            ipHistory:
+              type: array
+              items:
+                type: object
+                required: [ipAddress, firstSeenAt, lastSeenAt]
+                properties:
+                  ipAddress: { type: string }
+                  firstSeenAt:
+                    type: string
+                    format: date-time
+                  lastSeenAt:
+                    type: string
+                    format: date-time
+            activityEvents:
+              type: array
+              items:
+                type: object
+                required: [type, label, timestamp]
+                properties:
+                  type:
+                    type: string
+                    enum: [ip-change, presence-online, presence-offline]
+                  label:
+                    type: string
+                    description: Ready-to-render event summary in reverse-chronological feed order.
+                  timestamp:
+                    type: string
+                    format: date-time
+                  previousValue:
+                    type: string
+                    nullable: true
+                  nextValue:
+                    type: string
+                    nullable: true
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      500:
+        description: Activity aggregation failed for the requested device while the rest of the device detail surface remains available.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [INTERNAL_ERROR]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time

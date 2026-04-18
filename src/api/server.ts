@@ -11,6 +11,7 @@ import { deviceRoutes } from './routes/devices.js';
 import { scanRoutes } from './routes/scans.js';
 import { statsRoutes } from './routes/stats.js';
 import { tagRoutes } from './routes/tags.js';
+import { testSupportRoutes } from './routes/test-support.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -57,7 +58,7 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   // Decorate server with db reference for route handlers (must be before route registration)
   if (deps?.db) {
     server.decorate('db', deps.db);
-  server.decorate('appConfig', deps.config);
+    server.decorate('appConfig', deps.config);
   }
 
   // Register route modules under /api/v1
@@ -67,6 +68,7 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
       await api.register(scanRoutes);
       await api.register(statsRoutes);
       await api.register(tagRoutes);
+      await api.register(testSupportRoutes);
     },
     { prefix: '/api/v1' },
   );

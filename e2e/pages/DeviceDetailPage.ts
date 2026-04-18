@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 
 export class DeviceDetailPage {
   readonly page: Page;
@@ -21,6 +21,7 @@ export class DeviceDetailPage {
   // Tab bar
   readonly tabBar: Locator;
   readonly tabOverview: Locator;
+  readonly tabActivity: Locator;
   readonly tabHistory: Locator;
   readonly tabPorts: Locator;
   readonly tabPresence: Locator;
@@ -28,10 +29,16 @@ export class DeviceDetailPage {
 
   // Panels
   readonly panelOverview: Locator;
+  readonly panelActivity: Locator;
   readonly panelIpHistory: Locator;
   readonly panelPorts: Locator;
   readonly panelPresence: Locator;
   readonly panelTags: Locator;
+
+  // Activity
+  readonly activityPresenceSummary: Locator;
+  readonly activityEventFeed: Locator;
+  readonly activityEmptyState: Locator;
 
   // IP History
   readonly ipHistoryTable: Locator;
@@ -74,16 +81,22 @@ export class DeviceDetailPage {
 
     this.tabBar = page.getByTestId('tab-bar');
     this.tabOverview = page.getByTestId('tab-bar-tab-overview');
+    this.tabActivity = page.getByTestId('tab-bar-tab-activity');
     this.tabHistory = page.getByTestId('tab-bar-tab-history');
     this.tabPorts = page.getByTestId('tab-bar-tab-ports');
     this.tabPresence = page.getByTestId('tab-bar-tab-presence');
     this.tabTags = page.getByTestId('tab-bar-tab-tags');
 
     this.panelOverview = page.getByTestId('panel-overview');
+    this.panelActivity = page.getByTestId('panel-activity');
     this.panelIpHistory = page.getByTestId('panel-ip-history');
     this.panelPorts = page.getByTestId('panel-ports');
     this.panelPresence = page.getByTestId('panel-presence');
     this.panelTags = page.getByTestId('panel-tags');
+
+    this.activityPresenceSummary = page.getByTestId('activity-presence-summary');
+    this.activityEventFeed = page.getByTestId('activity-event-feed');
+    this.activityEmptyState = page.getByTestId('activity-empty-state');
 
     this.ipHistoryTable = page.getByTestId('ip-history-table');
     this.ipHistoryTableHeader = page.getByTestId('ip-history-table-header');
@@ -107,5 +120,17 @@ export class DeviceDetailPage {
   async goto(deviceId: string) {
     await this.page.goto(`/devices/${deviceId}`);
     await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  async portHeaderLabels(): Promise<string[]> {
+    return this.portTableHeader.getByRole('columnheader').allTextContents();
+  }
+
+  portServiceCell(index: number): Locator {
+    return this.page.getByTestId(`port-table-service-${index}`);
+  }
+
+  get portVersionHeader(): Locator {
+    return this.portTableHeader.getByRole('columnheader', { name: 'Version' });
   }
 }

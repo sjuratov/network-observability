@@ -151,3 +151,13 @@ playwright                latest
 ```
 nmap                      7.95
 ```
+
+---
+
+## Increment Configuration Contracts
+
+### ext-pre-001 — Device status reconciliation
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PRESENCE_OFFLINE_THRESHOLD` | `2` | Number of missed completed scans required before a device transitions from `unknown`/`online` to `offline`. This value must be used consistently by the scan pipeline, `GET /api/v1/devices`, and `GET /api/v1/stats/overview`. |

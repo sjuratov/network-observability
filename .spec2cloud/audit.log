@@ -28,3 +28,86 @@
 [2026-04-18T16:09:41Z] step=bugfix action=test-approved bug=bugfix-007 approver=human result=approved
 [2026-04-18T16:12:38Z] step=bugfix action=fix-applied bug=bugfix-007 files=src/api/scanner/ports.ts,src/api/routes/scans.ts,specs/frd-port-detection.md result=done
 [2026-04-18T16:14:20Z] step=bugfix action=regression-verified bug=bugfix-007 result=unit-green build=green lint=green e2e=device-detail-flow-failures
+[2026-04-18T16:36:42Z] step=extension-planning action=frds-generated count=2 files=specs/frd-device-list-status.md,specs/frd-device-detail-activity.md result=done
+[2026-04-18T16:36:42Z] step=extension-planning action=increments-generated count=5 file=specs/increment-plan.md result=done
+[2026-04-18T16:44:32Z] gate=extension-plan-2026-04 decision=approved increments=ext-pre-001,ext-001,ext-002,ext-003,ext-004 result=approved
+[2026-04-18T17:00:21Z] step=e2e-generation action=specs-generated increment=ext-pre-001 flows=1 files=e2e/device-status-filter.spec.ts result=done
+[2026-04-18T17:00:21Z] step=e2e-generation action=page-objects-updated increment=ext-pre-001 files=e2e/pages/DashboardPage.ts,e2e/pages/DeviceListPage.ts result=done
+[2026-04-18T17:00:21Z] step=e2e-generation action=verification increment=ext-pre-001 playwright_list=green tsc=green result=done
+[2026-04-18T17:00:21Z] step=gherkin-generation action=features-generated increment=ext-pre-001 files=specs/features/device-list-status.feature result=done
+[2026-04-18T17:01:12Z] gate=ext-pre-001-gherkin decision=approved result=approved
+[2026-04-18T17:13:24Z] step=test-generation action=scaffolding-generated increment=ext-pre-001 files=cucumber.js,tests/features/support/world.ts,tests/features/support/hooks.ts,tests/features/step-definitions/device-list-status.steps.ts,tests/unit/api/device-list-status.test.ts,tests/unit/presence/device-list-status.test.ts result=done
+[2026-04-18T17:13:24Z] step=test-generation action=verification increment=ext-pre-001 cucumber_dry_run=green playwright_list=green vitest=red-baseline build=green failing_tests=3 result=done
+[2026-04-18T17:18:20Z] gate=ext-pre-001-tests decision=approved result=approved
+[2026-04-18T17:18:20Z] increment=ext-pre-001 step=contracts action=contracts-generated files=specs/contracts/api/device-list-status.yaml,src/shared/types/device-list-status.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-18T17:22:08Z] increment=ext-pre-001 step=contracts action=infra-contract-retargeted target=local-docker result=done
+[2026-04-18T17:22:08Z] gate=ext-pre-001-contracts decision=approved result=approved
+[2026-04-18T17:54:56Z] increment=ext-pre-001 step=implementation action=implementation-applied files=src/api/config/loader.ts,src/api/db/database.ts,src/api/presence/device-status.ts,src/api/presence/tracker.ts,src/api/routes/devices.ts,src/api/routes/scans.ts,src/api/routes/stats.ts,src/api/routes/test-support.ts,src/api/server.ts,src/shared/types/config.ts,src/shared/types/device.ts,src/web/components/DeviceTable.tsx,src/web/pages/DashboardPage.tsx,src/web/pages/DeviceDetailPage.tsx,src/web/pages/DeviceListPage.tsx,src/web/utils/filters.ts result=done
+[2026-04-18T17:54:56Z] increment=ext-pre-001 step=implementation action=regression-verified vitest=green cucumber=green playwright=green build=green environment=local-8081 result=done
+[2026-04-18T17:57:56Z] gate=ext-pre-001-implementation decision=approved result=approved
+[2026-04-18T17:57:56Z] increment=ext-pre-001 action=increment-complete result=done next_increment=ext-001 next_step=tests
+[2026-04-18T18:03:29Z] step=e2e-generation action=specs-generated increment=ext-001 flows=1 files=e2e/device-list-status-presentation.spec.ts result=done
+[2026-04-18T18:03:29Z] step=e2e-generation action=page-objects-updated increment=ext-001 files=e2e/pages/DeviceListPage.ts result=done
+[2026-04-18T18:03:29Z] step=e2e-generation action=verification increment=ext-001 playwright_list=green tsc=green result=done
+[2026-04-18T18:05:01Z] step=gherkin-generation action=features-updated increment=ext-001 files=specs/features/device-list-status.feature scenarios_added=1 result=done
+[2026-04-18T18:08:56Z] gate=ext-001-gherkin decision=approved result=approved
+[2026-04-18T18:08:56Z] step=test-generation action=scaffolding-generated increment=ext-001 files=tests/features/step-definitions/device-list-status.steps.ts,tests/unit/web/device-list-status.test.ts result=done
+[2026-04-18T18:08:56Z] step=test-generation action=verification increment=ext-001 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=1 result=done
+[2026-04-18T18:12:41Z] gate=ext-001-tests decision=approved result=approved
+[2026-04-18T18:12:41Z] increment=ext-001 step=contracts action=contracts-generated files=specs/contracts/api/device-list-status.yaml,src/shared/types/device-list-status.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-18T18:12:41Z] increment=ext-001 step=contracts action=verification tsc=green infra_delta=none result=done
+[2026-04-18T18:12:41Z] gate=ext-001-contracts decision=approved result=approved
+[2026-04-18T18:23:42Z] increment=ext-001 slice=api action=slice-implemented result=pass
+[2026-04-18T18:23:42Z] increment=ext-001 slice=web action=slice-implemented files=src/web/components/DeviceTable.tsx,src/web/components/StatusBadge.tsx result=pass
+[2026-04-18T18:23:42Z] increment=ext-001 slice=integration action=slice-implemented environment=local-8081 result=pass
+[2026-04-18T18:23:42Z] increment=ext-001 step=implementation action=verification lint=green build=green vitest=green cucumber=green playwright=green skip_scan=green result=done
+[2026-04-18T18:25:24Z] gate=ext-001-implementation decision=approved result=approved
+[2026-04-18T18:30:17Z] step=e2e-generation action=specs-generated increment=ext-002 flows=1 files=e2e/device-list-page-size.spec.ts result=done
+[2026-04-18T18:30:17Z] step=e2e-generation action=page-objects-updated increment=ext-002 files=e2e/pages/DeviceListPage.ts result=done
+[2026-04-18T18:30:17Z] step=e2e-generation action=verification increment=ext-002 playwright_list=green tsc=green result=done
+[2026-04-18T18:31:25Z] step=gherkin-generation action=features-updated increment=ext-002 files=specs/features/device-list-status.feature scenarios_added=4 result=done
+[2026-04-18T18:33:09Z] gate=ext-002-gherkin decision=approved result=approved
+[2026-04-18T18:36:21Z] step=test-generation action=scaffolding-generated increment=ext-002 files=tests/features/step-definitions/device-list-status.steps.ts,tests/unit/web/device-list-page-size.test.ts result=done
+[2026-04-18T18:36:21Z] step=test-generation action=verification increment=ext-002 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=2 result=done
+[2026-04-18T18:37:18Z] gate=ext-002-tests decision=approved result=approved
+[2026-04-18T18:39:15Z] increment=ext-002 step=contracts action=contracts-generated files=specs/contracts/api/device-list-status.yaml,src/shared/types/device-list-status.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-18T18:50:34Z] gate=ext-002-test-adjustment decision=approved result=approved
+[2026-04-18T18:53:44Z] increment=ext-002 slice=api action=slice-implemented files=src/api/routes/devices.ts,src/api/routes/test-support.ts,src/api/routes/test-support-state.ts result=pass
+[2026-04-18T18:53:44Z] increment=ext-002 slice=web action=slice-implemented files=src/web/api-client.ts,src/web/components/DeviceTable.tsx,src/web/pages/DeviceListPage.tsx result=pass
+[2026-04-18T18:53:44Z] increment=ext-002 slice=integration action=slice-implemented files=tests/features/step-definitions/device-list-status.steps.ts environment=local-8081 result=pass
+[2026-04-18T18:53:44Z] increment=ext-002 step=implementation action=verification lint=green build=green vitest=green cucumber=green playwright=green skip_scan=green result=done
+[2026-04-18T18:55:02Z] gate=ext-002-implementation decision=approved result=approved
+[2026-04-18T18:56:55Z] step=e2e-generation action=specs-updated increment=ext-003 flows=1 files=e2e/device-detail.spec.ts result=done
+[2026-04-18T18:56:55Z] step=e2e-generation action=page-objects-updated increment=ext-003 files=e2e/pages/DeviceDetailPage.ts result=done
+[2026-04-18T18:56:55Z] step=e2e-generation action=verification increment=ext-003 playwright_list=green tsc=green result=done
+[2026-04-18T19:01:45Z] step=gherkin-generation action=features-generated increment=ext-003 files=specs/features/device-detail-activity.feature scenarios_added=8 result=done
+[2026-04-18T19:01:45Z] gate=ext-003-gherkin decision=approved result=approved
+[2026-04-18T19:06:46Z] step=test-generation action=scaffolding-generated increment=ext-003 files=cucumber.js,tests/features/step-definitions/device-detail-activity.steps.ts,tests/unit/api/device-detail-activity.test.ts,tests/unit/web/device-detail-activity.test.ts result=done
+[2026-04-18T19:06:46Z] step=test-generation action=verification increment=ext-003 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=4 result=done
+[2026-04-18T19:06:46Z] gate=ext-003-tests decision=approved result=approved
+[2026-04-18T19:09:24Z] increment=ext-003 step=contracts action=contracts-generated files=specs/contracts/api/device-detail-activity.yaml,src/shared/types/device.ts,src/shared/types/device-detail-activity.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-18T19:09:24Z] increment=ext-003 step=contracts action=verification tsc=green infra_delta=none result=done
+[2026-04-18T19:30:18Z] gate=ext-003-test-adjustment decision=approved result=approved
+[2026-04-18T19:30:18Z] increment=ext-003 slice=api action=slice-implemented files=src/api/routes/test-support-state.ts,src/api/routes/test-support.ts,src/api/routes/devices.ts result=pass
+[2026-04-18T19:30:18Z] increment=ext-003 slice=web action=slice-implemented files=src/web/api-client.ts,src/web/pages/DeviceDetailPage.tsx,src/shared/types/device.ts,src/shared/types/device-detail-activity.ts result=pass
+[2026-04-18T19:30:18Z] increment=ext-003 slice=integration action=slice-implemented files=tests/unit/api/device-detail-activity.test.ts,tests/unit/api/routes.test.ts environment=local-8081 result=pass
+[2026-04-18T19:30:18Z] increment=ext-003 step=implementation action=verification vitest=green cucumber=green playwright=green build=green skip_scan=green result=done
+[2026-04-18T19:30:18Z] gate=ext-003-implementation decision=approved result=approved
+[2026-04-18T19:30:18Z] increment=ext-003 action=increment-complete result=done next_increment=ext-004 next_step=tests
+[2026-04-18T19:34:26Z] step=e2e-generation action=specs-generated increment=ext-004 flows=1 files=e2e/device-detail-ports.spec.ts result=done
+[2026-04-18T19:34:26Z] step=e2e-generation action=page-objects-updated increment=ext-004 files=e2e/pages/DeviceDetailPage.ts result=done
+[2026-04-18T19:34:26Z] step=e2e-generation action=verification increment=ext-004 playwright_list=green tsc=green result=done
+[2026-04-18T19:34:26Z] step=gherkin-generation action=features-generated increment=ext-004 files=specs/features/device-detail-ports.feature scenarios_added=4 result=done
+[2026-04-18T19:40:00Z] gate=ext-004-gherkin decision=approved result=approved
+[2026-04-18T19:40:00Z] step=test-generation action=scaffolding-generated increment=ext-004 files=cucumber.js,tests/features/step-definitions/device-detail-ports.steps.ts,tests/unit/api/device-detail-ports.test.ts,tests/unit/web/device-detail-ports.test.ts result=done
+[2026-04-18T19:40:00Z] step=test-generation action=verification increment=ext-004 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=2 passing_regression_tests=1 result=done
+[2026-04-18T19:42:15Z] gate=ext-004-tests decision=approved result=approved
+[2026-04-18T19:42:15Z] increment=ext-004 step=contracts action=contracts-generated files=specs/contracts/api/device-detail-ports.yaml,src/shared/types/device-detail-ports.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-18T19:42:15Z] increment=ext-004 step=contracts action=verification tsc=green infra_delta=none result=done
+[2026-04-18T19:46:43Z] increment=ext-004 slice=api action=slice-implemented files=src/api/routes/test-support.ts result=pass
+[2026-04-18T19:46:43Z] increment=ext-004 slice=web action=slice-implemented files=src/web/pages/DeviceDetailPage.tsx result=pass
+[2026-04-18T19:46:43Z] increment=ext-004 slice=integration action=slice-implemented files=tests/features/step-definitions/device-detail-ports.steps.ts environment=local-8081 result=pass
+[2026-04-18T19:46:43Z] increment=ext-004 step=implementation action=verification vitest=green cucumber=green playwright=green build=green skip_scan=green result=done
+[2026-04-18T19:48:05Z] gate=ext-004-implementation decision=approved result=approved
+[2026-04-18T19:48:05Z] increment=ext-004 action=increment-complete result=done next_increment=none
+[2026-04-18T19:50:17Z] phase=phase-2 action=phase-complete result=done delivered_increments=ext-pre-001,ext-001,ext-002,ext-003,ext-004

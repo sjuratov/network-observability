@@ -1,0 +1,263 @@
+feature: device-list-status
+version: "1.0"
+basePath: /api/v1
+
+endpoints:
+  - path: /devices
+    method: GET
+    description: List devices with derived presence status, compatibility isOnline flag, offline-filter validation, and cursor-based retrieval that clients can exhaust when the operator selects the All page-size option.
+    auth: api-key
+    request:
+      query:
+        type: object
+        properties:
+          limit:
+            type: integer
+            minimum: 1
+            maximum: 100
+            enum: [10, 25, 50, 100]
+            description: Page size for the current inventory window. Clients that need the All view must follow pagination.nextCursor until hasMore is false instead of sending a special limit token.
+          cursor:
+            type: integer
+            minimum: 0
+            description: Offset cursor for paginated inventory browsing.
+          search:
+            type: string
+            description: Case-insensitive match across hostname, display name, IP, MAC, and vendor.
+          tag:
+            type: string
+            description: Exact tag filter.
+          status:
+            type: string
+            enum: [online, offline]
+            description: Derived connectivity filter. Unsupported values return a validation error instead of falling back to all devices.
+    responses:
+      200:
+        description: Device inventory page with derived presence status and backward-compatible connectivity boolean.
+        body:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                required: [id, macAddress, ipAddress, isKnown, status, isOnline, firstSeenAt, lastSeenAt, discoveryMethod, tags]
+                properties:
+                  id: { type: string }
+                  macAddress: { type: string }
+                  ipAddress: { type: string }
+                  hostname: { type: string }
+                  vendor: { type: string }
+                  displayName: { type: string }
+                  isKnown:
+                    type: boolean
+                    description: Lifecycle signal for the UI. False means the device is newly discovered and its "New" context must be shown separately from the connectivity status badge.
+                  status:
+                    type: string
+                    enum: [online, offline, unknown]
+                    description: Connectivity state derived from completed-scan presence reconciliation. This field controls the device-list status badge independently of lifecycle context.
+                  isOnline:
+                    type: boolean
+                    description: Legacy compatibility field derived from status; only true when status is online.
+                  firstSeenAt: { type: string, format: date-time }
+                  lastSeenAt: { type: string, format: date-time }
+                  discoveryMethod: { type: string }
+                  tags:
+                    type: array
+                    items: { type: string }
+                  notes: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+                pagination:
+                  type: object
+                  required: [limit, hasMore, nextCursor, total]
+                  properties:
+                    limit: { type: integer }
+                    hasMore: { type: boolean }
+                    nextCursor: { type: string, nullable: true }
+                    total: { type: integer }
+      400:
+        description: Invalid status filter or malformed query parameter.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [VALIDATION_ERROR]
+                message: { type: string }
+                details:
+                  type: array
+                  items: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+      500:
+        description: Inventory retrieval failed before the full filtered result set could be returned.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [INTERNAL_ERROR]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+
+  - path: /devices/{id}
+    method: GET
+    description: Return a single device with the same derived presence status contract used by the inventory list.
+    auth: api-key
+    request:
+      params:
+        type: object
+        required: [id]
+        properties:
+          id: { type: string }
+    responses:
+      200:
+        description: Device detail payload with derived presence fields.
+        body:
+          type: object
+          properties:
+            data:
+              type: object
+              required: [id, macAddress, ipAddress, isKnown, status, isOnline, firstSeenAt, lastSeenAt, discoveryMethod, tags]
+              properties:
+                id: { type: string }
+                macAddress: { type: string }
+                ipAddress: { type: string }
+                hostname: { type: string }
+                vendor: { type: string }
+                displayName: { type: string }
+                isKnown:
+                  type: boolean
+                  description: Lifecycle signal for the UI. False means the device is newly discovered and its "New" context must be shown separately from the connectivity status badge.
+                status:
+                  type: string
+                  enum: [online, offline, unknown]
+                  description: Connectivity state derived from completed-scan presence reconciliation. This field controls the device-list status badge independently of lifecycle context.
+                isOnline: { type: boolean }
+                firstSeenAt: { type: string, format: date-time }
+                lastSeenAt: { type: string, format: date-time }
+                discoveryMethod: { type: string }
+                tags:
+                  type: array
+                  items: { type: string }
+                notes: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+      404:
+        description: Device not found.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [NOT_FOUND]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+
+  - path: /stats/overview
+    method: GET
+    description: Return dashboard summary counts aligned with derived device presence status from the latest completed reconciliation.
+    auth: api-key
+    responses:
+      200:
+        description: Dashboard overview metrics for the current inventory.
+        body:
+          type: object
+          properties:
+            data:
+              type: object
+              required: [totalDevices, newDevices24h, offlineDevices, lastScanAt, lastScanStatus]
+              properties:
+                totalDevices: { type: integer }
+                newDevices24h: { type: integer }
+                offlineDevices:
+                  type: integer
+                  description: Count of devices whose derived status is offline. Devices with unknown status are excluded.
+                lastScanAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastScanStatus:
+                  type: string
+                  enum: [pending, in-progress, completed, failed]
+                  nullable: true
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp: { type: string, format: date-time }

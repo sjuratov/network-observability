@@ -413,3 +413,149 @@ flowchart LR
 **Dependencies:** INC-07 (complete feature set must be in place before hardening)
 
 **Complexity:** Medium — breadth of changes but each is well-scoped and testable independently
+
+---
+
+## Extension Follow-up — Device List & Detail Corrections (2026-04)
+
+These extensions append to the existing product plan and target gaps discovered during live usage after the port-scanning fixes. They are ordered so status correctness lands before any UI work that depends on trustworthy presence data.
+
+### ext-pre-001: Reconcile Presence Truth Model & Device Status Contract
+
+- **Type:** extension-prerequisite
+- **FRD:** frd-device-list-status.md
+- **Scope:** Align the persisted device status model with the presence feature so device list filtering, offline counts, and detail views stop relying on a scan upsert that only forces devices online. Extend the device/status API contract to expose a presence-driven status enum while keeping a backward-compatible derived `isOnline` boolean for existing callers.
+- **Acceptance Criteria:**
+  - [ ] Devices transition to `offline` after the configured missed-scan threshold and remain queryable through `/api/v1/devices?status=offline`
+  - [ ] `GET /api/v1/stats/overview` offline counts match the offline device list
+  - [ ] Device responses expose a richer status contract without breaking current consumers that still read `isOnline`
+  - [ ] Known/new lifecycle state no longer overrides connectivity truth
+- **Test Strategy:**
+  - Unit tests for persisted presence-state reconciliation and scan-completion transitions
+  - API integration tests for `/devices` and `/stats/overview` status filtering/counts
+  - E2e regression covering offline filter behavior from the Device List page
+- **Gherkin Deltas:**
+  - Modified: `Scenario: Device goes offline after exceeding missed scan threshold` — status must be reflected in persisted device queries, not just tracker helpers
+  - Modified: `Scenario: Device list filters by online/offline status` — offline filter must return real offline devices and match overview counts
+  - Modified: `Scenario: GET /api/v1/devices with status filter for online devices` — API contract now includes presence-backed status semantics
+  - New: `Scenario: GET /api/v1/devices with status filter for offline devices`
+  - Regression: existing presence transition, device detail identity, and dashboard metric scenarios remain green
+- **Integration Points:**
+  - `src/api/routes/scans.ts`
+  - `src/api/routes/devices.ts`
+  - `src/api/routes/stats.ts`
+  - `src/api/presence/tracker.ts`
+  - `src/web/components/StatusBadge.tsx`
+- **Dependencies:** none
+- **Rollback Plan:** Revert schema/API contract changes and fall back to the previous `is_online`-only behavior
+- **Complexity:** High
+
+### ext-001: Fix Device List Status Presentation
+
+- **Type:** extension
+- **FRD:** frd-device-list-status.md
+- **Scope:** Update the Device List UI so the Status column represents connectivity only, using green/red/amber semantics, and move "new/known" signaling out of the status dot. Ensure the status chips and row badges stay consistent with the reconciled backend contract.
+- **Acceptance Criteria:**
+  - [ ] The Status column renders green for online, red for offline, and amber for unknown
+  - [ ] A device marked as new no longer appears with a purple status dot when it is actually online or offline
+  - [ ] Offline-filtered results show matching red status indicators throughout the visible table
+  - [ ] Known/new lifecycle state remains visible elsewhere in the row or detail flow without overloading the status column
+- **Test Strategy:**
+  - Component tests for `StatusBadge` and `DeviceTable`
+  - UI integration tests for filter chips + rendered badge states
+  - E2e regression for Device List browsing and row inspection
+- **Gherkin Deltas:**
+  - Modified: `Scenario: Device list displays all discovered devices` — row status now reflects connectivity-only semantics
+  - Modified: `Scenario: Device list filters by online/offline status` — filtered rows show matching badge colors and labels
+  - Regression: search, sorting, and navigation scenarios remain unchanged
+- **Integration Points:**
+  - `src/web/components/DeviceTable.tsx`
+  - `src/web/components/StatusBadge.tsx`
+  - `src/web/pages/DeviceListPage.tsx`
+  - `e2e/device-list.spec.ts`
+- **Dependencies:** ext-pre-001
+- **Rollback Plan:** Restore prior badge mapping if the new semantics break existing list interactions
+- **Complexity:** Medium
+
+### ext-002: Add Configurable Device List Page Size
+
+- **Type:** extension
+- **FRD:** frd-device-list-status.md
+- **Scope:** Add a rows-per-page control to the Device List with `10`, `25`, `50`, `100`, and `All` options. Persist the chosen value client-side, keep active filters/sorts intact while changing page size, and support fetching the full filtered dataset when `All` is selected.
+- **Acceptance Criteria:**
+  - [ ] The Device List exposes exactly the five approved rows-per-page options
+  - [ ] First-visit behavior defaults to 10 rows to preserve current expectations
+  - [ ] Changing the page size updates visible rows and pagination copy immediately
+  - [ ] Selecting `All` returns the full filtered result set rather than the first API page only
+  - [ ] Search, filter, and sort choices survive page-size changes
+- **Test Strategy:**
+  - Component tests for pagination controls and page-size state
+  - API-client tests for multi-page/full-result retrieval behavior
+  - E2e regression for rows-per-page selection and pagination copy
+- **Gherkin Deltas:**
+  - New: `Scenario: Device list page size is configurable`
+  - Modified: `Scenario: GET /api/v1/devices returns paginated device list` — device retrieval must support the approved page-size options without truncation
+  - Modified: `Scenario: Pagination includes cursor metadata` — metadata remains correct while supporting 100-row and all-result retrieval
+  - Regression: existing search and filter scenarios remain green across all supported page sizes
+- **Integration Points:**
+  - `src/web/pages/DeviceListPage.tsx`
+  - `src/web/components/DeviceTable.tsx`
+  - `src/web/api-client.ts`
+  - `src/api/routes/devices.ts`
+- **Dependencies:** ext-pre-001, ext-001
+- **Rollback Plan:** Remove the selector and restore the fixed 10-row client pagination if full-result retrieval proves unstable
+- **Complexity:** Medium
+
+### ext-003: Rationalize Device Detail History into an Activity Tab
+
+- **Type:** extension
+- **FRD:** frd-device-detail-activity.md
+- **Scope:** Replace the overlapping IP History and Presence tabs with a single Activity tab that combines current presence summary, populated IP history, and a chronological event feed for IP and online/offline changes. Upgrade the history API contract so the frontend receives structured sections instead of raw history rows.
+- **Acceptance Criteria:**
+  - [ ] Device detail navigation becomes `Overview`, `Activity`, `Ports & Services`, and `Tags & Notes`
+  - [ ] The Activity tab shows populated IP history and presence events when data exists
+  - [ ] Devices without history still show meaningful empty states rather than a broken-looking blank table
+  - [ ] The history API returns structured sections that match the typed frontend contract
+- **Test Strategy:**
+  - API integration tests for structured `/devices/:id/history` payloads
+  - Component tests for Activity tab states with full, partial, and empty history
+  - E2e regression for device-detail tab navigation
+- **Gherkin Deltas:**
+  - Modified: `Scenario: Device detail shows IP history tab` — replaced by an Activity tab that includes IP history plus presence events
+  - New: `Scenario: Device detail activity tab shows IP changes and online/offline transitions`
+  - Modified: `Scenario: GET /api/v1/devices/:id/history returns device history` — response shape changes from raw entries to structured sections
+  - Regression: device identity, ports tab, and tag-editing scenarios remain green
+- **Integration Points:**
+  - `src/web/pages/DeviceDetailPage.tsx`
+  - `src/web/api-client.ts`
+  - `src/api/routes/devices.ts`
+  - `e2e/device-detail.spec.ts`
+- **Dependencies:** ext-pre-001
+- **Rollback Plan:** Restore separate IP History and Presence tabs if structured history aggregation proves too disruptive
+- **Complexity:** Medium
+
+### ext-004: Simplify Ports & Services Table Presentation
+
+- **Type:** extension
+- **FRD:** frd-device-detail-activity.md
+- **Scope:** Remove the standalone Version column from the Ports & Services table and render version information only as secondary service detail when real values exist. Keep the backend/API `version` field intact so service-version detection remains available for future advanced views and exports.
+- **Acceptance Criteria:**
+  - [ ] The Ports & Services table renders `Port`, `Protocol`, and `Service` as its primary columns
+  - [ ] Version data appears inline with service information only when present
+  - [ ] Devices without version data do not show empty placeholder-only columns
+  - [ ] Service-version parsing remains available in the API and underlying scan results
+- **Test Strategy:**
+  - Component tests for ports table rendering with and without version values
+  - E2e regression for Device Detail ports view
+  - Unit regression for service-version extraction/parsing
+- **Gherkin Deltas:**
+  - Modified: `Scenario: Device detail shows ports tab` — table assertions now target the simplified column set
+  - Regression: `Scenario: Service version detection from banner` remains unchanged because parsing support stays in the backend contract
+- **Integration Points:**
+  - `src/web/pages/DeviceDetailPage.tsx`
+  - `src/shared/types/device.ts`
+  - `src/api/routes/devices.ts`
+  - `src/api/scanner/ports.ts`
+- **Dependencies:** ext-003
+- **Rollback Plan:** Restore the Version column if inline service metadata proves insufficient for operational use
+- **Complexity:** Low

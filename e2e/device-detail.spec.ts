@@ -3,7 +3,7 @@ import { DeviceDetailPage } from './pages/DeviceDetailPage';
 import { setApiKey } from './helpers/auth';
 import { getApiKey } from './helpers/config';
 
-test.describe('Device Detail — Flow 3: View Device Details', () => {
+test.describe('@flow:view-device-details @frd:frd-device-detail-activity Device Detail — Flow 3: View Device Details', () => {
   let detail: DeviceDetailPage;
 
   test.beforeEach(async ({ page }) => {
@@ -36,34 +36,23 @@ test.describe('Device Detail — Flow 3: View Device Details', () => {
   test('should display tab bar with all tabs', async () => {
     await expect(detail.tabBar).toBeVisible();
     await expect(detail.tabOverview).toBeVisible();
-    await expect(detail.tabHistory).toBeVisible();
+    await expect(detail.tabActivity).toBeVisible();
     await expect(detail.tabPorts).toBeVisible();
-    await expect(detail.tabPresence).toBeVisible();
     await expect(detail.tabTags).toBeVisible();
+    await expect(detail.tabHistory).toHaveCount(0);
+    await expect(detail.tabPresence).toHaveCount(0);
   });
 
   test('should show overview panel by default', async () => {
     await expect(detail.panelOverview).toBeVisible();
   });
 
-  test('should switch to IP History tab', async () => {
-    await detail.tabHistory.click();
-    await expect(detail.panelIpHistory).toBeVisible();
+  test('should switch to Activity tab and show structured device history', async () => {
+    await detail.tabActivity.click();
+    await expect(detail.panelActivity).toBeVisible();
+    await expect(detail.activityPresenceSummary).toBeVisible();
     await expect(detail.ipHistoryTable).toBeVisible();
-  });
-
-  test('should switch to Ports tab', async () => {
-    await detail.tabPorts.click();
-    await expect(detail.panelPorts).toBeVisible();
-    await expect(detail.portTable).toBeVisible();
-  });
-
-  test('should switch to Presence tab', async () => {
-    await detail.tabPresence.click();
-    await expect(detail.panelPresence).toBeVisible();
-    await expect(detail.presenceTimeline).toBeVisible();
-    await expect(detail.presenceTimelineChart).toBeVisible();
-    await expect(detail.presenceTimelineLegend).toBeVisible();
+    await expect(detail.activityEventFeed).toBeVisible();
   });
 
   test('should switch to Tags tab', async () => {
@@ -72,6 +61,12 @@ test.describe('Device Detail — Flow 3: View Device Details', () => {
     await expect(detail.deviceTags).toBeVisible();
     await expect(detail.tagInput).toBeVisible();
     await expect(detail.tagInputField).toBeVisible();
+  });
+
+  test('should keep the Ports tab available after the activity rationalization', async () => {
+    await detail.tabPorts.click();
+    await expect(detail.panelPorts).toBeVisible();
+    await expect(detail.portTable).toBeVisible();
   });
 
   test('should navigate back to devices via breadcrumb', async ({ page }) => {

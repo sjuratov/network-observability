@@ -1,0 +1,73 @@
+feature: device-detail-ports
+version: "1.0"
+basePath: /api/v1
+
+endpoints:
+  - path: /devices/{id}/ports
+    method: GET
+    description: Return the latest open-port snapshot for a device. The API preserves raw service-version values for advanced detail and exports while the default Device Detail table renders version data inline only when it exists.
+    auth: api-key
+    request:
+      params:
+        type: object
+        required: [id]
+        properties:
+          id:
+            type: string
+            description: Stable device identifier from the device inventory.
+    responses:
+      200:
+        description: Latest open-port snapshot for the requested device.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                required: [port, protocol, state]
+                properties:
+                  port:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                  protocol:
+                    type: string
+                    enum: [tcp, udp]
+                  state:
+                    type: string
+                    enum: [open, closed, filtered]
+                  service:
+                    type: string
+                    nullable: true
+                  version:
+                    type: string
+                    nullable: true
+                    description: Preserved raw service banner or version fingerprint when detection succeeds.
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time

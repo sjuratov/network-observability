@@ -1,0 +1,57 @@
+version: "1.0"
+target: local-docker
+
+resources:
+  - name: network-observability-app
+    type: docker-compose.service
+    description: Single Node.js container that serves the Fastify API and Vite-built SPA, including device-status reconciliation APIs and dashboard views.
+    sku: local-default
+    justification: Reuses the existing Dockerfile and docker-compose workflow; ext-pre-001 does not introduce separate web or worker services.
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    resources:
+      cpu: "1.0"
+      memory: "2Gi"
+    ingress:
+      external: true
+      targetPort: 8080
+    networking:
+      mode: host
+    capabilities:
+      - NET_RAW
+      - NET_ADMIN
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: API_KEY
+        secretRef: api-key
+      - name: STORAGE_DB_PATH
+        value: /data/network-obs.db
+      - name: WEB_UI_PORT
+        value: "8080"
+      - name: PRESENCE_OFFLINE_THRESHOLD
+        value: "2"
+
+  - name: network-observability-data
+    type: docker.volume
+    description: Persistent volume mounted at /data for the SQLite database and generated API key material.
+    sku: local-persistent
+    justification: Matches the current local deployment model and existing Docker Compose volume usage.
+
+dependencies:
+  - from: network-observability-app
+    to: network-observability-data
+    reason: App persistence for SQLite data and generated API key files.
+
+gaps:
+  - kind: deployment-note
+    description: If cloud deployment is revisited later, host-networking and raw-socket scan requirements will need a separate deployment assessment because they are not portable to every managed container platform.
+  - kind: infrastructure-delta
+    description: ext-pre-001 introduces the PRESENCE_OFFLINE_THRESHOLD configuration contract but does not require any new runtime components beyond the existing application container and persisted data volume.
+  - kind: infrastructure-delta
+    description: ext-002 reuses the existing application container and pagination API surface; configurable page-size selection and full-result retrieval do not introduce any new runtime services, Azure resources, or environment variables.
+  - kind: infrastructure-delta
+    description: ext-003 reuses the existing application container, SQLite store, and API-key auth model; the structured device activity history contract and Activity tab do not require any new runtime services, Azure resources, or environment variables.
+  - kind: infrastructure-delta
+    description: ext-004 keeps the existing device-ports endpoint and runtime topology; simplifying the Ports & Services table presentation and preserving raw version fields introduce no new services, Azure resources, or environment variables.

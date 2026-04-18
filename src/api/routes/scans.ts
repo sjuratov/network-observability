@@ -12,6 +12,7 @@ import {
   extractNmapXmlPayload,
   resolvePortScanBatchSize,
 } from '../scanner/ports.js';
+import { getPresenceOfflineThreshold } from '../presence/device-status.js';
 
 interface DbScanRow {
   id: string;
@@ -38,6 +39,27 @@ interface DbScanResultRow {
   discovery_method: string | null;
   open_ports: string | null;
   created_at: string | null;
+}
+
+interface ExistingDeviceRow {
+  id: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  seen_scan_count: number | null;
+  missed_scan_count: number | null;
+}
+
+function ensurePresenceTrackingColumns(raw: Database['getDb'] extends () => infer T ? T : never) {
+  const columns = raw.prepare("PRAGMA table_info(devices)").all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has('seen_scan_count')) {
+    raw.exec('ALTER TABLE devices ADD COLUMN seen_scan_count INTEGER DEFAULT 0');
+  }
+
+  if (!columnNames.has('missed_scan_count')) {
+    raw.exec('ALTER TABLE devices ADD COLUMN missed_scan_count INTEGER DEFAULT 0');
+  }
 }
 
 function rowToScan(row: DbScanRow) {
@@ -159,6 +181,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
         const scanResult = await runScan({ subnets, intensity });
         const deviceResults = (scanResult as any).results || [];
         console.log(`Scan completed: subnets=${JSON.stringify(subnets)}, ${scanResult.devicesFound} found, ${deviceResults.length} results to store`);
+        ensurePresenceTrackingColumns(raw);
 
         // Enrich with reverse DNS lookups
         await Promise.allSettled(deviceResults.map(async (dev: any) => {
@@ -267,19 +290,37 @@ export async function scanRoutes(fastify: FastifyInstance) {
 
         const completedAt = new Date().toISOString();
         const durationMs = new Date(completedAt).getTime() - new Date(now).getTime();
+        const presenceOfflineThreshold = getPresenceOfflineThreshold(fastify);
 
         // Upsert devices and store scan_results
         let newDeviceCount = 0;
-        const upsertDevice = raw.prepare(
-          `INSERT INTO devices (id, mac_address, ip_address, hostname, vendor, is_online, first_seen_at, last_seen_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
-           ON CONFLICT(mac_address) DO UPDATE SET
-             ip_address = excluded.ip_address,
-             hostname = COALESCE(excluded.hostname, devices.hostname),
-             vendor = COALESCE(excluded.vendor, devices.vendor),
-             is_online = 1,
-             last_seen_at = excluded.last_seen_at,
-             updated_at = excluded.updated_at`,
+        const findExistingDevice = raw.prepare(
+          'SELECT id, first_seen_at, last_seen_at, seen_scan_count, missed_scan_count FROM devices WHERE mac_address = ?',
+        );
+        const insertDevice = raw.prepare(
+          `INSERT INTO devices (
+             id, mac_address, ip_address, hostname, vendor, is_online,
+             seen_scan_count, missed_scan_count, first_seen_at, last_seen_at, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        );
+        const updateSeenDevice = raw.prepare(
+          `UPDATE devices
+           SET ip_address = ?,
+               hostname = COALESCE(?, hostname),
+               vendor = COALESCE(?, vendor),
+               is_online = ?,
+               seen_scan_count = ?,
+               missed_scan_count = 0,
+               last_seen_at = ?,
+               updated_at = ?
+           WHERE id = ?`,
+        );
+        const updateMissingDevice = raw.prepare(
+          `UPDATE devices
+           SET is_online = ?,
+               missed_scan_count = ?,
+               updated_at = ?
+           WHERE id = ?`,
         );
         const insertResult = raw.prepare(
           `INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, hostname, vendor, discovery_method, open_ports, created_at)
@@ -288,22 +329,84 @@ export async function scanRoutes(fastify: FastifyInstance) {
 
         const upsertMany = raw.transaction((devices: typeof deviceResults) => {
           let portsStored = 0;
+          const seenMacs = new Set<string>();
           for (const dev of devices) {
             const deviceId = randomUUID();
             const mac = dev.macAddress || `unknown-${dev.ipAddress}`;
-            
-            // Check if device already exists
-            const existing = raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string } | undefined;
-            if (!existing) newDeviceCount++;
-            
-            const existingId = existing?.id || deviceId;
-            upsertDevice.run(existingId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, completedAt, completedAt, completedAt, completedAt);
-            
-            const actualId = (raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string }).id;
+            seenMacs.add(mac);
+
+            const existing = findExistingDevice.get(mac) as ExistingDeviceRow | undefined;
+            let actualId: string = deviceId;
+
+            if (existing) {
+              const priorSeenCount = existing.seen_scan_count
+                ?? (
+                  existing.first_seen_at
+                  && existing.last_seen_at
+                  && existing.first_seen_at === existing.last_seen_at
+                    ? 1
+                    : 2
+                );
+              const nextSeenCount = priorSeenCount + 1;
+              const isOnline = nextSeenCount > 1 ? 1 : 0;
+              actualId = existing.id;
+              updateSeenDevice.run(
+                dev.ipAddress,
+                dev.hostname || null,
+                dev.vendor || null,
+                isOnline,
+                nextSeenCount,
+                completedAt,
+                completedAt,
+                actualId,
+              );
+            } else {
+              newDeviceCount++;
+              insertDevice.run(
+                deviceId,
+                mac,
+                dev.ipAddress,
+                dev.hostname || null,
+                dev.vendor || null,
+                0,
+                1,
+                0,
+                completedAt,
+                completedAt,
+                completedAt,
+                completedAt,
+              );
+            }
+
             const portsJson = dev.openPorts ? JSON.stringify(dev.openPorts) : null;
             if (portsJson) portsStored++;
             insertResult.run(scanId, actualId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, dev.discoveryMethod, portsJson, completedAt);
           }
+
+          const missingDevices = seenMacs.size > 0
+            ? raw.prepare(
+              `SELECT id, first_seen_at, last_seen_at, seen_scan_count, missed_scan_count
+               FROM devices
+               WHERE mac_address NOT IN (${Array.from(seenMacs).map(() => '?').join(',')})`,
+            ).all(...Array.from(seenMacs)) as ExistingDeviceRow[]
+            : raw.prepare(
+              'SELECT id, first_seen_at, last_seen_at, seen_scan_count, missed_scan_count FROM devices',
+            ).all() as ExistingDeviceRow[];
+
+          for (const device of missingDevices) {
+            const priorSeenCount = device.seen_scan_count
+              ?? (
+                device.first_seen_at
+                && device.last_seen_at
+                && device.first_seen_at === device.last_seen_at
+                  ? 1
+                  : 2
+              );
+            const nextMissedCount = (device.missed_scan_count ?? 0) + 1;
+            const isOnline = priorSeenCount > 1 && nextMissedCount < presenceOfflineThreshold ? 1 : 0;
+            updateMissingDevice.run(isOnline, nextMissedCount, completedAt, device.id);
+          }
+
           console.log(`DB upsert: ${devices.length} devices, ${portsStored} with ports stored`);
         });
         upsertMany(deviceResults);

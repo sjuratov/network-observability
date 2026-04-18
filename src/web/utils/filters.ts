@@ -2,8 +2,9 @@ import type { Device, Scan, DashboardStats, FilterParams } from '@shared/types/d
 
 export function filterDevices(devices: Device[], filters: FilterParams): Device[] {
   return devices.filter((d) => {
-    if (filters.status === 'online' && !d.isOnline) return false;
-    if (filters.status === 'offline' && d.isOnline) return false;
+    const status = d.status ?? (d.isOnline ? 'online' : 'offline');
+    if (filters.status === 'online' && status !== 'online') return false;
+    if (filters.status === 'offline' && status !== 'offline') return false;
     if (filters.tag && !d.tags.includes(filters.tag)) return false;
     if (filters.vendor && d.vendor !== filters.vendor) return false;
     return true;
@@ -55,7 +56,7 @@ export function computeStats(devices: Device[], scans: Scan[]): DashboardStats {
   const newDevices24h = devices.filter(
     (d) => now - new Date(d.firstSeenAt).getTime() < twentyFourHours,
   ).length;
-  const offlineDevices = devices.filter((d) => !d.isOnline).length;
+  const offlineDevices = devices.filter((d) => (d.status ?? (d.isOnline ? 'online' : 'offline')) === 'offline').length;
 
   let lastScanAt: string | null = null;
   let lastScanStatus: string | null = null;

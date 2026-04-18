@@ -270,7 +270,7 @@ describe('REST API (F11)', () => {
       expect(body.data.tags).toContain('IoT');
     });
 
-    it('should return device history from GET /api/v1/devices/:id/history', async () => {
+    it('should return structured device activity history from GET /api/v1/devices/:id/history', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/v1/devices/device-001/history',
@@ -279,7 +279,13 @@ describe('REST API (F11)', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(Array.isArray(body.data)).toBe(true);
+      expect(body).toMatchObject({
+        presenceSummary: expect.objectContaining({
+          status: expect.any(String),
+        }),
+        ipHistory: expect.any(Array),
+        activityEvents: expect.any(Array),
+      });
     });
   });
 

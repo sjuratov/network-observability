@@ -152,14 +152,14 @@ export function DashboardPage() {
     if (devices.length === 0) return;
     const header = 'Name,MAC,IP,Vendor,Status,Last Seen\n';
     const rows = devices.map((d) =>
-      [
-        d.displayName || d.hostname || 'Unknown',
-        d.macAddress,
-        d.ipAddress,
-        d.vendor || '',
-        d.isOnline ? 'Online' : 'Offline',
-        d.lastSeenAt,
-      ].join(',')
+        [
+          d.displayName || d.hostname || 'Unknown',
+          d.macAddress,
+          d.ipAddress,
+          d.vendor || '',
+          (d.status ?? (d.isOnline ? 'online' : 'offline')).replace(/^./, (char) => char.toUpperCase()),
+          d.lastSeenAt,
+        ].join(',')
     );
     const csv = header + rows.join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });

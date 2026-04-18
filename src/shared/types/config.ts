@@ -2,6 +2,7 @@ export interface AppConfig {
   subnets: string[];
   scanCadence: string;
   scanIntensity: 'quick' | 'normal' | 'thorough';
+  presenceOfflineThreshold: number;
   dataRetentionDays: number;
   portRange: string;
   alertWebhookUrl?: string;

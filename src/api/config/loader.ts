@@ -9,6 +9,7 @@ const DEFAULTS: AppConfig = {
   subnets: [],
   scanCadence: '0 */6 * * *',
   scanIntensity: 'normal',
+  presenceOfflineThreshold: 2,
   dataRetentionDays: 365,
   portRange: '',
   alertCooldownSeconds: 300,
@@ -20,6 +21,7 @@ const DEFAULTS: AppConfig = {
 
 interface YamlConfig {
   scan?: { cadence?: string; intensity?: string; subnets?: string[] };
+  presence?: { offline_threshold?: number };
   storage?: { retention_days?: number; db_path?: string };
   web_ui_port?: number;
   log_level?: string;
@@ -33,6 +35,7 @@ function applyYaml(base: AppConfig, doc: YamlConfig): AppConfig {
   if (doc.scan?.cadence) cfg.scanCadence = doc.scan.cadence;
   if (doc.scan?.intensity) cfg.scanIntensity = doc.scan.intensity as AppConfig['scanIntensity'];
   if (doc.scan?.subnets) cfg.subnets = doc.scan.subnets;
+  if (doc.presence?.offline_threshold !== undefined) cfg.presenceOfflineThreshold = doc.presence.offline_threshold;
   if (doc.storage?.retention_days !== undefined) cfg.dataRetentionDays = doc.storage.retention_days;
   if (doc.storage?.db_path) cfg.dbPath = doc.storage.db_path;
   if (doc.web_ui_port !== undefined) cfg.webUiPort = doc.web_ui_port;
@@ -49,6 +52,7 @@ function applyEnv(base: AppConfig): AppConfig {
   if (process.env['SCAN_CADENCE']) cfg.scanCadence = process.env['SCAN_CADENCE'];
   if (process.env['SCAN_INTENSITY']) cfg.scanIntensity = process.env['SCAN_INTENSITY'] as AppConfig['scanIntensity'];
   if (process.env['SCAN_SUBNETS']) cfg.subnets = process.env['SCAN_SUBNETS'].split(',').map(s => s.trim());
+  if (process.env['PRESENCE_OFFLINE_THRESHOLD']) cfg.presenceOfflineThreshold = parseInt(process.env['PRESENCE_OFFLINE_THRESHOLD'], 10);
   if (process.env['STORAGE_RETENTION_DAYS']) cfg.dataRetentionDays = parseInt(process.env['STORAGE_RETENTION_DAYS'], 10);
   if (process.env['STORAGE_DB_PATH']) cfg.dbPath = process.env['STORAGE_DB_PATH'];
   if (process.env['WEB_UI_PORT']) cfg.webUiPort = parseInt(process.env['WEB_UI_PORT'], 10);
@@ -146,6 +150,12 @@ export function validateConfig(config: Partial<AppConfig>): { valid: boolean; er
     const valid = ['quick', 'normal', 'thorough'];
     if (!valid.includes(config.scanIntensity)) {
       errors.push(`Invalid scan.intensity: "${config.scanIntensity}". Must be one of: quick, normal, thorough`);
+    }
+  }
+
+  if (config.presenceOfflineThreshold !== undefined) {
+    if (!Number.isInteger(config.presenceOfflineThreshold) || config.presenceOfflineThreshold < 1) {
+      errors.push(`presence.offline_threshold must be at least 1, got ${config.presenceOfflineThreshold}`);
     }
   }
 

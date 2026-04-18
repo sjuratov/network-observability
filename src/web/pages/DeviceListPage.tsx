@@ -6,6 +6,7 @@ import { searchDevices, filterDevices } from '../utils/filters';
 import { DeviceTable } from '../components/DeviceTable';
 
 const STATUS_OPTIONS = ['all', 'online', 'offline', 'new'] as const;
+type PageSizeOption = '10' | '25' | '50' | '100' | 'All';
 
 function getUniqueVendors(devices: Device[]): string[] {
   const set = new Set(devices.map((d) => d.vendor ?? 'Unknown'));
@@ -27,12 +28,12 @@ function exportData(devices: Device[], format: 'csv' | 'json') {
     mime = 'application/json';
     ext = 'json';
   } else {
-    const headers = ['ID', 'Name', 'MAC', 'IP', 'Vendor', 'Status', 'Tags', 'First Seen', 'Last Seen'];
-    const rows = devices.map((d) => [
-      d.id, d.displayName ?? '', d.macAddress, d.ipAddress,
-      d.vendor ?? '', d.isOnline ? 'Online' : 'Offline',
-      d.tags.join(';'), d.firstSeenAt, d.lastSeenAt,
-    ]);
+      const headers = ['ID', 'Name', 'MAC', 'IP', 'Vendor', 'Status', 'Tags', 'First Seen', 'Last Seen'];
+      const rows = devices.map((d) => [
+        d.id, d.displayName ?? '', d.macAddress, d.ipAddress,
+        d.vendor ?? '', (d.status ?? (d.isOnline ? 'online' : 'offline')).replace(/^./, (char) => char.toUpperCase()),
+        d.tags.join(';'), d.firstSeenAt, d.lastSeenAt,
+      ]);
     content = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
     mime = 'text/csv';
     ext = 'csv';
@@ -59,13 +60,16 @@ export function DeviceListPage() {
   const [tagFilter, setTagFilter] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [pageSize, setPageSize] = useState<PageSizeOption>('10');
+  const [pageSizeError, setPageSizeError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api.getDevices({ limit: 500 })
+    setError(null);
+    api.getAllDevices()
       .then((res) => {
-        if (!cancelled) setDevices(res.data);
+        if (!cancelled) setDevices(res);
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
@@ -74,6 +78,11 @@ export function DeviceListPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
+  }, [api]);
+
+  const refreshAllDevices = useCallback(async () => {
+    const refreshedDevices = await api.getAllDevices();
+    setDevices(refreshedDevices);
   }, [api]);
 
   const filteredDevices = useMemo(() => {
@@ -105,6 +114,32 @@ export function DeviceListPage() {
   const handleRowClick = useCallback((device: Device) => {
     navigate(`/devices/${device.id}`);
   }, [navigate]);
+
+  const handlePageSizeChange = useCallback(async (nextPageSize: PageSizeOption) => {
+    if (nextPageSize === pageSize) {
+      return;
+    }
+
+    const previousPageSize = pageSize;
+    setPageSizeError(null);
+
+    if (nextPageSize !== 'All') {
+      setPageSize(nextPageSize);
+      return;
+    }
+
+    try {
+      await refreshAllDevices();
+      setPageSize('All');
+    } catch {
+      setPageSize(previousPageSize);
+      setPageSizeError('Unable to load all devices right now. Try again in a moment.');
+    }
+  }, [pageSize, refreshAllDevices]);
+
+  const resolvedPageSize = pageSize === 'All'
+    ? Math.max(filteredDevices.length, 1)
+    : Number.parseInt(pageSize, 10);
 
   if (loading) {
     return (
@@ -244,7 +279,10 @@ export function DeviceListPage() {
         devices={filteredDevices}
         onRowClick={handleRowClick}
         onSelectionChange={setSelectedIds}
-        pageSize={10}
+        pageSize={resolvedPageSize}
+        pageSizeSelection={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+        pageSizeError={pageSizeError}
       />
 
       {/* Export */}

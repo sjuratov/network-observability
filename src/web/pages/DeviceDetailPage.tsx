@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router';
-import type { Device, DeviceHistory } from '@shared/types/device.js';
+import type { Device } from '@shared/types/device.js';
+import type { DeviceActivityHistory } from '@shared/types/device-detail-activity.js';
+import type { DevicePortsSnapshotEntry } from '@shared/types/device-detail-ports.js';
 import { useApi } from '../hooks/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { TagPill } from '../components/TagPill';
 
-type TabId = 'overview' | 'ip-history' | 'ports' | 'presence' | 'tags';
+type TabId = 'overview' | 'activity' | 'ports' | 'tags';
 
 const TABS: { id: TabId; label: string; testId: string }[] = [
   { id: 'overview', label: 'Overview', testId: 'tab-bar-tab-overview' },
-  { id: 'ip-history', label: 'IP History', testId: 'tab-bar-tab-history' },
+  { id: 'activity', label: 'Activity', testId: 'tab-bar-tab-activity' },
   { id: 'ports', label: 'Ports & Services', testId: 'tab-bar-tab-ports' },
-  { id: 'presence', label: 'Presence', testId: 'tab-bar-tab-presence' },
   { id: 'tags', label: 'Tags & Notes', testId: 'tab-bar-tab-tags' },
 ];
 
@@ -36,15 +37,40 @@ function durationBetween(start: string, end: string): string {
   return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
 }
 
+type DevicePortRow = {
+  port: number;
+  protocol: 'tcp' | 'udp';
+  service: string;
+  version: string;
+  timestamp: string;
+};
+
+function renderPortService(entry: DevicePortRow) {
+  const serviceName = entry.service || '—';
+  if (!entry.version) {
+    return serviceName;
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <div>{serviceName}</div>
+      <div className="text-xs text-[#8b949e]">{entry.version}</div>
+    </div>
+  );
+}
+
 export function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const api = useApi();
 
   const [device, setDevice] = useState<Device | null>(null);
-  const [history, setHistory] = useState<DeviceHistory | null>(null);
-  const [portData, setPortData] = useState<any[]>([]);
+  const [history, setHistory] = useState<DeviceActivityHistory | null>(null);
+  const [portData, setPortData] = useState<DevicePortsSnapshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [showAllActivity, setShowAllActivity] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   // Editable fields
@@ -59,15 +85,14 @@ export function DeviceDetailPage() {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
-    Promise.all([api.getDevice(id), api.getDeviceHistory(id)])
-      .then(([dev, hist]) => {
+    api.getDevice(id)
+      .then((dev) => {
         if (cancelled) return;
         setDevice(dev);
-        setHistory(hist);
         setNameValue(dev.displayName ?? dev.hostname ?? dev.macAddress);
         setNotes(dev.notes ?? '');
-        // Fetch port data separately (new endpoint)
         fetch(`/api/v1/devices/${id}/ports`, {
           headers: { 'X-API-Key': localStorage.getItem('netobserver-api-key') || '' },
         })
@@ -80,6 +105,34 @@ export function DeviceDetailPage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [id, api]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setActivityLoading(true);
+    setActivityError(null);
+    setShowAllActivity(false);
+
+    api.getDeviceHistory(id)
+      .then((hist) => {
+        if (!cancelled) {
+          setHistory(hist);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setHistory(null);
+          setActivityError(err.message || 'Unable to load activity history.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setActivityLoading(false);
+        }
       });
 
     return () => { cancelled = true; };
@@ -147,12 +200,27 @@ export function DeviceDetailPage() {
   }
 
   const deviceName = device.displayName ?? device.hostname ?? device.macAddress;
-  const deviceStatus = device.isOnline ? 'online' : 'offline';
+  const deviceStatus = device.status ?? (device.isOnline ? 'online' : 'offline');
+  const activityEvents = history?.activityEvents ?? [];
+  const visibleActivityEvents = showAllActivity ? activityEvents : activityEvents.slice(0, 20);
+  const hasMoreActivity = activityEvents.length > visibleActivityEvents.length;
+  const ipHistory = history?.ipHistory ?? (device.ipAddress ? [{
+    ipAddress: device.ipAddress,
+    firstSeenAt: device.firstSeenAt,
+    lastSeenAt: device.lastSeenAt,
+  }] : []);
+  const presenceSummary = history?.presenceSummary ?? {
+    status: deviceStatus,
+    firstSeenAt: device.firstSeenAt,
+    lastSeenAt: device.lastSeenAt,
+    lastChangedAt: null,
+    summaryLabel: 'No additional activity recorded yet.',
+  };
 
   // Use port data from dedicated ports endpoint, fallback to history
-  const openPorts = (() => {
+  const openPorts: DevicePortRow[] = (() => {
     if (portData.length > 0) {
-      return portData.filter((p: any) => p.state === 'open').map((p: any) => ({
+      return portData.filter((p) => p.state === 'open').map((p) => ({
         port: p.port,
         protocol: p.protocol || 'tcp',
         service: p.service || '',
@@ -160,7 +228,7 @@ export function DeviceDetailPage() {
         timestamp: '',
       }));
     }
-    if (!history) return [];
+    if (!history?.portHistory || history.portHistory.length === 0) return [];
     const portMap = new Map<string, typeof history.portHistory[0]>();
     for (const entry of history.portHistory) {
       const key = `${entry.port}/${entry.protocol}`;
@@ -169,7 +237,15 @@ export function DeviceDetailPage() {
         portMap.set(key, entry);
       }
     }
-    return Array.from(portMap.values()).filter((e) => e.event === 'opened');
+    return Array.from(portMap.values())
+      .filter((entry) => entry.event === 'opened')
+      .map((entry) => ({
+        port: entry.port,
+        protocol: entry.protocol,
+        service: entry.service || '',
+        version: '',
+        timestamp: entry.timestamp,
+      }));
   })();
 
   return (
@@ -321,9 +397,36 @@ export function DeviceDetailPage() {
         </div>
       )}
 
-      {/* IP History */}
-      {activeTab === 'ip-history' && (
-        <div data-testid="panel-ip-history">
+      {/* Activity */}
+      {activeTab === 'activity' && (
+        <div data-testid="panel-activity" className="space-y-5">
+          <div data-testid="activity-presence-summary" className="rounded-lg border border-[#30363d] bg-[#161b22] p-5">
+            <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">Current Presence</h3>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-[#6e7681]">Status</dt>
+              <dd><StatusBadge status={presenceSummary.status} /></dd>
+              <dt className="text-[#6e7681]">First seen</dt>
+              <dd className="text-[#e6edf3]">{formatDateTime(presenceSummary.firstSeenAt)}</dd>
+              <dt className="text-[#6e7681]">Last seen</dt>
+              <dd className="text-[#e6edf3]">{formatDateTime(presenceSummary.lastSeenAt)}</dd>
+              {presenceSummary.lastChangedAt && (
+                <>
+                  <dt className="text-[#6e7681]">Last status change</dt>
+                  <dd className="text-[#e6edf3]">{formatDateTime(presenceSummary.lastChangedAt)}</dd>
+                </>
+              )}
+            </dl>
+            {presenceSummary.summaryLabel && (
+              <p className="mt-3 text-xs text-[#8b949e]">{presenceSummary.summaryLabel}</p>
+            )}
+          </div>
+
+          {activityError && (
+            <div className="rounded-lg border border-[#f85149] bg-[#2d1117] p-4 text-sm text-[#f85149]">
+              Unable to load activity history.
+            </div>
+          )}
+
           <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-5">
             <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">IP Address History</h3>
             <table data-testid="ip-history-table" className="w-full text-sm border-collapse">
@@ -336,8 +439,8 @@ export function DeviceDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {history?.ipHistory && history.ipHistory.length > 0 ? (
-                  history.ipHistory.map((entry, idx) => (
+                {ipHistory.length > 0 ? (
+                  ipHistory.map((entry, idx) => (
                     <tr
                       key={idx}
                       data-testid={`ip-history-table-row-${idx}`}
@@ -357,6 +460,38 @@ export function DeviceDetailPage() {
               </tbody>
             </table>
           </div>
+
+          <div data-testid="activity-event-feed" className="rounded-lg border border-[#30363d] bg-[#161b22] p-5">
+            <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">Recent Activity</h3>
+            {activityLoading ? (
+              <p className="text-sm text-[#8b949e]">Loading activity…</p>
+            ) : (
+              <>
+                <ul className="space-y-3">
+                  {visibleActivityEvents.map((event, index) => (
+                    <li key={`${event.timestamp}-${index}`} className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
+                      <div className="text-sm text-[#e6edf3]">{event.label}</div>
+                      <div className="mt-1 text-xs text-[#8b949e]">{formatDateTime(event.timestamp)}</div>
+                    </li>
+                  ))}
+                </ul>
+                {!activityError && visibleActivityEvents.length === 0 && (
+                  <div data-testid="activity-empty-state" className="text-sm text-[#8b949e]">
+                    No additional activity has been recorded yet.
+                  </div>
+                )}
+                {hasMoreActivity && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllActivity(true)}
+                    className="mt-4 rounded-md border border-[#30363d] px-3 py-1.5 text-sm text-[#e6edf3] hover:border-[#1f6feb] hover:text-[#58a6ff]"
+                  >
+                    Load more activity
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -371,7 +506,6 @@ export function DeviceDetailPage() {
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Port</th>
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Protocol</th>
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Service</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Version</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,49 +518,16 @@ export function DeviceDetailPage() {
                     >
                       <td data-testid={`port-table-port-${idx}`} className="px-3 py-2 font-mono">{entry.port}</td>
                       <td data-testid={`port-table-protocol-${idx}`} className="px-3 py-2 uppercase">{entry.protocol}</td>
-                      <td data-testid={`port-table-service-${idx}`} className="px-3 py-2">{entry.service ?? '—'}</td>
-                      <td className="px-3 py-2">{entry.version ?? '—'}</td>
+                      <td data-testid={`port-table-service-${idx}`} className="px-3 py-2">{renderPortService(entry)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-3 py-8 text-center text-[#6e7681]">No open ports detected</td>
+                    <td colSpan={3} className="px-3 py-8 text-center text-[#6e7681]">No open ports detected</td>
                   </tr>
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Presence */}
-      {activeTab === 'presence' && (
-        <div data-testid="panel-presence">
-          <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-5">
-            <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">Scan Presence History</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
-                <div className="text-xs text-[#6e7681] mb-1">First Seen</div>
-                <div className="text-sm text-[#e6edf3]">{formatDateTime(device.firstSeenAt)}</div>
-              </div>
-              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
-                <div className="text-xs text-[#6e7681] mb-1">Last Seen</div>
-                <div className="text-sm text-[#e6edf3]">{formatDateTime(device.lastSeenAt)}</div>
-              </div>
-              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
-                <div className="text-xs text-[#6e7681] mb-1">Status</div>
-                <div className={`text-sm font-medium ${device.isOnline ? 'text-[#3fb950]' : 'text-[#f85149]'}`}>
-                  {device.isOnline ? '● Online' : '● Offline'}
-                </div>
-              </div>
-              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
-                <div className="text-xs text-[#6e7681] mb-1">Discovery Method</div>
-                <div className="text-sm text-[#e6edf3]">{device.discoveryMethod || '—'}</div>
-              </div>
-            </div>
-            <p className="text-xs text-[#6e7681]">
-              Presence tracking improves over time as more scans run. The device will be marked offline if not seen in consecutive scans.
-            </p>
           </div>
         </div>
       )}

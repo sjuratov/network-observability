@@ -1,4 +1,5 @@
-import { Page, Locator } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 
 export class DashboardPage {
   readonly page: Page;
@@ -6,6 +7,7 @@ export class DashboardPage {
   readonly apiKeyPrompt: Locator;
   readonly apiKeyInput: Locator;
   readonly apiKeySave: Locator;
+  readonly navLinkDevices: Locator;
 
   // Metric cards
   readonly metricTotalDevices: Locator;
@@ -39,6 +41,7 @@ export class DashboardPage {
     this.apiKeyPrompt = page.getByTestId('api-key-prompt');
     this.apiKeyInput = page.getByTestId('api-key-input');
     this.apiKeySave = page.getByTestId('api-key-save');
+    this.navLinkDevices = page.getByTestId('nav-header-link-devices');
 
     this.metricTotalDevices = page.getByTestId('metric-card-total-devices');
     this.metricTotalDevicesValue = page.getByTestId('metric-card-total-devices-value');
@@ -68,5 +71,17 @@ export class DashboardPage {
     await this.page.waitForLoadState('domcontentloaded');
     // Wait for dashboard content to render (metrics or empty state)
     await this.page.waitForSelector('[data-testid="metrics"], [data-testid="empty-state"], [data-testid="api-key-prompt"]', { timeout: 15000 });
+  }
+
+  async offlineDeviceCount(): Promise<number> {
+    await expect.poll(async () => {
+      const text = await this.metricOfflineDevicesValue.textContent();
+      const trimmed = text?.trim() ?? '';
+      return trimmed === '' || trimmed === '—' ? null : trimmed;
+    }).not.toBeNull();
+
+    const text = await this.metricOfflineDevicesValue.textContent();
+    const value = Number.parseInt((text ?? '').replace(/[^\d-]/g, ''), 10);
+    return Number.isNaN(value) ? 0 : value;
   }
 }

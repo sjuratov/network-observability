@@ -32,7 +32,7 @@ describe('Online/Offline Presence Tracking', () => {
 
       expect(state.firstSeenAt).toBe('2024-01-01T10:00:00Z');
       expect(state.lastSeenAt).toBe('2024-01-01T10:00:00Z');
-      expect(state.status).toBe('online');
+      expect(state.status).toBe('unknown');
       expect(state.missedScans).toBe(0);
     });
 
@@ -162,11 +162,11 @@ describe('Online/Offline Presence Tracking', () => {
   // ─── New Device Status ───
 
   describe('New Device Status', () => {
-    // @inc-02 @f8 @must — New device starts as online
-    it('should initialize new device as online with zero missed scans', () => {
+    // @inc-02 @f8 @must — New device starts as unknown
+    it('should initialize new device as unknown with zero missed scans', () => {
       const state = initializePresence('dev-new', '2024-01-01T10:00:00Z');
 
-      expect(state.status).toBe('online');
+      expect(state.status).toBe('unknown');
       expect(state.missedScans).toBe(0);
     });
   });

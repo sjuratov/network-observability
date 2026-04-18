@@ -1,3 +1,5 @@
+export type DeviceStatus = 'online' | 'offline' | 'unknown';
+
 export interface Device {
   id: string;
   macAddress: string;
@@ -6,6 +8,7 @@ export interface Device {
   vendor?: string;
   displayName?: string;
   isKnown: boolean;
+  status?: DeviceStatus;
   isOnline: boolean;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -30,8 +33,28 @@ export interface DashboardStats {
 }
 
 export interface DeviceHistory {
+  presenceSummary?: DevicePresenceSummary;
   ipHistory: IPHistoryEntry[];
+  activityEvents?: DeviceActivityEvent[];
   portHistory: PortHistoryEntry[];
+}
+
+export interface DevicePresenceSummary {
+  status: DeviceStatus;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastChangedAt?: string | null;
+  summaryLabel?: string;
+}
+
+export type DeviceActivityEventType = 'ip-change' | 'presence-online' | 'presence-offline';
+
+export interface DeviceActivityEvent {
+  type: DeviceActivityEventType;
+  label: string;
+  timestamp: string;
+  previousValue?: string | null;
+  nextValue?: string | null;
 }
 
 export interface IPHistoryEntry {
@@ -66,7 +89,7 @@ export interface DeviceListParams {
   cursor?: string;
   search?: string;
   tag?: string;
-  status?: 'online' | 'offline';
+  status?: DeviceStatus | 'online' | 'offline';
   sortBy?: string;
   order?: 'asc' | 'desc';
 }
@@ -77,7 +100,7 @@ export interface ScanListParams {
 }
 
 export interface FilterParams {
-  status?: 'online' | 'offline';
+  status?: DeviceStatus | 'online' | 'offline';
   tag?: string;
   vendor?: string;
 }

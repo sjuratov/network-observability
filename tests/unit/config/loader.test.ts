@@ -14,7 +14,7 @@ describe('Configuration Management', () => {
     // Save env vars we might modify
     for (const key of [
       'SCAN_CADENCE', 'SCAN_INTENSITY', 'SCAN_SUBNETS',
-      'STORAGE_RETENTION_DAYS', 'STORAGE_DB_PATH', 'API_KEY',
+      'PRESENCE_OFFLINE_THRESHOLD', 'STORAGE_RETENTION_DAYS', 'STORAGE_DB_PATH', 'API_KEY',
       'WEB_UI_PORT', 'LOG_LEVEL', 'CONFIG_FILE'
     ]) {
       savedEnv[key] = process.env[key];

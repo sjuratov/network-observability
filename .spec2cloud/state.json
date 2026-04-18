@@ -1,12 +1,491 @@
 {
   "mode": "greenfield",
-  "phase": "phase-2",
-  "status": "in-progress",
+  "phase": "phase-2-complete",
+  "status": "done",
   "project": "network-observability",
-  "currentIncrement": "INC-01",
-  "currentStep": "tests",
+  "currentIncrement": null,
+  "currentStep": "release-complete",
   "increments": [
-    { "id": "INC-01", "status": "in-progress", "step": "tests" }
+    { "id": "INC-01", "status": "done", "step": "superseded-by-extension-plan" },
+    {
+      "id": "ext-pre-001",
+      "status": "done",
+      "step": "implementation-approved",
+      "e2eFiles": [
+        "e2e/device-status-filter.spec.ts"
+      ],
+      "featureFiles": [
+        "specs/features/device-list-status.feature"
+      ],
+      "testFiles": [
+        "cucumber.js",
+        "tests/features/support/world.ts",
+        "tests/features/support/hooks.ts",
+        "tests/features/step-definitions/device-list-status.steps.ts",
+        "tests/unit/api/device-list-status.test.ts",
+        "tests/unit/presence/device-list-status.test.ts"
+      ],
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "build": "green"
+      },
+      "contractFiles": [
+        "specs/contracts/api/device-list-status.yaml",
+        "src/shared/types/device-list-status.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "implementationFiles": [
+        "src/api/config/loader.ts",
+        "src/api/db/database.ts",
+        "src/api/presence/device-status.ts",
+        "src/api/presence/tracker.ts",
+        "src/api/routes/devices.ts",
+        "src/api/routes/scans.ts",
+        "src/api/routes/stats.ts",
+        "src/api/routes/test-support.ts",
+        "src/api/server.ts",
+        "src/shared/types/config.ts",
+        "src/shared/types/device.ts",
+        "src/web/components/DeviceTable.tsx",
+        "src/web/pages/DashboardPage.tsx",
+        "src/web/pages/DeviceDetailPage.tsx",
+        "src/web/pages/DeviceListPage.tsx",
+        "src/web/utils/filters.ts"
+      ],
+      "implementationVerification": {
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "environment": "local-8081"
+      },
+      "completedAt": "2026-04-18T17:54:56Z",
+      "approvedAt": "2026-04-18T17:57:56Z"
+    },
+    {
+      "id": "ext-001",
+      "status": "done",
+      "step": "implementation-approved",
+      "frd": "specs/frd-device-list-status.md",
+      "e2eFiles": [
+        "e2e/device-list-status-presentation.spec.ts"
+      ],
+      "featureFiles": [
+        "specs/features/device-list-status.feature"
+      ],
+      "testFiles": [
+        "tests/features/step-definitions/device-list-status.steps.ts",
+        "tests/unit/web/device-list-status.test.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline"
+      },
+      "contractFiles": [
+        "specs/contracts/api/device-list-status.yaml",
+        "src/shared/types/device-list-status.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "implementationFiles": [
+        "src/web/components/DeviceTable.tsx",
+        "src/web/components/StatusBadge.tsx"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [],
+          "lastTestRun": {
+            "vitest": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/components/DeviceTable.tsx",
+            "src/web/components/StatusBadge.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8081"
+          }
+        }
+      },
+      "implementationVerification": {
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "lint": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8081"
+      },
+      "implementedAt": "2026-04-18T18:23:42Z",
+      "approvedAt": "2026-04-18T18:25:24Z"
+    },
+    {
+      "id": "ext-002",
+      "status": "done",
+      "step": "implementation-approved",
+      "frd": "specs/frd-device-list-status.md",
+      "e2eFiles": [
+        "e2e/device-list-page-size.spec.ts"
+      ],
+      "featureFiles": [
+        "specs/features/device-list-status.feature"
+      ],
+      "testFiles": [
+        "tests/features/step-definitions/device-list-status.steps.ts",
+        "tests/unit/web/device-list-page-size.test.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "gherkinApprovedAt": "2026-04-18T18:33:09Z",
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 2
+      },
+      "testApprovedAt": "2026-04-18T18:37:18Z",
+      "contractFiles": [
+        "specs/contracts/api/device-list-status.yaml",
+        "src/shared/types/device-list-status.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractsGeneratedAt": "2026-04-18T18:39:15Z",
+      "implementationFiles": [
+        "src/api/routes/devices.ts",
+        "src/api/routes/test-support.ts",
+        "src/api/routes/test-support-state.ts",
+        "src/web/api-client.ts",
+        "src/web/components/DeviceTable.tsx",
+        "src/web/pages/DeviceListPage.tsx"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/routes/devices.ts",
+            "src/api/routes/test-support.ts",
+            "src/api/routes/test-support-state.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/components/DeviceTable.tsx",
+            "src/web/pages/DeviceListPage.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "tests/features/step-definitions/device-list-status.steps.ts"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8081"
+          }
+        }
+      },
+      "implementationVerification": {
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "lint": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8081"
+      },
+      "implementedAt": "2026-04-18T18:53:44Z",
+      "testAdjustmentApprovedAt": "2026-04-18T18:50:34Z",
+      "approvedAt": "2026-04-18T18:55:02Z"
+    },
+    {
+      "id": "ext-003",
+      "status": "done",
+      "step": "implementation-approved",
+      "frd": "specs/frd-device-detail-activity.md",
+      "e2eFiles": [
+        "e2e/device-detail.spec.ts"
+      ],
+      "featureFiles": [
+        "specs/features/device-detail-activity.feature"
+      ],
+      "testFiles": [
+        "cucumber.js",
+        "tests/features/step-definitions/device-detail-activity.steps.ts",
+        "tests/unit/api/device-detail-activity.test.ts",
+        "tests/unit/web/device-detail-activity.test.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "e2eGeneratedAt": "2026-04-18T18:56:55Z",
+      "gherkinGeneratedAt": "2026-04-18T19:01:45Z",
+      "gherkinApprovedAt": "2026-04-18T19:01:45Z",
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 4
+      },
+      "testGeneratedAt": "2026-04-18T19:06:46Z",
+      "testApprovedAt": "2026-04-18T19:06:46Z",
+      "contractFiles": [
+        "specs/contracts/api/device-detail-activity.yaml",
+        "src/shared/types/device.ts",
+        "src/shared/types/device-detail-activity.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractsGeneratedAt": "2026-04-18T19:09:24Z",
+      "implementationFiles": [
+        "src/api/routes/test-support-state.ts",
+        "src/api/routes/test-support.ts",
+        "src/api/routes/devices.ts",
+        "src/web/api-client.ts",
+        "src/web/pages/DeviceDetailPage.tsx"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/routes/test-support-state.ts",
+            "src/api/routes/test-support.ts",
+            "src/api/routes/devices.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/pages/DeviceDetailPage.tsx",
+            "src/shared/types/device.ts",
+            "src/shared/types/device-detail-activity.ts"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "tests/unit/api/device-detail-activity.test.ts",
+            "tests/unit/api/routes.test.ts"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8081"
+          }
+        }
+      },
+      "implementationVerification": {
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8081"
+      },
+      "implementedAt": "2026-04-18T19:30:18Z",
+      "testAdjustmentApprovedAt": "2026-04-18T19:30:18Z",
+      "approvedAt": "2026-04-18T19:30:18Z"
+    },
+    {
+      "id": "ext-004",
+      "status": "done",
+      "step": "implementation-approved",
+      "frd": "specs/frd-device-detail-activity.md",
+      "e2eFiles": [
+        "e2e/device-detail-ports.spec.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "e2eGeneratedAt": "2026-04-18T19:34:26Z",
+      "featureFiles": [
+        "specs/features/device-detail-ports.feature"
+      ],
+      "gherkinGeneratedAt": "2026-04-18T19:34:26Z",
+      "gherkinApprovedAt": "2026-04-18T19:40:00Z",
+      "testFiles": [
+        "cucumber.js",
+        "tests/features/step-definitions/device-detail-ports.steps.ts",
+        "tests/unit/api/device-detail-ports.test.ts",
+        "tests/unit/web/device-detail-ports.test.ts"
+      ],
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 2,
+        "passingRegressionTests": 1
+      },
+      "testGeneratedAt": "2026-04-18T19:40:00Z",
+      "testApprovedAt": "2026-04-18T19:42:15Z",
+      "contractFiles": [
+        "specs/contracts/api/device-detail-ports.yaml",
+        "src/shared/types/device-detail-ports.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "contractsGeneratedAt": "2026-04-18T19:42:15Z",
+      "implementationFiles": [
+        "src/api/routes/test-support.ts",
+        "src/web/pages/DeviceDetailPage.tsx",
+        "tests/features/step-definitions/device-detail-ports.steps.ts"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/routes/test-support.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/pages/DeviceDetailPage.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "tests/features/step-definitions/device-detail-ports.steps.ts"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8081"
+          }
+        }
+      },
+      "implementationVerification": {
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8081"
+      },
+      "implementedAt": "2026-04-18T19:46:43Z",
+      "approvedAt": "2026-04-18T19:48:05Z"
+    }
+  ],
+  "contracts": {
+    "api": {
+      "device-list-status": {
+        "status": "done",
+        "specFile": "specs/contracts/api/device-list-status.yaml"
+      },
+      "device-detail-ports": {
+        "status": "done",
+        "specFile": "specs/contracts/api/device-detail-ports.yaml"
+      }
+    },
+    "sharedTypes": {
+      "device-list-status": {
+        "status": "done",
+        "outputFiles": [
+          "src/shared/types/device-list-status.ts"
+        ]
+      },
+      "device-detail-ports": {
+        "status": "done",
+        "outputFiles": [
+          "src/shared/types/device-detail-ports.ts"
+        ]
+      }
+    },
+    "infra": {
+      "status": "done",
+      "specFile": "specs/contracts/infra/resources.yaml"
+    }
+  },
+  "incrementPlan": [
+    {
+      "id": "ext-pre-001",
+      "type": "extension-prerequisite",
+      "frd": "specs/frd-device-list-status.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-001",
+      "type": "extension",
+      "frd": "specs/frd-device-list-status.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-002",
+      "type": "extension",
+      "frd": "specs/frd-device-list-status.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-003",
+      "type": "extension",
+      "frd": "specs/frd-device-detail-activity.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-004",
+      "type": "extension",
+      "frd": "specs/frd-device-detail-activity.md",
+      "status": "done"
+    }
   ],
   "bugFixes": [
     {
@@ -130,10 +609,22 @@
     { "phase": "phase-1a-frds", "status": "approved", "timestamp": "2026-04-15T16:15:00Z" },
     { "phase": "phase-1b-ui", "status": "approved", "timestamp": "2026-04-15T16:33:00Z" },
     { "phase": "phase-1c-increments", "status": "approved", "timestamp": "2026-04-15T16:45:00Z" },
-    { "phase": "phase-1d-techstack", "status": "approved", "timestamp": "2026-04-15T16:45:00Z" }
+    { "phase": "phase-1d-techstack", "status": "approved", "timestamp": "2026-04-15T16:45:00Z" },
+    { "phase": "extension-plan-2026-04", "status": "approved", "timestamp": "2026-04-18T16:44:32Z" },
+    { "phase": "ext-pre-001-tests", "status": "approved", "timestamp": "2026-04-18T17:18:20Z" },
+    { "phase": "ext-pre-001-contracts", "status": "approved", "timestamp": "2026-04-18T17:22:08Z" },
+    { "phase": "ext-pre-001-implementation", "status": "approved", "timestamp": "2026-04-18T17:57:56Z" },
+    { "phase": "ext-001-gherkin", "status": "approved", "timestamp": "2026-04-18T18:08:56Z" },
+    { "phase": "ext-001-tests", "status": "approved", "timestamp": "2026-04-18T18:12:41Z" },
+    { "phase": "ext-001-contracts", "status": "approved", "timestamp": "2026-04-18T18:12:41Z" },
+    { "phase": "ext-001-implementation", "status": "approved", "timestamp": "2026-04-18T18:25:24Z" },
+    { "phase": "ext-003-implementation", "status": "approved", "timestamp": "2026-04-18T19:30:18Z" },
+    { "phase": "ext-004-gherkin", "status": "approved", "timestamp": "2026-04-18T19:40:00Z" },
+    { "phase": "ext-004-tests", "status": "approved", "timestamp": "2026-04-18T19:42:15Z" },
+    { "phase": "ext-004-implementation", "status": "approved", "timestamp": "2026-04-18T19:48:05Z" }
   ],
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-18T16:14:20Z"
+  "lastUpdated": "2026-04-18T19:50:17Z"
 }
