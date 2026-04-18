@@ -110,6 +110,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
           hostname: r.hostname ?? undefined,
           vendor: r.vendor ?? undefined,
           discoveryMethod: r.discovery_method ?? '',
+          openPorts: r.open_ports ? JSON.parse(r.open_ports) : undefined,
         })),
       },
       meta: { timestamp: new Date().toISOString() },

@@ -371,7 +371,7 @@ export function DeviceDetailPage() {
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Port</th>
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Protocol</th>
                   <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Service</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Last Seen</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium uppercase text-[#8b949e] border-b border-[#30363d]">Version</th>
                 </tr>
               </thead>
               <tbody>
@@ -385,7 +385,7 @@ export function DeviceDetailPage() {
                       <td data-testid={`port-table-port-${idx}`} className="px-3 py-2 font-mono">{entry.port}</td>
                       <td data-testid={`port-table-protocol-${idx}`} className="px-3 py-2 uppercase">{entry.protocol}</td>
                       <td data-testid={`port-table-service-${idx}`} className="px-3 py-2">{entry.service ?? '—'}</td>
-                      <td className="px-3 py-2">{formatDateTime(entry.timestamp)}</td>
+                      <td className="px-3 py-2">{entry.version ?? '—'}</td>
                     </tr>
                   ))
                 ) : (
