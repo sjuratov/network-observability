@@ -10,6 +10,7 @@ import {
   extractVersion,
   parseNmapPortXml,
   parseNmapPortXmlFile,
+  computePortScanTimeoutMs,
 } from '@api/scanner/ports.js';
 import type { PortScanResult } from '@api/scanner/ports.js';
 
@@ -97,6 +98,21 @@ describe('Port & Service Detection (F5)', () => {
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }
+    });
+
+    it('scales multi-host port scan timeout by discovered host count', () => {
+      // Validates: specs/frd-port-detection.md F5.7, F5.9
+      expect(computePortScanTimeoutMs({
+        hostCount: 27,
+        perHostTimeoutMs: 120_000,
+        minimumTimeoutMs: 180_000,
+      })).toBe(3_240_000);
+
+      expect(computePortScanTimeoutMs({
+        hostCount: 1,
+        perHostTimeoutMs: 120_000,
+        minimumTimeoutMs: 180_000,
+      })).toBe(180_000);
     });
   });
 

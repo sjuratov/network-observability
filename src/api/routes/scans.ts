@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Database } from '../db/database.js';
 import { runScan, detectSubnets } from '../scanner/discovery.js';
-import { buildNmapPortArgs, extractNmapXmlPayload } from '../scanner/ports.js';
+import { buildNmapPortArgs, computePortScanTimeoutMs, extractNmapXmlPayload } from '../scanner/ports.js';
 
 interface DbScanRow {
   id: string;
@@ -179,15 +179,25 @@ export async function scanRoutes(fastify: FastifyInstance) {
           // Use SYN scan if privileged (Linux host networking), TCP connect otherwise
           const scanType = process.getuid?.() === 0 ? '-sS' : '-sT';
           const portArgs = buildNmapPortArgs(portRange);
+          const configuredHostTimeoutSeconds = Number.parseInt(process.env['PORT_SCAN_HOST_TIMEOUT'] ?? '120', 10);
+          const perHostTimeoutMs = Number.isFinite(configuredHostTimeoutSeconds) && configuredHostTimeoutSeconds > 0
+            ? configuredHostTimeoutSeconds * 1000
+            : 120_000;
+          const portScanTimeoutMs = computePortScanTimeoutMs({
+            hostCount: deviceIps.length,
+            perHostTimeoutMs,
+            minimumTimeoutMs: 180_000,
+          });
           const tempDir = mkdtempSync(path.join(tmpdir(), 'netobserver-nmap-'));
           const xmlOutputFile = path.join(tempDir, 'port-scan.xml');
           const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', xmlOutputFile];
           console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
+          console.log(`Port scan timeout: ${portScanTimeoutMs}ms (${deviceIps.length} hosts at ${perHostTimeoutMs}ms each)`);
           
           let portXml = '';
           try {
             try {
-              await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
+              await execFileAsync('nmap', nmapArgs, { timeout: portScanTimeoutMs, maxBuffer: 10 * 1024 * 1024 });
             } catch (nmapErr: any) {
               if (!existsSync(xmlOutputFile)) {
                 throw nmapErr;

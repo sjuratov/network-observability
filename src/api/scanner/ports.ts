@@ -19,6 +19,12 @@ export interface PortChange {
   detectedAt: string;
 }
 
+export interface PortScanTimeoutOptions {
+  hostCount: number;
+  perHostTimeoutMs: number;
+  minimumTimeoutMs: number;
+}
+
 // Well-known port-to-service mapping
 const WELL_KNOWN_PORTS: Record<number, string> = {
   7: 'echo',
@@ -244,6 +250,14 @@ export function buildNmapPortArgs(portRange: string): string[] {
   }
 
   return ['-p', portRange.trim()];
+}
+
+export function computePortScanTimeoutMs(options: PortScanTimeoutOptions): number {
+  const hostCount = Math.max(1, options.hostCount);
+  const perHostTimeoutMs = Math.max(1, options.perHostTimeoutMs);
+  const minimumTimeoutMs = Math.max(1, options.minimumTimeoutMs);
+
+  return Math.max(minimumTimeoutMs, hostCount * perHostTimeoutMs);
 }
 
 /** Run nmap port scan and return XML stdout. */
