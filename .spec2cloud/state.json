@@ -21,6 +21,19 @@
         "src/api/routes/scans.ts"
       ],
       "completedAt": "2026-04-18T11:27:43Z"
+    },
+    {
+      "id": "bugfix-002",
+      "type": "bugfix",
+      "frd": "specs/frd-port-detection.md",
+      "description": "Preserve open-port results when nmap stdout includes non-XML text before the XML payload",
+      "status": "done",
+      "testFile": "tests/unit/scanner/ports.test.ts",
+      "fixedFiles": [
+        "src/api/scanner/ports.ts",
+        "src/api/routes/scans.ts"
+      ],
+      "completedAt": "2026-04-18T13:55:09Z"
     }
   ],
   "humanGates": [
@@ -34,5 +47,5 @@
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-18T11:27:43Z"
+  "lastUpdated": "2026-04-18T13:55:09Z"
 }

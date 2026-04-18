@@ -257,12 +257,27 @@ function execNmap(args: string[], timeoutMs = 30000): Promise<string> {
   });
 }
 
+export function extractNmapXmlPayload(output: string): string {
+  const trimmed = output.trimStart();
+  const xmlStart = trimmed.indexOf('<?xml');
+  if (xmlStart >= 0) {
+    return trimmed.slice(xmlStart);
+  }
+
+  const nmapRunStart = trimmed.indexOf('<nmaprun');
+  if (nmapRunStart >= 0) {
+    return trimmed.slice(nmapRunStart);
+  }
+
+  return trimmed;
+}
+
 /** Parse nmap XML output into PortScanResult[]. */
-function parseNmapPortXml(xml: string): PortScanResult[] {
+export function parseNmapPortXml(xml: string): PortScanResult[] {
   try {
     const { XMLParser } = require('fast-xml-parser');
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
-    const doc = parser.parse(xml);
+    const doc = parser.parse(extractNmapXmlPayload(xml));
 
     const hosts = Array.isArray(doc?.nmaprun?.host)
       ? doc.nmaprun.host

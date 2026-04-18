@@ -5,6 +5,7 @@ import {
   identifyService,
   parsePortRange,
   extractVersion,
+  parseNmapPortXml,
 } from '@api/scanner/ports.js';
 import type { PortScanResult, PortChange } from '@api/scanner/ports.js';
 
@@ -27,6 +28,35 @@ describe('Port & Service Detection (F5)', () => {
       const results = await scanPorts('192.168.1.50', 'top-100', 'normal');
 
       expect(Array.isArray(results)).toBe(true);
+    });
+
+    it('preserves every open port from nmap XML even when stdout contains non-XML text before the XML payload', () => {
+      // Validates: specs/frd-port-detection.md AC-1, F5.7, F5.10
+      const expectedPorts = [
+        { port: 1234, protocol: 'tcp', state: 'open', service: 'svc-a', version: undefined },
+        { port: 5678, protocol: 'tcp', state: 'open', service: 'svc-b', version: undefined },
+      ] as const;
+
+      const xmlPorts = expectedPorts.map(
+        (entry) => `
+      <port protocol="${entry.protocol}" portid="${entry.port}">
+        <state state="${entry.state}" />
+        <service name="${entry.service}" />
+      </port>`,
+      ).join('');
+
+      const stdout = `Starting Nmap 7.94SVN
+<?xml version="1.0"?>
+<nmaprun>
+  <host>
+    <status state="up" reason="syn-ack" />
+    <address addr="192.168.1.200" addrtype="ipv4" />
+    <ports>${xmlPorts}
+    </ports>
+  </host>
+</nmaprun>`;
+
+      expect(parseNmapPortXml(stdout)).toEqual(expectedPorts);
     });
   });
 

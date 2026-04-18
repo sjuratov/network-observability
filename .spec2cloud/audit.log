@@ -4,3 +4,7 @@
 [2026-04-18T11:22:59Z] step=bugfix action=test-approved bug=bugfix-001 approver=human result=approved
 [2026-04-18T11:23:53Z] step=bugfix action=fix-applied bug=bugfix-001 files=src/api/scanner/ports.ts,src/api/routes/scans.ts result=done
 [2026-04-18T11:27:43Z] step=bugfix action=regression-verified bug=bugfix-001 result=unit-green build=preexisting-failure lint=missing-eslint e2e=device-detail-flow-failures
+[2026-04-18T13:54:12Z] step=bugfix action=test-created bug=bugfix-002 frd=frd-port-detection test=tests/unit/scanner/ports.test.ts result=failing
+[2026-04-18T13:54:12Z] step=bugfix action=test-approved bug=bugfix-002 approver=human result=approved
+[2026-04-18T13:54:31Z] step=bugfix action=fix-applied bug=bugfix-002 files=src/api/scanner/ports.ts,src/api/routes/scans.ts result=done
+[2026-04-18T13:55:09Z] step=bugfix action=regression-verified bug=bugfix-002 result=unit-green build=preexisting-failure lint=missing-eslint

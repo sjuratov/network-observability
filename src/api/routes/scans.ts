@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import dns from 'node:dns';
 import type { Database } from '../db/database.js';
 import { runScan, deduplicateResults, detectSubnets } from '../scanner/discovery.js';
-import { buildNmapPortArgs } from '../scanner/ports.js';
+import { buildNmapPortArgs, extractNmapXmlPayload } from '../scanner/ports.js';
 
 interface DbScanRow {
   id: string;
@@ -198,7 +198,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
           // Parse port results and assign to devices
           const { XMLParser: XP } = await import('fast-xml-parser');
           const pparser = new XP({ ignoreAttributes: false, attributeNamePrefix: '@_' });
-          const pdoc = pparser.parse(portXml);
+          const pdoc = pparser.parse(extractNmapXmlPayload(portXml));
           const phosts = Array.isArray(pdoc?.nmaprun?.host) ? pdoc.nmaprun.host : pdoc?.nmaprun?.host ? [pdoc.nmaprun.host] : [];
           console.log(`Port scan parsed ${phosts.length} hosts`);
           
