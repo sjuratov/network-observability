@@ -32,6 +32,14 @@ async function main() {
   await db.initialize();
   logger.info({ dbPath: config.dbPath }, 'Database initialized');
 
+  // Clean up any orphaned in-progress scans from previous runs
+  const raw = db.getDb();
+  const orphaned = raw.prepare("UPDATE scans SET status = 'failed', completed_at = ?, errors = ? WHERE status = 'in-progress'")
+    .run(new Date().toISOString(), JSON.stringify(['Scan interrupted by container restart']));
+  if (orphaned.changes > 0) {
+    logger.info({ count: orphaned.changes }, 'Cleaned up orphaned in-progress scans');
+  }
+
   // Create Fastify server with routes, auth, CORS
   const server = await createServer({ config, db, logger });
 
