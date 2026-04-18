@@ -11,7 +11,7 @@ services:
     volumes:
       - netobserver-data:/data
     environment:
-      - WEB_UI_PORT=8080
+      - WEB_UI_PORT=8090
       - LOG_LEVEL=info
     restart: unless-stopped
 
