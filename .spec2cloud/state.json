@@ -8,6 +8,21 @@
   "increments": [
     { "id": "INC-01", "status": "in-progress", "step": "tests" }
   ],
+  "bugFixes": [
+    {
+      "id": "bugfix-001",
+      "type": "bugfix",
+      "frd": "specs/frd-port-detection.md",
+      "description": "Restore missing port 1080 in top-1000 scans and normalize preset handling for nmap port scans",
+      "status": "done",
+      "testFile": "tests/unit/scanner/ports.test.ts",
+      "fixedFiles": [
+        "src/api/scanner/ports.ts",
+        "src/api/routes/scans.ts"
+      ],
+      "completedAt": "2026-04-18T11:27:43Z"
+    }
+  ],
   "humanGates": [
     { "phase": "phase-0", "status": "approved", "timestamp": "2026-04-15T15:53:00Z" },
     { "phase": "phase-1a-prd", "status": "approved", "timestamp": "2026-04-15T16:00:00Z" },
@@ -19,5 +34,5 @@
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-15T16:45:00Z"
+  "lastUpdated": "2026-04-18T11:27:43Z"
 }

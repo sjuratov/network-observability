@@ -101,6 +101,15 @@ describe('Port & Service Detection (F5)', () => {
       expect(ports).toHaveLength(1000);
     });
 
+    it('includes 1080 and 8888 in the top-1000 preset used for normal scans', () => {
+      // Validates: specs/frd-port-detection.md AC-1, F5.5, F5.8
+      const ports = parsePortRange('top-1000');
+
+      expect(ports).toContain(1080);
+      expect(ports).toContain(8888);
+      expect(ports).toHaveLength(1000);
+    });
+
     it('should parse a custom range "1-1024" into sequential ports', () => {
       const ports = parsePortRange('1-1024');
 

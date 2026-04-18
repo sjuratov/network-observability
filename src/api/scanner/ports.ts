@@ -120,6 +120,7 @@ const TOP_100_PORTS = [
 // Nmap top 1000 ports - top 100 + additional 900
 const TOP_1000_PORTS: number[] = (() => {
   const additional = [
+    1080,
     1, 3, 4, 6, 11, 15, 17, 19, 20, 24,
     30, 32, 33, 34, 35, 36, 38, 42, 43, 49,
     50, 51, 52, 54, 55, 56, 57, 58, 59, 60,
@@ -213,6 +214,36 @@ const TOP_1000_PORTS: number[] = (() => {
   return sorted.slice(0, 1000);
 })();
 
+function normalizePortRange(range: string): string {
+  return range.trim().toLowerCase();
+}
+
+export function buildNmapPortArgs(portRange: string): string[] {
+  const normalized = normalizePortRange(portRange);
+
+  if (!normalized) {
+    return [];
+  }
+
+  if (normalized === 'top-100' || normalized === 'top100') {
+    return ['--top-ports', '100'];
+  }
+
+  if (normalized === 'top-1000' || normalized === 'top1000') {
+    return ['--top-ports', '1000'];
+  }
+
+  if (normalized === 'top-5000' || normalized === 'top5000') {
+    return ['--top-ports', '5000'];
+  }
+
+  if (normalized === 'all') {
+    return ['-p-'];
+  }
+
+  return ['-p', portRange.trim()];
+}
+
 /** Run nmap port scan and return XML stdout. */
 function execNmap(args: string[], timeoutMs = 30000): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -275,10 +306,7 @@ export async function scanPorts(
   portRange: string,
   intensity: string,
 ): Promise<PortScanResult[]> {
-  const ports = parsePortRange(portRange);
-  const portArg = ports.join(',');
-
-  const args = ['-sT', '-p', portArg, ip, '-oX', '-'];
+  const args = ['-sT', ...buildNmapPortArgs(portRange), ip, '-oX', '-'];
 
   // Adjust timing based on intensity
   if (intensity === 'quick') {
@@ -372,21 +400,23 @@ export function identifyService(port: number, banner?: string): string | null {
 
 /** Parse a port range string into an array of port numbers. */
 export function parsePortRange(range: string): number[] {
-  if (range === 'top-100') {
+  const normalized = normalizePortRange(range);
+
+  if (normalized === 'top-100' || normalized === 'top100') {
     return [...TOP_100_PORTS];
   }
 
-  if (range === 'top-1000') {
+  if (normalized === 'top-1000' || normalized === 'top1000') {
     return [...TOP_1000_PORTS];
   }
 
   // Comma-separated list: "22,80,443"
-  if (range.includes(',')) {
+  if (normalized.includes(',')) {
     return range.split(',').map(p => Number(p.trim()));
   }
 
   // Range: "1-1024"
-  if (range.includes('-')) {
+  if (normalized.includes('-')) {
     const [startStr, endStr] = range.split('-');
     const start = Number(startStr);
     const end = Number(endStr);
