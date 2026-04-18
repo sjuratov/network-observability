@@ -22,5 +22,5 @@ ENV NODE_ENV=production
 ENV STORAGE_DB_PATH=/data/network-obs.db
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD curl -f http://localhost:8080/api/v1/health || exit 1
+  CMD curl -f http://localhost:${WEB_UI_PORT:-8080}/api/v1/health || exit 1
 CMD ["node", "dist/src/api/index.js"]
