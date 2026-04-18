@@ -163,23 +163,33 @@ export async function scanRoutes(fastify: FastifyInstance) {
           }
         }));
 
-        // Port scan all discovered devices in one nmap call (much faster than per-device)
+        // Port scan all discovered devices in one nmap call
         console.log(`Starting port scan for ${deviceResults.length} devices...`);
         const portRange = (fastify as any).appConfig?.portRange || '22,80,443,8080,8443,53,21,25,110,143,3389,5900';
         try {
-          const ips = deviceResults.map((d: any) => d.ipAddress).join(' ');
           const { execFile: execFileCb } = await import('node:child_process');
           const { promisify } = await import('node:util');
           const execFileAsync = promisify(execFileCb);
           const ports = portRange.split(',').map((p: string) => p.trim()).join(',');
-          const { stdout: portXml } = await execFileAsync('nmap', ['-sT', '-T4', '-p', ports, ...deviceResults.map((d: any) => d.ipAddress), '-oX', '-'], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
+          const deviceIps = deviceResults.map((d: any) => d.ipAddress);
+          
+          // Use SYN scan if privileged (Linux host networking), TCP connect otherwise
+          const scanType = process.getuid?.() === 0 ? '-sS' : '-sT';
+          const nmapArgs = [scanType, '-T4', '-p', ports, ...deviceIps, '-oX', '-'];
+          console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
+          
+          const { stdout: portXml, stderr: portStderr } = await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
+          if (portStderr) console.log(`Port scan stderr: ${portStderr.substring(0, 200)}`);
+          console.log(`Port scan XML length: ${portXml.length}`);
           
           // Parse port results and assign to devices
           const { XMLParser: XP } = await import('fast-xml-parser');
           const pparser = new XP({ ignoreAttributes: false, attributeNamePrefix: '@_' });
           const pdoc = pparser.parse(portXml);
           const phosts = Array.isArray(pdoc?.nmaprun?.host) ? pdoc.nmaprun.host : pdoc?.nmaprun?.host ? [pdoc.nmaprun.host] : [];
+          console.log(`Port scan parsed ${phosts.length} hosts`);
           
+          let devicesWithPorts = 0;
           for (const phost of phosts) {
             const addrs = Array.isArray(phost.address) ? phost.address : phost.address ? [phost.address] : [];
             const hostIp = addrs.find((a: any) => a['@_addrtype'] === 'ipv4')?.['@_addr'];
@@ -202,11 +212,12 @@ export async function scanRoutes(fastify: FastifyInstance) {
             
             if (openPorts.length > 0) {
               dev.openPorts = openPorts;
+              devicesWithPorts++;
             }
           }
-          console.log(`Port scan complete — found open ports on ${deviceResults.filter((d: any) => d.openPorts).length} devices`);
+          console.log(`Port scan complete — ${devicesWithPorts}/${phosts.length} devices have open ports`);
         } catch (err) {
-          console.error('Port scan failed:', err instanceof Error ? err.message : err);
+          console.error('Port scan failed:', err instanceof Error ? err.stack : err);
         }
 
         const completedAt = new Date().toISOString();

@@ -4,7 +4,6 @@ import type { Device, DeviceHistory } from '@shared/types/device.js';
 import { useApi } from '../hooks/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { TagPill } from '../components/TagPill';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 type TabId = 'overview' | 'ip-history' | 'ports' | 'presence' | 'tags';
 
@@ -149,26 +148,6 @@ export function DeviceDetailPage() {
 
   const deviceName = device.displayName ?? device.hostname ?? device.macAddress;
   const deviceStatus = device.isOnline ? 'online' : 'offline';
-
-  // Build presence data from actual device data
-  const presenceData = (() => {
-    if (!device) return [];
-    const now = new Date();
-    const days: { day: string; online: number; offline: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const firstSeen = new Date(device.firstSeenAt);
-      const lastSeen = new Date(device.lastSeenAt);
-      // Device is "online" for this day if the day falls within first_seen..last_seen range
-      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const wasOnline = firstSeen <= dayEnd && lastSeen >= dayStart;
-      days.push({ day: dayLabel, online: wasOnline ? 24 : 0, offline: wasOnline ? 0 : 24 });
-    }
-    return days;
-  })();
 
   // Use port data from dedicated ports endpoint, fallback to history
   const openPorts = (() => {
@@ -424,30 +403,30 @@ export function DeviceDetailPage() {
       {activeTab === 'presence' && (
         <div data-testid="panel-presence">
           <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-5">
-            <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">Presence — Last 7 Days</h3>
-            <div data-testid="presence-timeline">
-              <div data-testid="presence-timeline-chart" className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={presenceData}>
-                    <XAxis dataKey="day" tick={{ fill: '#6e7681', fontSize: 12 }} axisLine={{ stroke: '#30363d' }} />
-                    <YAxis tick={{ fill: '#6e7681', fontSize: 12 }} axisLine={{ stroke: '#30363d' }} label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#6e7681', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#e6edf3', fontSize: 12 }}
-                    />
-                    <Bar dataKey="online" stackId="a" fill="#3fb950" name="Online" />
-                    <Bar dataKey="offline" stackId="a" fill="#30363d" name="Offline" />
-                  </BarChart>
-                </ResponsiveContainer>
+            <h3 className="text-sm font-semibold text-[#8b949e] uppercase tracking-wider mb-3">Scan Presence History</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
+                <div className="text-xs text-[#6e7681] mb-1">First Seen</div>
+                <div className="text-sm text-[#e6edf3]">{formatDateTime(device.firstSeenAt)}</div>
               </div>
-              <div data-testid="presence-timeline-legend" className="flex gap-4 mt-3 text-xs text-[#6e7681]">
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#3fb950]" /> Online
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#30363d]" /> Offline
-                </span>
+              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
+                <div className="text-xs text-[#6e7681] mb-1">Last Seen</div>
+                <div className="text-sm text-[#e6edf3]">{formatDateTime(device.lastSeenAt)}</div>
+              </div>
+              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
+                <div className="text-xs text-[#6e7681] mb-1">Status</div>
+                <div className={`text-sm font-medium ${device.isOnline ? 'text-[#3fb950]' : 'text-[#f85149]'}`}>
+                  {device.isOnline ? '● Online' : '● Offline'}
+                </div>
+              </div>
+              <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3">
+                <div className="text-xs text-[#6e7681] mb-1">Discovery Method</div>
+                <div className="text-sm text-[#e6edf3]">{device.discoveryMethod || '—'}</div>
               </div>
             </div>
+            <p className="text-xs text-[#6e7681]">
+              Presence tracking improves over time as more scans run. The device will be marked offline if not seen in consecutive scans.
+            </p>
           </div>
         </div>
       )}
