@@ -10,7 +10,7 @@ const DEFAULTS: AppConfig = {
   scanCadence: '0 */6 * * *',
   scanIntensity: 'normal',
   dataRetentionDays: 365,
-  portRange: '22,53,80,443,8080,8443,21,25,110,143,3389,5900,8888,9090',
+  portRange: '',
   alertCooldownSeconds: 300,
   apiKey: '',
   webUiPort: 8080,

@@ -165,17 +165,18 @@ export async function scanRoutes(fastify: FastifyInstance) {
 
         // Port scan all discovered devices in one nmap call
         console.log(`Starting port scan for ${deviceResults.length} devices...`);
-        const portRange = (fastify as any).appConfig?.portRange || '22,80,443,8080,8443,53,21,25,110,143,3389,5900';
+        const portRange = (fastify as any).appConfig?.portRange || '';
         try {
           const { execFile: execFileCb } = await import('node:child_process');
           const { promisify } = await import('node:util');
           const execFileAsync = promisify(execFileCb);
-          const ports = portRange.split(',').map((p: string) => p.trim()).join(',');
           const deviceIps = deviceResults.map((d: any) => d.ipAddress);
           
           // Use SYN scan if privileged (Linux host networking), TCP connect otherwise
           const scanType = process.getuid?.() === 0 ? '-sS' : '-sT';
-          const nmapArgs = [scanType, '-T4', '-p', ports, ...deviceIps, '-oX', '-'];
+          // Use --top-ports for best coverage, or explicit list if configured
+          const portArgs = portRange ? ['-p', portRange] : ['--top-ports', '100'];
+          const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', '-'];
           console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
           
           // nmap may exit non-zero when some hosts have filtered ports — still has valid XML
