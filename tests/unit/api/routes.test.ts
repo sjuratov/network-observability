@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import BetterSqlite3 from 'better-sqlite3';
 import { deviceRoutes } from '@api/routes/devices.js';

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 export interface DeviceIdentity {
   id: string;
@@ -33,7 +33,7 @@ export interface SplitResult {
  * Normalize MAC to lowercase colon-separated format.
  */
 export function normalizeMac(mac: string): string {
-  const hex = mac.replace(/[:\-]/g, '').toLowerCase();
+  const hex = mac.replace(/[:-]/g, '').toLowerCase();
   return hex.match(/.{2}/g)!.join(':');
 }
 

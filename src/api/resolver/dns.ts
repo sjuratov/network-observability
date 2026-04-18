@@ -35,7 +35,7 @@ export async function discoverMdns(timeout: number = 5000): Promise<Map<string, 
     const mdnsModule = await import('multicast-dns');
     const mdns = mdnsModule.default();
     return await new Promise<Map<string, string[]>>((resolve) => {
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         mdns.destroy();
         resolve(results);
       }, timeout);
@@ -64,12 +64,12 @@ export async function discoverSsdp(timeout: number = 5000): Promise<Map<string, 
     const ssdpModule = await import('node-ssdp');
     const client = new ssdpModule.Client();
     return await new Promise<Map<string, SsdpDeviceInfo>>((resolve) => {
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         client.stop();
         resolve(results);
       }, timeout);
 
-      client.on('response', (headers: any, statusCode: number, rinfo: { address: string }) => {
+      client.on('response', (headers: any, _statusCode: number, rinfo: { address: string }) => {
         if (!results.has(rinfo.address)) {
           results.set(rinfo.address, {
             friendlyName: headers.SERVER ?? headers.USN ?? rinfo.address,

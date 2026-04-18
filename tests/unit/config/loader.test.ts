@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadConfig, validateConfig, detectSubnets, generateApiKey } from '@api/config/loader.js';
-import type { AppConfig } from '@shared/types/config.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

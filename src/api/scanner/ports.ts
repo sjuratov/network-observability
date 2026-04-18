@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { XMLParser } from 'fast-xml-parser';
 
 export interface PortScanResult {
   port: number;
@@ -272,10 +274,13 @@ export function extractNmapXmlPayload(output: string): string {
   return trimmed;
 }
 
+export function parseNmapPortXmlFile(filePath: string): PortScanResult[] {
+  return parseNmapPortXml(readFileSync(filePath, 'utf8'));
+}
+
 /** Parse nmap XML output into PortScanResult[]. */
 export function parseNmapPortXml(xml: string): PortScanResult[] {
   try {
-    const { XMLParser } = require('fast-xml-parser');
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
     const doc = parser.parse(extractNmapXmlPayload(xml));
 

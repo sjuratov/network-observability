@@ -5,7 +5,7 @@ import {
   createScanRecord,
   transitionScanStatus,
 } from '@api/scanner/scheduler.js';
-import type { SchedulerOptions, ScanRecord } from '@api/scanner/scheduler.js';
+import type { SchedulerOptions } from '@api/scanner/scheduler.js';
 
 describe('Scheduled Scanning (F3)', () => {
   // ─── Default Schedule ───

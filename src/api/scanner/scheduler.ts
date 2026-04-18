@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { Cron } from 'croner';
-import type { Scan } from '@shared/types/device.js';
 
 export interface SchedulerOptions {
   cadence: string;

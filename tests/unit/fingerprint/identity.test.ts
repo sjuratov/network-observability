@@ -9,7 +9,7 @@ import {
   mergeDevices,
   splitDevice,
 } from '@api/fingerprint/identity.js';
-import type { DeviceIdentity, IpHistoryEntry } from '@api/fingerprint/identity.js';
+import type { DeviceIdentity } from '@api/fingerprint/identity.js';
 
 // ─── Helpers ───
 

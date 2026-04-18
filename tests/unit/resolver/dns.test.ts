@@ -8,7 +8,7 @@ import {
   createResolverCache,
   parseSsdpDescription,
 } from '@api/resolver/dns.js';
-import type { ResolvedNames, SsdpDeviceInfo, ResolverCache } from '@api/resolver/dns.js';
+import type { ResolvedNames } from '@api/resolver/dns.js';
 
 describe('DNS/mDNS/SSDP Resolution (F6)', () => {
   // ─── Reverse DNS (PTR) ───

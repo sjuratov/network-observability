@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   detectNewDevices,
   sendWebhookAlert,
@@ -6,7 +6,6 @@ import {
   shouldAlert,
   buildAlertPayload,
   retryAlert,
-  type AlertConfig,
   type AlertRecord,
   type AlertPayload,
   type SmtpConfig,

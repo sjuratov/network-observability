@@ -102,7 +102,7 @@ export async function loadConfig(): Promise<AppConfig> {
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse YAML config file "${configFile}": ${msg}`);
+    throw new Error(`Failed to parse YAML config file "${configFile}": ${msg}`, { cause: err });
   }
 
   // Layer 3: Environment variables
@@ -171,7 +171,7 @@ function isValidCidr(cidr: string): boolean {
 function isValidCron(expr: string): boolean {
   const fields = expr.trim().split(/\s+/);
   if (fields.length !== 5) return false;
-  const pattern = /^[\d*,\-\/]+$/;
+  const pattern = /^[-\d*/,]+$/;
   return fields.every(f => pattern.test(f));
 }
 

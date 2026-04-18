@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   scanPorts,
@@ -6,8 +9,9 @@ import {
   parsePortRange,
   extractVersion,
   parseNmapPortXml,
+  parseNmapPortXmlFile,
 } from '@api/scanner/ports.js';
-import type { PortScanResult, PortChange } from '@api/scanner/ports.js';
+import type { PortScanResult } from '@api/scanner/ports.js';
 
 describe('Port & Service Detection (F5)', () => {
   // ─── TCP Port Scanning ───
@@ -57,6 +61,42 @@ describe('Port & Service Detection (F5)', () => {
 </nmaprun>`;
 
       expect(parseNmapPortXml(stdout)).toEqual(expectedPorts);
+    });
+
+    it('parses every open port from an nmap XML output file', () => {
+      // Validates: specs/frd-port-detection.md AC-1, F5.7, F5.10
+      const expectedPorts = [
+        { port: 1234, protocol: 'tcp', state: 'open', service: 'svc-a', version: undefined },
+        { port: 5678, protocol: 'tcp', state: 'open', service: 'svc-b', version: undefined },
+      ] as const;
+
+      const xmlPorts = expectedPorts.map(
+        (entry) => `
+      <port protocol="${entry.protocol}" portid="${entry.port}">
+        <state state="${entry.state}" />
+        <service name="${entry.service}" />
+      </port>`,
+      ).join('');
+
+      const xml = `<?xml version="1.0"?>
+<nmaprun>
+  <host>
+    <status state="up" reason="syn-ack" />
+    <address addr="192.168.1.200" addrtype="ipv4" />
+    <ports>${xmlPorts}
+    </ports>
+  </host>
+</nmaprun>`;
+
+      const tempDir = mkdtempSync(join(tmpdir(), 'netobserver-'));
+      const xmlFile = join(tempDir, 'scan.xml');
+      writeFileSync(xmlFile, xml, 'utf8');
+
+      try {
+        expect(parseNmapPortXmlFile(xmlFile)).toEqual(expectedPorts);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
     });
   });
 

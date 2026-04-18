@@ -7,7 +7,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --config vite.config.web.ts",
     "dev": "tsx watch src/api/index.ts",
     "build:web": "vite build --config vite.config.web.ts",
     "dev:web": "vite --config vite.config.web.ts",
@@ -15,6 +15,7 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/better-sqlite3": "^7.6.0",
@@ -26,8 +27,11 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.58.2",
     "vitest": "^3.0.0"
   },
   "dependencies": {

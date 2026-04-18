@@ -66,7 +66,7 @@ function getTagsForDevice(db: Database, deviceId: string): string[] {
 }
 
 export async function deviceRoutes(fastify: FastifyInstance) {
-  fastify.get('/devices', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/devices', async (request: FastifyRequest) => {
     const db = getDb(fastify);
     const raw = db.getDb();
     const query = request.query as Record<string, string>;
@@ -182,7 +182,7 @@ export async function deviceRoutes(fastify: FastifyInstance) {
     };
   });
 
-  fastify.get('/devices/:id/history', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/devices/:id/history', async (request: FastifyRequest) => {
     const db = getDb(fastify);
     const { id } = request.params as { id: string };
     const rows = db.getDb()
@@ -204,7 +204,7 @@ export async function deviceRoutes(fastify: FastifyInstance) {
   });
 
   // Get port/service data for a device (from latest scan result)
-  fastify.get('/devices/:id/ports', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/devices/:id/ports', async (request: FastifyRequest) => {
     const db = getDb(fastify);
     const { id } = request.params as { id: string };
     const row = db.getDb()

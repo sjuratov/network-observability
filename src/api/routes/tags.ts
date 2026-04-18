@@ -2,18 +2,12 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import type { Database } from '../db/database.js';
 
-interface DbTagRow {
-  device_id: string;
-  tag: string;
-  created_at: string | null;
-}
-
 function getDb(fastify: FastifyInstance): Database {
   return (fastify as unknown as { db: Database }).db;
 }
 
 export async function tagRoutes(fastify: FastifyInstance) {
-  fastify.get('/tags', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/tags', async () => {
     const db = getDb(fastify);
     const raw = db.getDb();
 

@@ -24,11 +24,6 @@ export interface ApiClient {
 }
 
 export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-API-Key': apiKey,
-  };
-
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const reqHeaders: Record<string, string> = {
       'X-API-Key': apiKey,

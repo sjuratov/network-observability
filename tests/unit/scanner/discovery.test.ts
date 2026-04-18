@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { runScan, deduplicateResults, type ScanOptions } from '@api/scanner/discovery.js';
-import type { ScanResult, Scan } from '@shared/types/device.js';
+import type { ScanResult } from '@shared/types/device.js';
 
 describe('Network Device Discovery', () => {
 

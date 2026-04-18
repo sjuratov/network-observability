@@ -1,8 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import dns from 'node:dns';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import type { Database } from '../db/database.js';
-import { runScan, deduplicateResults, detectSubnets } from '../scanner/discovery.js';
+import { runScan, detectSubnets } from '../scanner/discovery.js';
 import { buildNmapPortArgs, extractNmapXmlPayload } from '../scanner/ports.js';
 
 interface DbScanRow {
@@ -51,7 +54,7 @@ function getDb(fastify: FastifyInstance): Database {
 }
 
 export async function scanRoutes(fastify: FastifyInstance) {
-  fastify.get('/scans', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/scans', async (request: FastifyRequest) => {
     const db = getDb(fastify);
     const raw = db.getDb();
     const query = request.query as Record<string, string>;
@@ -176,22 +179,29 @@ export async function scanRoutes(fastify: FastifyInstance) {
           // Use SYN scan if privileged (Linux host networking), TCP connect otherwise
           const scanType = process.getuid?.() === 0 ? '-sS' : '-sT';
           const portArgs = buildNmapPortArgs(portRange);
-          const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', '-'];
+          const tempDir = mkdtempSync(path.join(tmpdir(), 'netobserver-nmap-'));
+          const xmlOutputFile = path.join(tempDir, 'port-scan.xml');
+          const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', xmlOutputFile];
           console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
           
-          // nmap may exit non-zero when some hosts have filtered ports — still has valid XML
           let portXml = '';
           try {
-            const result = await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
-            portXml = result.stdout;
-          } catch (nmapErr: any) {
-            // execFile rejects on non-zero exit, but stdout may still have results
-            if (nmapErr.stdout) {
-              console.log(`Port scan exited with code ${nmapErr.code || 'unknown'}, but has XML output — parsing results`);
-              portXml = nmapErr.stdout;
-            } else {
-              throw nmapErr;
+            try {
+              await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
+            } catch (nmapErr: any) {
+              if (!existsSync(xmlOutputFile)) {
+                throw nmapErr;
+              }
+              console.log(`Port scan exited with code ${nmapErr.code || 'unknown'}, but XML file exists — parsing results`);
             }
+
+            if (!existsSync(xmlOutputFile)) {
+              throw new Error(`Port scan did not produce XML output at ${xmlOutputFile}`);
+            }
+
+            portXml = readFileSync(xmlOutputFile, 'utf8');
+          } finally {
+            rmSync(tempDir, { recursive: true, force: true });
           }
           console.log(`Port scan XML length: ${portXml.length}`);
           

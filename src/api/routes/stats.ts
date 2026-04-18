@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import type { Database } from '../db/database.js';
 
 function getDb(fastify: FastifyInstance): Database {
@@ -6,12 +6,11 @@ function getDb(fastify: FastifyInstance): Database {
 }
 
 export async function statsRoutes(fastify: FastifyInstance) {
-  fastify.get('/stats/overview', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/stats/overview', async () => {
     const db = getDb(fastify);
     const raw = db.getDb();
 
     const totalRow = raw.prepare('SELECT COUNT(*) as cnt FROM devices').get() as { cnt: number };
-    const onlineRow = raw.prepare('SELECT COUNT(*) as cnt FROM devices WHERE is_online = 1').get() as { cnt: number };
     const offlineRow = raw.prepare('SELECT COUNT(*) as cnt FROM devices WHERE is_online = 0').get() as { cnt: number };
     const newRow = raw.prepare(
       "SELECT COUNT(*) as cnt FROM devices WHERE first_seen_at > datetime('now', '-1 day')",

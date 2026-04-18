@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import type { Device, FilterParams } from '@shared/types/device.js';
 import { useApi } from '../hooks/useApi';
-import { searchDevices, filterDevices, sortDevices } from '../utils/filters';
+import { searchDevices, filterDevices } from '../utils/filters';
 import { DeviceTable } from '../components/DeviceTable';
 
 const STATUS_OPTIONS = ['all', 'online', 'offline', 'new'] as const;

@@ -12,7 +12,7 @@ export function filterDevices(devices: Device[], filters: FilterParams): Device[
 
 export function sortDevices(devices: Device[], sortBy: string, order: 'asc' | 'desc'): Device[] {
   const sorted = [...devices].sort((a, b) => {
-    let cmp = 0;
+    let cmp: number;
     switch (sortBy) {
       case 'name':
         cmp = (a.displayName ?? '').localeCompare(b.displayName ?? '');

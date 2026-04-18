@@ -8,3 +8,15 @@
 [2026-04-18T13:54:12Z] step=bugfix action=test-approved bug=bugfix-002 approver=human result=approved
 [2026-04-18T13:54:31Z] step=bugfix action=fix-applied bug=bugfix-002 files=src/api/scanner/ports.ts,src/api/routes/scans.ts result=done
 [2026-04-18T13:55:09Z] step=bugfix action=regression-verified bug=bugfix-002 result=unit-green build=preexisting-failure lint=missing-eslint
+[2026-04-18T14:08:31Z] step=bugfix action=test-created bug=bugfix-003 frd=frd-port-detection test=tests/unit/scanner/ports.test.ts result=failing
+[2026-04-18T14:08:31Z] step=bugfix action=test-approved bug=bugfix-003 approver=human result=approved
+[2026-04-18T14:09:03Z] step=bugfix action=fix-applied bug=bugfix-003 files=src/api/scanner/ports.ts,src/api/routes/scans.ts result=done
+[2026-04-18T14:09:27Z] step=bugfix action=regression-verified bug=bugfix-003 result=unit-green build=preexisting-failure lint=missing-eslint
+[2026-04-18T14:13:47Z] step=bugfix action=test-created bug=bugfix-004 frd=frd-dashboard test=tests/unit/config/build-script.test.ts result=failing
+[2026-04-18T14:13:47Z] step=bugfix action=test-approved bug=bugfix-004 approver=human result=approved
+[2026-04-18T14:13:58Z] step=bugfix action=fix-applied bug=bugfix-004 files=package.json result=done
+[2026-04-18T14:14:20Z] step=bugfix action=regression-verified bug=bugfix-004 result=unit-green build=green lint=missing-eslint
+[2026-04-18T14:15:44Z] step=bugfix action=test-created bug=bugfix-005 frd=n/a-project-setup test=tests/unit/config/lint-config.test.ts result=failing
+[2026-04-18T14:15:44Z] step=bugfix action=test-approved bug=bugfix-005 approver=human result=approved
+[2026-04-18T14:18:52Z] step=bugfix action=fix-applied bug=bugfix-005 files=package.json,package-lock.json,eslint.config.mjs,src/api/config/loader.ts,src/api/fingerprint/identity.ts,src/api/resolver/dns.ts,src/api/routes/devices.ts,src/api/routes/scans.ts,src/api/routes/stats.ts,src/api/routes/tags.ts,src/api/scanner/discovery.ts,src/api/scanner/ports.ts,src/api/scanner/scheduler.ts,src/web/api-client.ts,src/web/pages/DeviceListPage.tsx,src/web/utils/filters.ts,tests/unit/alerts/notifier.test.ts,tests/unit/api/routes.test.ts,tests/unit/config/loader.test.ts,tests/unit/export/exporter.test.ts,tests/unit/fingerprint/identity.test.ts,tests/unit/resolver/dns.test.ts,tests/unit/scanner/discovery.test.ts,tests/unit/scanner/ports.test.ts,tests/unit/scanner/scheduler.test.ts result=done
+[2026-04-18T14:20:40Z] step=bugfix action=regression-verified bug=bugfix-005 result=unit-green build=green lint=green e2e=device-detail-flow-failures

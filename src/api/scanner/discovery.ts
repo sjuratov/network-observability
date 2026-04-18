@@ -101,7 +101,7 @@ function isDockerBridgeSubnet(ip: string): boolean {
 function execNmap(args: string[], timeoutMs = 30000): Promise<string> {
   console.log(JSON.stringify({ msg: `execNmap called`, args: args.join(' '), timeoutMs }));
   return new Promise((resolve, reject) => {
-    const child = execFile('nmap', args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile('nmap', args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         console.error(`nmap error: ${error.message}, stderr: ${stderr}`);
         reject(error);

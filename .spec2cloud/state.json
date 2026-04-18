@@ -34,6 +34,67 @@
         "src/api/routes/scans.ts"
       ],
       "completedAt": "2026-04-18T13:55:09Z"
+    },
+    {
+      "id": "bugfix-003",
+      "type": "bugfix",
+      "frd": "specs/frd-port-detection.md",
+      "description": "Use file-based nmap XML output for live port scans instead of parsing stdout",
+      "status": "done",
+      "testFile": "tests/unit/scanner/ports.test.ts",
+      "fixedFiles": [
+        "src/api/scanner/ports.ts",
+        "src/api/routes/scans.ts"
+      ],
+      "completedAt": "2026-04-18T14:09:27Z"
+    },
+    {
+      "id": "bugfix-004",
+      "type": "bugfix",
+      "frd": "specs/frd-dashboard.md",
+      "description": "Point the default build script at the web Vite config so the dashboard builds correctly",
+      "status": "done",
+      "testFile": "tests/unit/config/build-script.test.ts",
+      "fixedFiles": [
+        "package.json"
+      ],
+      "completedAt": "2026-04-18T14:14:20Z"
+    },
+    {
+      "id": "bugfix-005",
+      "type": "bugfix",
+      "frd": "n/a-project-setup",
+      "description": "Restore a runnable ESLint setup and clear the existing source/test lint violations blocking local validation",
+      "status": "done",
+      "testFile": "tests/unit/config/lint-config.test.ts",
+      "fixedFiles": [
+        "package.json",
+        "package-lock.json",
+        "eslint.config.mjs",
+        "src/api/config/loader.ts",
+        "src/api/fingerprint/identity.ts",
+        "src/api/resolver/dns.ts",
+        "src/api/routes/devices.ts",
+        "src/api/routes/scans.ts",
+        "src/api/routes/stats.ts",
+        "src/api/routes/tags.ts",
+        "src/api/scanner/discovery.ts",
+        "src/api/scanner/ports.ts",
+        "src/api/scanner/scheduler.ts",
+        "src/web/api-client.ts",
+        "src/web/pages/DeviceListPage.tsx",
+        "src/web/utils/filters.ts",
+        "tests/unit/alerts/notifier.test.ts",
+        "tests/unit/api/routes.test.ts",
+        "tests/unit/config/loader.test.ts",
+        "tests/unit/export/exporter.test.ts",
+        "tests/unit/fingerprint/identity.test.ts",
+        "tests/unit/resolver/dns.test.ts",
+        "tests/unit/scanner/discovery.test.ts",
+        "tests/unit/scanner/ports.test.ts",
+        "tests/unit/scanner/scheduler.test.ts"
+      ],
+      "completedAt": "2026-04-18T14:20:40Z"
     }
   ],
   "humanGates": [
@@ -47,5 +108,5 @@
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-18T13:55:09Z"
+  "lastUpdated": "2026-04-18T14:20:40Z"
 }
