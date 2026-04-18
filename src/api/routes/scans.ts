@@ -255,6 +255,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
         );
 
         const upsertMany = raw.transaction((devices: typeof deviceResults) => {
+          let portsStored = 0;
           for (const dev of devices) {
             const deviceId = randomUUID();
             const mac = dev.macAddress || `unknown-${dev.ipAddress}`;
@@ -268,8 +269,10 @@ export async function scanRoutes(fastify: FastifyInstance) {
             
             const actualId = (raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string }).id;
             const portsJson = dev.openPorts ? JSON.stringify(dev.openPorts) : null;
+            if (portsJson) portsStored++;
             insertResult.run(scanId, actualId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, dev.discoveryMethod, portsJson, completedAt);
           }
+          console.log(`DB upsert: ${devices.length} devices, ${portsStored} with ports stored`);
         });
         upsertMany(deviceResults);
 
