@@ -178,8 +178,20 @@ export async function scanRoutes(fastify: FastifyInstance) {
           const nmapArgs = [scanType, '-T4', '-p', ports, ...deviceIps, '-oX', '-'];
           console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
           
-          const { stdout: portXml, stderr: portStderr } = await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
-          if (portStderr) console.log(`Port scan stderr: ${portStderr.substring(0, 200)}`);
+          // nmap may exit non-zero when some hosts have filtered ports — still has valid XML
+          let portXml = '';
+          try {
+            const result = await execFileAsync('nmap', nmapArgs, { timeout: 180000, maxBuffer: 10 * 1024 * 1024 });
+            portXml = result.stdout;
+          } catch (nmapErr: any) {
+            // execFile rejects on non-zero exit, but stdout may still have results
+            if (nmapErr.stdout) {
+              console.log(`Port scan exited with code ${nmapErr.code || 'unknown'}, but has XML output — parsing results`);
+              portXml = nmapErr.stdout;
+            } else {
+              throw nmapErr;
+            }
+          }
           console.log(`Port scan XML length: ${portXml.length}`);
           
           // Parse port results and assign to devices
