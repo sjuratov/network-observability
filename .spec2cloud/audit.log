@@ -24,3 +24,7 @@
 [2026-04-18T15:54:43Z] step=bugfix action=test-approved bug=bugfix-006 approver=human result=approved
 [2026-04-18T15:56:18Z] step=bugfix action=fix-applied bug=bugfix-006 files=src/api/scanner/ports.ts,src/api/routes/scans.ts result=done
 [2026-04-18T15:57:40Z] step=bugfix action=regression-verified bug=bugfix-006 result=unit-green build=green lint=green e2e=device-detail-flow-failures
+[2026-04-18T16:09:20Z] step=bugfix action=test-created bug=bugfix-007 frd=frd-port-detection test=tests/unit/scanner/ports.test.ts result=failing
+[2026-04-18T16:09:41Z] step=bugfix action=test-approved bug=bugfix-007 approver=human result=approved
+[2026-04-18T16:12:38Z] step=bugfix action=fix-applied bug=bugfix-007 files=src/api/scanner/ports.ts,src/api/routes/scans.ts,specs/frd-port-detection.md result=done
+[2026-04-18T16:14:20Z] step=bugfix action=regression-verified bug=bugfix-007 result=unit-green build=green lint=green e2e=device-detail-flow-failures

@@ -11,6 +11,8 @@ import {
   parseNmapPortXml,
   parseNmapPortXmlFile,
   computePortScanTimeoutMs,
+  resolvePortScanBatchSize,
+  buildPortScanBatches,
 } from '@api/scanner/ports.js';
 import type { PortScanResult } from '@api/scanner/ports.js';
 
@@ -113,6 +115,34 @@ describe('Port & Service Detection (F5)', () => {
         perHostTimeoutMs: 120_000,
         minimumTimeoutMs: 180_000,
       })).toBe(180_000);
+    });
+
+    it('uses 10-host batches and per-batch timeouts for large live port scans', () => {
+      // Validates: specs/frd-port-detection.md F5.7, F5.9
+      const targets = Array.from({ length: 27 }, (_, i) => `192.168.1.${i + 1}`);
+
+      expect(resolvePortScanBatchSize(undefined)).toBe(10);
+      expect(resolvePortScanBatchSize('invalid')).toBe(10);
+      expect(resolvePortScanBatchSize('25')).toBe(25);
+
+      expect(buildPortScanBatches(targets, {
+        batchSize: 10,
+        perHostTimeoutMs: 120_000,
+        minimumTimeoutMs: 180_000,
+      })).toEqual([
+        {
+          targets: targets.slice(0, 10),
+          timeoutMs: 1_200_000,
+        },
+        {
+          targets: targets.slice(10, 20),
+          timeoutMs: 1_200_000,
+        },
+        {
+          targets: targets.slice(20, 27),
+          timeoutMs: 840_000,
+        },
+      ]);
     });
   });
 

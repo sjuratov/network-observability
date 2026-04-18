@@ -6,7 +6,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Database } from '../db/database.js';
 import { runScan, detectSubnets } from '../scanner/discovery.js';
-import { buildNmapPortArgs, computePortScanTimeoutMs, extractNmapXmlPayload } from '../scanner/ports.js';
+import {
+  buildNmapPortArgs,
+  buildPortScanBatches,
+  extractNmapXmlPayload,
+  resolvePortScanBatchSize,
+} from '../scanner/ports.js';
 
 interface DbScanRow {
   id: string;
@@ -167,7 +172,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
           }
         }));
 
-        // Port scan all discovered devices in one nmap call
+        // Port scan discovered devices in batches so one slow group does not sink the whole enrichment pass
         console.log(`Starting port scan for ${deviceResults.length} devices...`);
         const portRange = (fastify as any).appConfig?.portRange || '';
         try {
@@ -183,72 +188,79 @@ export async function scanRoutes(fastify: FastifyInstance) {
           const perHostTimeoutMs = Number.isFinite(configuredHostTimeoutSeconds) && configuredHostTimeoutSeconds > 0
             ? configuredHostTimeoutSeconds * 1000
             : 120_000;
-          const portScanTimeoutMs = computePortScanTimeoutMs({
+          const batchSize = resolvePortScanBatchSize(process.env['PORT_SCAN_BATCH_SIZE']);
+          const portScanBatches = buildPortScanBatches(deviceIps, {
+            batchSize,
             hostCount: deviceIps.length,
             perHostTimeoutMs,
             minimumTimeoutMs: 180_000,
           });
-          const tempDir = mkdtempSync(path.join(tmpdir(), 'netobserver-nmap-'));
-          const xmlOutputFile = path.join(tempDir, 'port-scan.xml');
-          const nmapArgs = [scanType, '-T4', ...portArgs, ...deviceIps, '-oX', xmlOutputFile];
-          console.log(`Port scan command: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${deviceIps.length} IPs)`);
-          console.log(`Port scan timeout: ${portScanTimeoutMs}ms (${deviceIps.length} hosts at ${perHostTimeoutMs}ms each)`);
-          
-          let portXml = '';
-          try {
-            try {
-              await execFileAsync('nmap', nmapArgs, { timeout: portScanTimeoutMs, maxBuffer: 10 * 1024 * 1024 });
-            } catch (nmapErr: any) {
-              if (!existsSync(xmlOutputFile)) {
-                throw nmapErr;
-              }
-              console.log(`Port scan exited with code ${nmapErr.code || 'unknown'}, but XML file exists — parsing results`);
-            }
 
-            if (!existsSync(xmlOutputFile)) {
-              throw new Error(`Port scan did not produce XML output at ${xmlOutputFile}`);
-            }
-
-            portXml = readFileSync(xmlOutputFile, 'utf8');
-          } finally {
-            rmSync(tempDir, { recursive: true, force: true });
-          }
-          console.log(`Port scan XML length: ${portXml.length}`);
-          
-          // Parse port results and assign to devices
-          const { XMLParser: XP } = await import('fast-xml-parser');
-          const pparser = new XP({ ignoreAttributes: false, attributeNamePrefix: '@_' });
-          const pdoc = pparser.parse(extractNmapXmlPayload(portXml));
-          const phosts = Array.isArray(pdoc?.nmaprun?.host) ? pdoc.nmaprun.host : pdoc?.nmaprun?.host ? [pdoc.nmaprun.host] : [];
-          console.log(`Port scan parsed ${phosts.length} hosts`);
-          
           let devicesWithPorts = 0;
-          for (const phost of phosts) {
-            const addrs = Array.isArray(phost.address) ? phost.address : phost.address ? [phost.address] : [];
-            const hostIp = addrs.find((a: any) => a['@_addrtype'] === 'ipv4')?.['@_addr'];
-            if (!hostIp) continue;
-            
-            const dev = deviceResults.find((d: any) => d.ipAddress === hostIp);
-            if (!dev) continue;
-            
-            const portsNode = phost.ports?.port;
-            const portList = Array.isArray(portsNode) ? portsNode : portsNode ? [portsNode] : [];
-            const openPorts = portList
-              .filter((p: any) => p.state?.['@_state'] === 'open')
-              .map((p: any) => ({
-                port: parseInt(p['@_portid'], 10),
-                protocol: p['@_protocol'] || 'tcp',
-                state: 'open',
-                service: p.service?.['@_name'] || null,
-                version: p.service?.['@_product'] ? `${p.service['@_product']} ${p.service['@_version'] || ''}`.trim() : null,
-              }));
-            
-            if (openPorts.length > 0) {
-              dev.openPorts = openPorts;
-              devicesWithPorts++;
+          let parsedHosts = 0;
+          for (const [batchIndex, batch] of portScanBatches.entries()) {
+            const tempDir = mkdtempSync(path.join(tmpdir(), 'netobserver-nmap-'));
+            const xmlOutputFile = path.join(tempDir, 'port-scan.xml');
+            const nmapArgs = [scanType, '-T4', ...portArgs, ...batch.targets, '-oX', xmlOutputFile];
+            console.log(`Port scan batch ${batchIndex + 1}/${portScanBatches.length}: nmap ${nmapArgs.slice(0, 5).join(' ')} ... (${batch.targets.length} IPs)`);
+            console.log(`Port scan batch timeout: ${batch.timeoutMs}ms (${batch.targets.length} hosts at ${perHostTimeoutMs}ms each)`);
+
+            let portXml = '';
+            try {
+              try {
+                await execFileAsync('nmap', nmapArgs, { timeout: batch.timeoutMs, maxBuffer: 10 * 1024 * 1024 });
+              } catch (nmapErr: any) {
+                if (!existsSync(xmlOutputFile)) {
+                  throw nmapErr;
+                }
+                console.log(`Port scan batch ${batchIndex + 1} exited with code ${nmapErr.code || 'unknown'}, but XML file exists — parsing results`);
+              }
+
+              if (!existsSync(xmlOutputFile)) {
+                throw new Error(`Port scan did not produce XML output at ${xmlOutputFile}`);
+              }
+
+              portXml = readFileSync(xmlOutputFile, 'utf8');
+            } finally {
+              rmSync(tempDir, { recursive: true, force: true });
+            }
+
+            console.log(`Port scan batch XML length: ${portXml.length}`);
+
+            const { XMLParser: XP } = await import('fast-xml-parser');
+            const pparser = new XP({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+            const pdoc = pparser.parse(extractNmapXmlPayload(portXml));
+            const phosts = Array.isArray(pdoc?.nmaprun?.host) ? pdoc.nmaprun.host : pdoc?.nmaprun?.host ? [pdoc.nmaprun.host] : [];
+            parsedHosts += phosts.length;
+            console.log(`Port scan batch ${batchIndex + 1} parsed ${phosts.length} hosts`);
+
+            for (const phost of phosts) {
+              const addrs = Array.isArray(phost.address) ? phost.address : phost.address ? [phost.address] : [];
+              const hostIp = addrs.find((a: any) => a['@_addrtype'] === 'ipv4')?.['@_addr'];
+              if (!hostIp) continue;
+
+              const dev = deviceResults.find((d: any) => d.ipAddress === hostIp);
+              if (!dev) continue;
+
+              const portsNode = phost.ports?.port;
+              const portList = Array.isArray(portsNode) ? portsNode : portsNode ? [portsNode] : [];
+              const openPorts = portList
+                .filter((p: any) => p.state?.['@_state'] === 'open')
+                .map((p: any) => ({
+                  port: parseInt(p['@_portid'], 10),
+                  protocol: p['@_protocol'] || 'tcp',
+                  state: 'open',
+                  service: p.service?.['@_name'] || null,
+                  version: p.service?.['@_product'] ? `${p.service['@_product']} ${p.service['@_version'] || ''}`.trim() : null,
+                }));
+
+              if (openPorts.length > 0) {
+                dev.openPorts = openPorts;
+                devicesWithPorts++;
+              }
             }
           }
-          console.log(`Port scan complete — ${devicesWithPorts}/${phosts.length} devices have open ports`);
+          console.log(`Port scan complete — ${devicesWithPorts}/${parsedHosts} parsed hosts have open ports across ${portScanBatches.length} batches`);
         } catch (err) {
           console.error('Port scan failed:', err instanceof Error ? err.stack : err);
         }

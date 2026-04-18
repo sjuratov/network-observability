@@ -25,6 +25,15 @@ export interface PortScanTimeoutOptions {
   minimumTimeoutMs: number;
 }
 
+export interface PortScanBatch {
+  targets: string[];
+  timeoutMs: number;
+}
+
+export interface PortScanBatchOptions extends PortScanTimeoutOptions {
+  batchSize: number;
+}
+
 // Well-known port-to-service mapping
 const WELL_KNOWN_PORTS: Record<number, string> = {
   7: 'echo',
@@ -258,6 +267,34 @@ export function computePortScanTimeoutMs(options: PortScanTimeoutOptions): numbe
   const minimumTimeoutMs = Math.max(1, options.minimumTimeoutMs);
 
   return Math.max(minimumTimeoutMs, hostCount * perHostTimeoutMs);
+}
+
+export function resolvePortScanBatchSize(rawValue?: string): number {
+  const parsed = Number.parseInt(rawValue ?? '', 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 10;
+  }
+
+  return parsed;
+}
+
+export function buildPortScanBatches(targets: string[], options: PortScanBatchOptions): PortScanBatch[] {
+  const batchSize = Math.max(1, options.batchSize);
+  const batches: PortScanBatch[] = [];
+
+  for (let index = 0; index < targets.length; index += batchSize) {
+    const batchTargets = targets.slice(index, index + batchSize);
+    batches.push({
+      targets: batchTargets,
+      timeoutMs: computePortScanTimeoutMs({
+        hostCount: batchTargets.length,
+        perHostTimeoutMs: options.perHostTimeoutMs,
+        minimumTimeoutMs: options.minimumTimeoutMs,
+      }),
+    });
+  }
+
+  return batches;
 }
 
 /** Run nmap port scan and return XML stdout. */

@@ -150,7 +150,7 @@ Detect open TCP and UDP ports on discovered network devices and identify the ser
 | Version detection | `PORT_SCAN_VERSION` | `false` | Enable service version detection via banner grabbing |
 | Per-host timeout | `PORT_SCAN_HOST_TIMEOUT` | `120` | Maximum seconds to spend scanning a single host |
 | Rate limit | `PORT_SCAN_RATE` | `500` | Maximum packets per second |
-| Scan batch size | `PORT_SCAN_BATCH_SIZE` | `50` | Number of hosts to scan concurrently |
+| Scan batch size | `PORT_SCAN_BATCH_SIZE` | `10` | Number of hosts to scan in each port-scan batch |
 | Nmap path | `NMAP_PATH` | `/usr/bin/nmap` | Path to nmap binary |
 
 ## Dependencies
