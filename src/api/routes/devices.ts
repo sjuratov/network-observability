@@ -202,4 +202,20 @@ export async function deviceRoutes(fastify: FastifyInstance) {
       meta: { timestamp: new Date().toISOString() },
     };
   });
+
+  // Get port/service data for a device (from latest scan result)
+  fastify.get('/devices/:id/ports', async (request: FastifyRequest, reply: FastifyReply) => {
+    const db = getDb(fastify);
+    const { id } = request.params as { id: string };
+    const row = db.getDb()
+      .prepare('SELECT open_ports FROM scan_results WHERE device_id = ? AND open_ports IS NOT NULL ORDER BY created_at DESC LIMIT 1')
+      .get(id) as { open_ports: string } | undefined;
+
+    const ports = row?.open_ports ? JSON.parse(row.open_ports) : [];
+
+    return {
+      data: ports,
+      meta: { timestamp: new Date().toISOString() },
+    };
+  });
 }

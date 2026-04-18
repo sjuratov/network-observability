@@ -43,6 +43,7 @@ export function DeviceDetailPage() {
 
   const [device, setDevice] = useState<Device | null>(null);
   const [history, setHistory] = useState<DeviceHistory | null>(null);
+  const [portData, setPortData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -67,6 +68,13 @@ export function DeviceDetailPage() {
         setHistory(hist);
         setNameValue(dev.displayName ?? dev.hostname ?? dev.macAddress);
         setNotes(dev.notes ?? '');
+        // Fetch port data separately (new endpoint)
+        fetch(`/api/v1/devices/${id}/ports`, {
+          headers: { 'X-API-Key': localStorage.getItem('netobserver-api-key') || '' },
+        })
+          .then(r => r.json())
+          .then(r => { if (!cancelled) setPortData(r.data || []); })
+          .catch(() => {});
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
@@ -152,8 +160,17 @@ export function DeviceDetailPage() {
     }));
   })();
 
-  // Derive open ports from port history (latest opened ports not yet closed)
+  // Use port data from dedicated ports endpoint, fallback to history
   const openPorts = (() => {
+    if (portData.length > 0) {
+      return portData.filter((p: any) => p.state === 'open').map((p: any) => ({
+        port: p.port,
+        protocol: p.protocol || 'tcp',
+        service: p.service || '',
+        version: p.version || '',
+        timestamp: '',
+      }));
+    }
     if (!history) return [];
     const portMap = new Map<string, typeof history.portHistory[0]>();
     for (const entry of history.portHistory) {

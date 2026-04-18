@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import dns from 'node:dns';
 import type { Database } from '../db/database.js';
 import { runScan, deduplicateResults, detectSubnets } from '../scanner/discovery.js';
+import { scanPorts } from '../scanner/ports.js';
 
 interface DbScanRow {
   id: string;
@@ -162,6 +163,23 @@ export async function scanRoutes(fastify: FastifyInstance) {
           }
         }));
 
+        // Port scan discovered devices (top ports, parallel with concurrency limit)
+        console.log(`Starting port scan for ${deviceResults.length} devices...`);
+        const portRange = (fastify as any).appConfig?.portRange || '22,80,443,8080,8443,53,21,25,110,143,3389,5900,8888,9090';
+        const portBatchSize = 5;
+        for (let i = 0; i < deviceResults.length; i += portBatchSize) {
+          const batch = deviceResults.slice(i, i + portBatchSize);
+          await Promise.allSettled(batch.map(async (dev: any) => {
+            try {
+              const ports = await scanPorts(dev.ipAddress, portRange, intensity);
+              if (ports.length > 0) {
+                dev.openPorts = ports;
+              }
+            } catch { /* ignore port scan failures for individual devices */ }
+          }));
+        }
+        console.log(`Port scan complete`);
+
         const completedAt = new Date().toISOString();
         const durationMs = new Date(completedAt).getTime() - new Date(now).getTime();
 
@@ -179,8 +197,8 @@ export async function scanRoutes(fastify: FastifyInstance) {
              updated_at = excluded.updated_at`,
         );
         const insertResult = raw.prepare(
-          `INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, hostname, vendor, discovery_method, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, hostname, vendor, discovery_method, open_ports, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         );
 
         const upsertMany = raw.transaction((devices: typeof deviceResults) => {
@@ -196,7 +214,8 @@ export async function scanRoutes(fastify: FastifyInstance) {
             upsertDevice.run(existingId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, completedAt, completedAt, completedAt, completedAt);
             
             const actualId = (raw.prepare('SELECT id FROM devices WHERE mac_address = ?').get(mac) as { id: string }).id;
-            insertResult.run(scanId, actualId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, dev.discoveryMethod, completedAt);
+            const portsJson = dev.openPorts ? JSON.stringify(dev.openPorts) : null;
+            insertResult.run(scanId, actualId, mac, dev.ipAddress, dev.hostname || null, dev.vendor || null, dev.discoveryMethod, portsJson, completedAt);
           }
         });
         upsertMany(deviceResults);
