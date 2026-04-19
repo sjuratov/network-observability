@@ -23,7 +23,7 @@ function makeDevice(overrides: Partial<Device> = {}): Device {
 }
 
 describe('Device list status presentation', () => {
-  it('shows lifecycle context separately when a newly discovered device is online', async () => {
+  it('clears the lifecycle label when a previously new device is now online', async () => {
     Object.assign(globalThis, { React });
     const { DeviceTable } = await import('../../../src/web/components/DeviceTable.tsx');
 
@@ -34,6 +34,6 @@ describe('Device list status presentation', () => {
     }));
 
     expect(markup).toContain('status-badge-online');
-    expect(markup).toContain('>New<');
+    expect(markup).not.toContain('>New<');
   });
 });

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Device } from '@shared/types/device.js';
 import { StatusBadge } from './StatusBadge';
 import { TagPill } from './TagPill';
+import { isNewLifecycleDevice } from '../utils/deviceLifecycle';
 
 interface DeviceTableProps {
   devices: Device[];
@@ -28,7 +29,7 @@ function getDeviceStatus(device: Device): 'online' | 'offline' | 'unknown' {
 }
 
 function getDeviceLifecycleLabel(device: Device): string | null {
-  return device.isKnown ? null : 'New';
+  return isNewLifecycleDevice(device) ? 'New' : null;
 }
 
 function formatDate(iso: string): string {

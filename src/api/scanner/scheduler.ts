@@ -5,6 +5,7 @@ export interface SchedulerOptions {
   cadence: string;
   intensity: 'quick' | 'normal' | 'thorough';
   runOnStartup: boolean;
+  onScanTriggered?: (record: ScanRecord) => void | Promise<void>;
 }
 
 export interface ScanScheduler {
@@ -41,22 +42,42 @@ export function createScheduler(options: SchedulerOptions): ScanScheduler {
   let lastScan: ScanRecord | undefined;
   let cronJob: Cron | undefined;
 
+  async function triggerScan(trigger: ScanRecord['trigger']): Promise<ScanRecord> {
+    scanning = true;
+    const running = transitionScanStatus(createScanRecord(trigger, options.intensity), 'running');
+    lastScan = running;
+
+    try {
+      await options.onScanTriggered?.(running);
+      return running;
+    } catch (error) {
+      const failed = transitionScanStatus({
+        ...running,
+        error: error instanceof Error ? error.message : String(error),
+      }, 'failed');
+      lastScan = failed;
+      throw error;
+    } finally {
+      scanning = false;
+    }
+  }
+
   const scheduler: ScanScheduler = {
     start() {
       cronJob = new Cron(options.cadence, { paused: true }, () => {
-        // scheduled scan callback placeholder
+        void triggerScan('scheduled');
       });
       cronJob.resume();
+
+      if (options.runOnStartup) {
+        void triggerScan('startup');
+      }
     },
     stop() {
       cronJob?.stop();
     },
     async triggerManualScan(): Promise<ScanRecord> {
-      const record = createScanRecord('manual', options.intensity);
-      const running = transitionScanStatus(record, 'running');
-      scanning = true;
-      lastScan = running;
-      return running;
+      return triggerScan('manual');
     },
     isRunning() {
       return scanning;

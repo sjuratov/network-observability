@@ -36,12 +36,12 @@ Feature: Device list status reconciliation
     And the device is not counted in "metric-card-offline-devices-value"
 
   @device-list-status @smoke @happy
-  Scenario: Newly discovered devices keep lifecycle context without losing online connectivity truth
+  Scenario: Newly discovered devices clear lifecycle context after another completed scan while keeping online connectivity truth
     Given a newly discovered device has recent presence evidence that keeps it online
     When the operator views the device row in "device-table"
     Then the row shows "status-badge-online"
     And the row does not show "status-badge-new"
-    And the row shows the lifecycle label "New"
+    And the row does not show the lifecycle label "New"
 
   @device-list-status @edge @edge-case
   Scenario: Active scans do not replace the last completed presence state mid-run

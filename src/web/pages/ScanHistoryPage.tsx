@@ -58,7 +58,8 @@ export function ScanHistoryPage() {
     try {
       setLoading(true);
       setError(null);
-      const result: PaginatedResponse<Scan> = await api.getScans({ limit: pageSize });
+      const cursor = String((page - 1) * pageSize);
+      const result: PaginatedResponse<Scan> = await api.getScans({ limit: pageSize, cursor });
       setScans(result.data);
       setTotal(result.meta.pagination.total);
     } catch (err) {
@@ -66,7 +67,7 @@ export function ScanHistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [api, pageSize]);
+  }, [api, page, pageSize]);
 
   useEffect(() => {
     fetchScans();

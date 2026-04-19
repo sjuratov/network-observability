@@ -47,10 +47,26 @@ async function main() {
   const scheduler = createScheduler({
     cadence: config.scanCadence,
     intensity: config.scanIntensity,
-    runOnStartup: false,
+    runOnStartup: true,
+    onScanTriggered: async (record) => {
+      const response = await server.inject({
+        method: 'POST',
+        url: '/api/v1/scans',
+        headers: { 'x-api-key': config.apiKey },
+      });
+
+      if (response.statusCode === 409) {
+        logger.info({ trigger: record.trigger }, 'Scan skipped because another scan is already in progress');
+        return;
+      }
+
+      if (response.statusCode >= 400) {
+        throw new Error(`Failed to trigger ${record.trigger} scan: ${response.statusCode}`);
+      }
+
+      logger.info({ trigger: record.trigger }, 'Scan triggered');
+    },
   });
-  scheduler.start();
-  logger.info({ cadence: config.scanCadence }, 'Scan scheduler started');
 
   // Graceful shutdown handler
   let shuttingDown = false;
@@ -101,6 +117,9 @@ async function main() {
   // Start listening
   await server.listen({ port: config.webUiPort, host: '0.0.0.0' });
   logger.info({ port: config.webUiPort }, 'NetObserver listening');
+
+  scheduler.start();
+  logger.info({ cadence: config.scanCadence }, 'Scan scheduler started');
 }
 
 main().catch((err) => {

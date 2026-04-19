@@ -601,6 +601,45 @@
         "specs/frd-port-detection.md"
       ],
       "completedAt": "2026-04-18T16:14:20Z"
+    },
+    {
+      "id": "bugfix-008",
+      "type": "bugfix",
+      "frd": "specs/frd-device-list-status.md",
+      "description": "Clear the device-list New lifecycle label after a device has been seen in another completed scan",
+      "status": "done",
+      "testFile": "e2e/device-list-lifecycle.spec.ts",
+      "fixedFiles": [
+        "src/web/components/DeviceTable.tsx",
+        "src/web/pages/DeviceListPage.tsx",
+        "src/web/utils/deviceLifecycle.ts"
+      ],
+      "completedAt": "2026-04-19T09:03:24Z"
+    },
+    {
+      "id": "bugfix-009",
+      "type": "bugfix",
+      "frd": "specs/frd-dashboard.md",
+      "description": "Wire scan-history pagination to the requested page so older scans actually load",
+      "status": "done",
+      "testFile": "e2e/scan-history-pagination.spec.ts",
+      "fixedFiles": [
+        "src/web/pages/ScanHistoryPage.tsx"
+      ],
+      "completedAt": "2026-04-19T09:03:24Z"
+    },
+    {
+      "id": "bugfix-010",
+      "type": "bugfix",
+      "frd": "specs/frd-scanning.md",
+      "description": "Trigger startup and scheduled scans through the existing scan route instead of leaving the scheduler callback as a placeholder",
+      "status": "done",
+      "testFile": "tests/unit/scanner/scheduler-runtime.test.ts",
+      "fixedFiles": [
+        "src/api/index.ts",
+        "src/api/scanner/scheduler.ts"
+      ],
+      "completedAt": "2026-04-19T09:03:24Z"
     }
   ],
   "humanGates": [

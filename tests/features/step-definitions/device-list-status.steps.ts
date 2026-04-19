@@ -169,6 +169,13 @@ Then('the row shows the lifecycle label {string}', async function (this: CustomW
   await expect(this.deviceList.rowAt(this.currentRowIndex)).toContainText(value);
 });
 
+Then('the row does not show the lifecycle label {string}', async function (this: CustomWorld, value: string) {
+  if (!this.deviceList) {
+    this.deviceList = new DeviceListPage(this.page);
+  }
+  await expect(this.deviceList.rowAt(this.currentRowIndex)).not.toContainText(value);
+});
+
 Given('a device was offline after the most recent completed scan', async function (this: CustomWorld) {
   this.latestResponse = await this.request.post('/api/v1/test-support/presence-snapshots', {
     data: { offlineDevices: 1, latestCompletedScanStatus: 'offline' },

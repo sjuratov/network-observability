@@ -310,6 +310,53 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
     return { data: { ok: true }, meta: { timestamp: now } };
   });
 
+  fastify.post('/test-support/scan-history', async (request: FastifyRequest, reply: FastifyReply) => {
+    const raw = getDb(fastify).getDb();
+    const body = request.body as { fixture?: string };
+    const now = new Date();
+
+    if (body.fixture !== 'pagination-controls') {
+      reply.status(400);
+      return { error: { code: 'VALIDATION_ERROR', message: 'Unsupported scan history fixture' }, meta: { timestamp: now.toISOString() } };
+    }
+
+    resetFixtures(raw);
+    resetTestSupportState();
+
+    const ids: string[] = [];
+    for (let index = 1; index <= 16; index += 1) {
+      const timestamp = new Date(now.getTime() - index * 60_000).toISOString();
+      const scanId = `scan-fixture-${String(index).padStart(2, '0')}`;
+      raw.prepare(`
+        INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        scanId,
+        'completed',
+        timestamp,
+        timestamp,
+        1000,
+        index,
+        index === 1 ? 1 : 0,
+        '["192.168.1.0/24"]',
+        '[]',
+        'normal',
+        timestamp,
+      );
+      ids.push(scanId);
+    }
+
+    reply.status(201);
+    return {
+      data: {
+        ids,
+        firstPageIds: ids.slice(0, 10),
+        secondPageIds: ids.slice(10),
+      },
+      meta: { timestamp: now.toISOString() },
+    };
+  });
+
   fastify.post('/test-support/device-detail-activity', async (request: FastifyRequest, reply: FastifyReply) => {
     const raw = getDb(fastify).getDb();
     const body = request.body as {

@@ -111,3 +111,15 @@
 [2026-04-18T19:48:05Z] gate=ext-004-implementation decision=approved result=approved
 [2026-04-18T19:48:05Z] increment=ext-004 action=increment-complete result=done next_increment=none
 [2026-04-18T19:50:17Z] phase=phase-2 action=phase-complete result=done delivered_increments=ext-pre-001,ext-001,ext-002,ext-003,ext-004
+[2026-04-19T09:03:24Z] step=bugfix action=test-created bug=bugfix-008 frd=frd-device-list-status test=e2e/device-list-lifecycle.spec.ts result=failing
+[2026-04-19T09:03:24Z] step=bugfix action=test-approved bug=bugfix-008 approver=human result=approved
+[2026-04-19T09:03:24Z] step=bugfix action=fix-applied bug=bugfix-008 files=src/web/components/DeviceTable.tsx,src/web/pages/DeviceListPage.tsx,src/web/utils/deviceLifecycle.ts result=done
+[2026-04-19T09:03:24Z] step=bugfix action=regression-verified bug=bugfix-008 result=full-green
+[2026-04-19T09:03:24Z] step=bugfix action=test-created bug=bugfix-009 frd=frd-dashboard test=e2e/scan-history-pagination.spec.ts result=failing
+[2026-04-19T09:03:24Z] step=bugfix action=test-approved bug=bugfix-009 approver=human result=approved
+[2026-04-19T09:03:24Z] step=bugfix action=fix-applied bug=bugfix-009 files=src/web/pages/ScanHistoryPage.tsx result=done
+[2026-04-19T09:03:24Z] step=bugfix action=regression-verified bug=bugfix-009 result=full-green
+[2026-04-19T09:03:24Z] step=bugfix action=test-created bug=bugfix-010 frd=frd-scanning test=tests/unit/scanner/scheduler-runtime.test.ts result=failing
+[2026-04-19T09:03:24Z] step=bugfix action=test-approved bug=bugfix-010 approver=human result=approved
+[2026-04-19T09:03:24Z] step=bugfix action=fix-applied bug=bugfix-010 files=src/api/index.ts,src/api/scanner/scheduler.ts result=done
+[2026-04-19T09:03:24Z] step=bugfix action=regression-verified bug=bugfix-010 result=full-green

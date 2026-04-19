@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import type { Device, FilterParams } from '@shared/types/device.js';
 import { useApi } from '../hooks/useApi';
 import { searchDevices, filterDevices } from '../utils/filters';
+import { isNewLifecycleDevice } from '../utils/deviceLifecycle';
 import { DeviceTable } from '../components/DeviceTable';
 
 const STATUS_OPTIONS = ['all', 'online', 'offline', 'new'] as const;
@@ -102,7 +103,7 @@ export function DeviceListPage() {
 
     // "New" status filter — devices that are not known
     if (statusFilter === 'new') {
-      result = result.filter((d) => !d.isKnown);
+      result = result.filter((d) => isNewLifecycleDevice(d));
     }
 
     return result;
