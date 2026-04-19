@@ -13,6 +13,7 @@ services:
     environment:
       - WEB_UI_PORT=8090
       - LOG_LEVEL=info
+      - SCAN_CADENCE=*/30 * * * *
     restart: unless-stopped
 
 volumes:
