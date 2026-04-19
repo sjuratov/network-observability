@@ -2,7 +2,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import type { PresenceStatus } from './tracker.js';
 
-export const DEFAULT_PRESENCE_OFFLINE_THRESHOLD = 2;
+export const DEFAULT_PRESENCE_OFFLINE_THRESHOLD = 1;
 
 export interface DevicePresenceSnapshot {
   is_online: number;

@@ -134,7 +134,7 @@ alerts:
       - "admin@example.com"
 
 presence:
-  offline_threshold: 2
+  offline_threshold: 1
   availability_window_hours: 24
 
 api:
@@ -166,7 +166,7 @@ logging:
 | `alerts.email.smtp_pass` | `ALERT_SMTP_PASS` | String | *(none)* |
 | `alerts.email.from` | `ALERT_EMAIL_FROM` | String | `noreply@network-observer` |
 | `alerts.email.to` | `ALERT_EMAIL_TO` | Comma-separated | *(none)* |
-| `presence.offline_threshold` | `PRESENCE_OFFLINE_THRESHOLD` | Integer | `2` |
+| `presence.offline_threshold` | `PRESENCE_OFFLINE_THRESHOLD` | Integer | `1` |
 | `presence.availability_window_hours` | `PRESENCE_AVAILABILITY_WINDOW` | Integer | `24` |
 | `api.port` | `API_PORT` | Integer | `8080` |
 | `api.key` | `API_KEY` | String | Auto-generated |

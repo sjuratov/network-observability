@@ -67,7 +67,7 @@ docker exec netobserver cat /data/.api-key
 | `ALERT_SMTP_PASS` | String | *(none)* | SMTP password |
 | `ALERT_EMAIL_FROM` | String | `noreply@network-observer` | Sender email address |
 | `ALERT_EMAIL_TO` | Comma-separated | *(none)* | Recipient email addresses |
-| `PRESENCE_OFFLINE_THRESHOLD` | Integer | `2` | Consecutive missed scans before marking a device offline |
+| `PRESENCE_OFFLINE_THRESHOLD` | Integer | `1` | Consecutive missed scans before marking a device offline |
 | `PRESENCE_AVAILABILITY_WINDOW` | Integer | `24` | Hours used for availability percentage calculation |
 | `API_PORT` | Integer | `8080` | HTTP server port |
 | `API_KEY` | String | Auto-generated | API authentication key (omit to auto-generate on first run) |
@@ -107,7 +107,7 @@ alerts:
       - "admin@example.com"
 
 presence:
-  offline_threshold: 2
+  offline_threshold: 1
   availability_window_hours: 24
 
 api:

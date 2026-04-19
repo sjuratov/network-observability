@@ -240,7 +240,7 @@ export function DashboardPage() {
               metric="offline-devices"
               label="Offline"
               value={loading ? '—' : stats?.offlineDevices ?? 0}
-              sub="not seen in last scan"
+              sub="currently offline"
               colorClass="text-[#f85149]"
             />
             <MetricCard

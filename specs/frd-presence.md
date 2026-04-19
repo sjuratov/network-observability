@@ -46,8 +46,8 @@ Track device presence on the network over time by recording first-seen and last-
 - **Then** the device's `last_seen` timestamp is updated to the current scan's timestamp
 
 ### AC-3: Offline Detection
-- **Given** a device was last seen 3 scans ago and the offline threshold is 2 missed scans
-- **When** the current scan completes without finding the device
+- **Given** a device has already been confirmed online and the default offline threshold is 1 missed completed scan
+- **When** the next completed scan finishes without finding the device
 - **Then** the device's status transitions to `offline`
 - **And** an offline transition event is recorded with the timestamp
 
@@ -81,7 +81,7 @@ Track device presence on the network over time by recording first-seen and last-
 ```
 For each known device after a scan completes:
   1. Count consecutive scans where the device was NOT found (missed_scans).
-  2. If missed_scans >= offline_threshold (default: 2):
+   2. If missed_scans >= offline_threshold (default: 1):
      a. If device.status != 'offline':
         - Set device.status = 'offline'
         - Record transition event: { device_id, from: 'online', to: 'offline', timestamp }
@@ -150,7 +150,7 @@ CREATE TABLE scan_device_results (
 
 | Scenario | Handling |
 |----------|----------|
-| Device behind intermittent firewall | May fluctuate between online/offline rapidly; the missed_scans threshold (default 2) dampens single-scan misses |
+| Device behind intermittent firewall | May fluctuate between online/offline rapidly; the missed_scans threshold (default 1) can be increased when operators want to dampen single-scan misses |
 | Device responds only to certain scan types (e.g., ARP but not ICMP) | Presence is determined by ANY discovery method finding the device; combined scan results (F1.8) feed into presence |
 | Scan fails or is aborted | Failed scans do NOT increment `missed_scans` — only completed scans count toward offline detection |
 | Application restart mid-scan | On restart, `missed_scans` is recalculated from stored scan history rather than relying on in-memory counter |
@@ -164,7 +164,7 @@ CREATE TABLE scan_device_results (
 
 | Parameter | Env Var | Config Key | Default | Description |
 |-----------|---------|------------|---------|-------------|
-| Offline threshold | `PRESENCE_OFFLINE_THRESHOLD` | `presence.offline_threshold` | `2` | Number of missed scans before a device is marked offline |
+| Offline threshold | `PRESENCE_OFFLINE_THRESHOLD` | `presence.offline_threshold` | `1` | Number of missed scans before a device is marked offline |
 | Default availability window | `PRESENCE_AVAILABILITY_WINDOW` | `presence.availability_window_hours` | `24` | Default time range (hours) for availability calculations |
 
 ## Dependencies

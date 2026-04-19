@@ -167,7 +167,7 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
       resultingStatus?: 'online' | 'offline' | 'unknown';
       latestCompletedScanStatus?: 'online' | 'offline' | 'unknown';
     };
-    const threshold = body.threshold ?? 2;
+    const threshold = body.threshold ?? 1;
     const now = new Date().toISOString();
     const earlier = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -240,7 +240,7 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
       resultingStatus?: 'online' | 'offline' | 'unknown';
       threshold?: number;
     };
-    const threshold = body.threshold ?? 2;
+    const threshold = body.threshold ?? 1;
     const now = new Date().toISOString();
     const device = raw.prepare('SELECT id FROM devices ORDER BY created_at DESC LIMIT 1').get() as { id: string } | undefined;
 

@@ -9,7 +9,7 @@ const DEFAULTS: AppConfig = {
   subnets: [],
   scanCadence: '0 */6 * * *',
   scanIntensity: 'normal',
-  presenceOfflineThreshold: 2,
+  presenceOfflineThreshold: 1,
   dataRetentionDays: 365,
   portRange: '',
   alertCooldownSeconds: 300,

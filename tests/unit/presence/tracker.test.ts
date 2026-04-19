@@ -17,7 +17,7 @@ function makePresence(overrides: Partial<PresenceState> = {}): PresenceState {
     firstSeenAt: '2024-01-01T10:00:00Z',
     lastSeenAt: '2024-01-01T10:00:00Z',
     missedScans: 0,
-    offlineThreshold: 2,
+    offlineThreshold: 1,
     ...overrides,
   };
 }
@@ -63,7 +63,7 @@ describe('Online/Offline Presence Tracking', () => {
 
   describe('Offline Detection', () => {
     // @inc-02 @f8 @must — Device goes offline after N missed scans
-    it('should transition device to offline after exceeding threshold', () => {
+    it('should transition device to offline when missed scans reach the threshold', () => {
       let state = makePresence({ status: 'online', offlineThreshold: 2 });
 
       // Miss scan 1
@@ -71,13 +71,8 @@ describe('Online/Offline Presence Tracking', () => {
       state = result.state;
       expect(state.status).toBe('online');
 
-      // Miss scan 2
+      // Miss scan 2 — reaches threshold of 2
       result = updatePresence(state, false, '2024-01-02T16:00:00Z');
-      state = result.state;
-      expect(state.status).toBe('online');
-
-      // Miss scan 3 — exceeds threshold of 2
-      result = updatePresence(state, false, '2024-01-03T10:00:00Z');
       state = result.state;
 
       expect(state.status).toBe('offline');
@@ -125,7 +120,7 @@ describe('Online/Offline Presence Tracking', () => {
       // Create a state that's about to cross the threshold
       const state = makePresence({
         status: 'online',
-        missedScans: 2,
+        missedScans: 1,
         offlineThreshold: 2,
       });
 
@@ -235,13 +230,8 @@ describe('Online/Offline Presence Tracking', () => {
       expect(state.status).toBe('online');
       expect(state.missedScans).toBe(4);
 
-      // Miss 5th scan — still online (threshold not exceeded yet)
-      let result = updatePresence(state, false, '2024-01-06T10:00:00Z');
-      state = result.state;
-      expect(state.status).toBe('online');
-
-      // Miss 6th scan — now offline (exceeded threshold of 5)
-      result = updatePresence(state, false, '2024-01-07T10:00:00Z');
+      // Miss 5th scan — now offline (threshold reached)
+      const result = updatePresence(state, false, '2024-01-06T10:00:00Z');
       state = result.state;
       expect(state.status).toBe('offline');
     });

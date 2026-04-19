@@ -30,9 +30,9 @@ Feature: Online/Offline Presence Tracking
 
   @must
   Scenario: Device goes offline after exceeding missed scan threshold
-    Given the offline threshold is 2 missed scans
+    Given the offline threshold is 1 missed scan
     And a device is currently online
-    When the device is not found in 3 consecutive scans
+    When the device is not found in 1 completed scan
     Then the device's status transitions to "offline"
     And an offline transition event is recorded
 

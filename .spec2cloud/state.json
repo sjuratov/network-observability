@@ -2,7 +2,7 @@
   "mode": "greenfield",
   "phase": "phase-2-complete",
   "status": "done",
-  "lastUpdatedAt": "2026-04-19T09:22:37Z",
+  "lastUpdatedAt": "2026-04-19T10:38:45Z",
   "project": "network-observability",
   "currentIncrement": null,
   "currentStep": "release-complete",
@@ -641,6 +641,31 @@
         "src/api/scanner/scheduler.ts"
       ],
       "completedAt": "2026-04-19T09:03:24Z"
+    },
+    {
+      "id": "bugfix-011",
+      "type": "bugfix",
+      "frd": "specs/frd-presence.md",
+      "description": "Change the default presence threshold to one missed completed scan and align the dashboard offline messaging with the live status model",
+      "status": "done",
+      "testFile": "tests/unit/api/presence-default-threshold.test.ts",
+      "fixedFiles": [
+        "src/api/config/loader.ts",
+        "src/api/presence/device-status.ts",
+        "src/api/presence/tracker.ts",
+        "src/api/routes/devices.ts",
+        "src/api/routes/test-support.ts",
+        "src/web/pages/DashboardPage.tsx",
+        "tests/unit/config/loader.test.ts",
+        "tests/unit/presence/tracker.test.ts",
+        "specs/frd-presence.md",
+        "specs/features/presence.feature",
+        "specs/frd-configuration.md",
+        "specs/tech-stack.md",
+        "specs/prd.md",
+        "README.md"
+      ],
+      "completedAt": "2026-04-19T10:38:45Z"
     }
   ],
   "humanGates": [
@@ -666,5 +691,5 @@
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-18T19:50:17Z"
+  "lastUpdated": "2026-04-19T10:38:45Z"
 }

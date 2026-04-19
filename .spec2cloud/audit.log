@@ -124,3 +124,7 @@
 [2026-04-19T09:03:24Z] step=bugfix action=fix-applied bug=bugfix-010 files=src/api/index.ts,src/api/scanner/scheduler.ts result=done
 [2026-04-19T09:03:24Z] step=bugfix action=regression-verified bug=bugfix-010 result=full-green
 [2026-04-19T09:22:37Z] step=ops action=linux-compose-updated file=docker-compose.linux.yml setting=SCAN_CADENCE value="*/30 * * * *" result=done
+[2026-04-19T10:12:24Z] step=bugfix action=test-created bug=bugfix-011 frd=frd-presence test=tests/unit/api/presence-default-threshold.test.ts result=failing
+[2026-04-19T10:12:48Z] step=bugfix action=test-approved bug=bugfix-011 approver=human result=approved
+[2026-04-19T10:24:03Z] step=bugfix action=fix-applied bug=bugfix-011 files=src/api/config/loader.ts,src/api/presence/device-status.ts,src/api/presence/tracker.ts,src/api/routes/devices.ts,src/api/routes/test-support.ts,src/web/pages/DashboardPage.tsx,tests/unit/config/loader.test.ts,tests/unit/presence/tracker.test.ts,specs/frd-presence.md,specs/features/presence.feature,specs/frd-configuration.md,specs/tech-stack.md,specs/prd.md,README.md result=done
+[2026-04-19T10:38:45Z] step=bugfix action=regression-verified bug=bugfix-011 result=vitest-green cucumber-green playwright-green build-green lint-green

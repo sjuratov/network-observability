@@ -28,7 +28,7 @@ export interface PresenceUpdateResult {
 export function initializePresence(
   deviceId: string,
   timestamp: string,
-  offlineThreshold = 2,
+  offlineThreshold = 1,
 ): PresenceState {
   return {
     deviceId,
@@ -61,7 +61,7 @@ export function updatePresence(
   } else {
     updated.missedScans = state.missedScans + 1;
 
-    if (state.status === 'online' && updated.missedScans > state.offlineThreshold) {
+    if (state.status === 'online' && updated.missedScans >= state.offlineThreshold) {
       updated.status = 'offline';
       event = { deviceId: state.deviceId, event: 'offline', timestamp: scanTimestamp };
     }
@@ -75,7 +75,7 @@ export function checkOfflineDevices(
   scanTimestamp: string,
 ): PresenceUpdateResult[] {
   return devices.map((device) => {
-    if (device.missedScans > device.offlineThreshold && device.status !== 'offline') {
+    if (device.missedScans >= device.offlineThreshold && device.status !== 'offline') {
       return {
         state: { ...device, status: 'offline' as PresenceStatus },
         event: { deviceId: device.deviceId, event: 'offline' as const, timestamp: scanTimestamp },

@@ -78,7 +78,7 @@ function getTagsForDevice(db: Database, deviceId: string): string[] {
   return rows.map((row) => row.tag);
 }
 
-function emptyStructuredHistory(row?: DbDeviceRow, offlineThreshold = 2) {
+function emptyStructuredHistory(row?: DbDeviceRow, offlineThreshold = 1) {
   const status = row ? derivePresenceStatus(row, offlineThreshold) : 'unknown';
   return {
     presenceSummary: {

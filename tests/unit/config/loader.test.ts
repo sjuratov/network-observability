@@ -46,6 +46,7 @@ describe('Configuration Management', () => {
 
       expect(config.scanCadence).toBe('0 */6 * * *');
       expect(config.dataRetentionDays).toBe(365);
+      expect(config.presenceOfflineThreshold).toBe(1);
       expect(config.scanIntensity).toBe('normal');
       expect(config.webUiPort).toBe(8080);
       expect(config.logLevel).toBe('info');

@@ -288,7 +288,7 @@ Modern mobile devices (iOS, Android) randomize MAC addresses per network. The sy
 **Acceptance Criteria:**
 
 - Given a device is discovered for the first time, then its first-seen timestamp is recorded and never changes.
-- Given a device was last seen 3 scans ago and the offline threshold is 2 missed scans, then the device is marked as offline.
+- Given a device is already confirmed online and the next completed scan misses it while the default offline threshold is 1 missed scan, then the device is marked as offline.
 - Given a device has been seen in 20 of the last 24 hourly scans, then its availability is reported as approximately 83%.
 
 ---
