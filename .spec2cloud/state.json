@@ -2,7 +2,7 @@
   "mode": "greenfield",
   "phase": "phase-2-complete",
   "status": "done",
-  "lastUpdatedAt": "2026-04-19T10:53:58Z",
+  "lastUpdatedAt": "2026-04-19T14:40:34Z",
   "project": "network-observability",
   "currentIncrement": null,
   "currentStep": "release-complete",
@@ -666,6 +666,29 @@
         "README.md"
       ],
       "completedAt": "2026-04-19T10:38:45Z"
+    },
+    {
+      "id": "bugfix-012",
+      "type": "bugfix",
+      "frd": "specs/frd-device-list-status.md",
+      "description": "Default the device list to 50 rows sorted by IP address and preserve the chosen page size and sort when returning from device detail",
+      "status": "done",
+      "testFile": "e2e/device-list-page-size.spec.ts",
+      "fixedFiles": [
+        "src/web/components/DeviceTable.tsx",
+        "src/web/pages/DeviceListPage.tsx",
+        "src/web/utils/deviceListPreferences.ts",
+        "src/web/utils/filters.ts",
+        "e2e/device-list-page-size.spec.ts",
+        "e2e/pages/DeviceListPage.ts",
+        "tests/features/step-definitions/device-list-status.steps.ts",
+        "specs/frd-device-list-status.md",
+        "specs/frd-dashboard.md",
+        "specs/features/device-list-status.feature",
+        "specs/ui/flow-walkthrough.md",
+        "specs/increment-plan.md"
+      ],
+      "completedAt": "2026-04-19T14:40:34Z"
     }
   ],
   "humanGates": [
@@ -691,5 +714,5 @@
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-19T10:53:58Z"
+  "lastUpdated": "2026-04-19T14:40:34Z"
 }

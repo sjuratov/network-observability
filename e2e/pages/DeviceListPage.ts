@@ -132,6 +132,18 @@ export class DeviceListPage {
     return this.deviceTableBody.locator('tr[data-testid^="device-row-"]').nth(index);
   }
 
+  rowNameAt(index: number) {
+    return this.rowAt(index).locator('[data-testid$="-name"]');
+  }
+
+  async visibleDeviceNameAt(index: number): Promise<string> {
+    return (await this.rowNameAt(index).textContent())?.trim() ?? '';
+  }
+
+  async visibleDeviceIpAt(index: number): Promise<string> {
+    return (await this.rowAt(index).locator('[data-testid$="-ip"]').textContent())?.trim() ?? '';
+  }
+
   async expectVisibleRowsToHaveStatus(status: 'online' | 'offline' | 'new' | 'unknown') {
     const rows = await this.visibleRowCount();
     for (let index = 0; index < rows; index += 1) {

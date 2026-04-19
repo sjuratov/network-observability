@@ -25,7 +25,7 @@ Provide a web-based dashboard for viewing network status, device inventory, scan
 | F10.1 | Overview dashboard displays metric cards: total devices, new devices (last 24h), offline devices, last scan timestamp and status | Must | Cards link to filtered views (e.g., clicking "new devices" filters device list) |
 | F10.2 | Device list view with full-text search across name, MAC, IP, hostname, vendor, tags | Must | Search is client-side for datasets ≤500 devices |
 | F10.3 | Device list supports filtering by: tag, online/offline status, vendor, first-seen date range | Must | Filters are combinable (AND logic) |
-| F10.4 | Device list supports sorting by: name, IP, vendor, first-seen, last-seen, status | Must | Default sort: last-seen descending |
+| F10.4 | Device list supports sorting by: name, IP, vendor, first-seen, last-seen, status | Must | Default sort: IP address ascending; user-selected sort persists when returning from device detail |
 | F10.5 | Device detail view — Identity section: display name, MAC, vendor (OUI), all hostnames, fingerprint confidence, known/unknown flag | Must | |
 | F10.6 | Device detail view — IP History section: table of all IPs used, with first-seen and last-seen per IP | Must | Sorted by last-seen descending |
 | F10.7 | Device detail view — Port History section: current open ports with services, and a changelog of port opens/closes with timestamps | Must | |

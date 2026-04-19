@@ -59,12 +59,14 @@ Feature: Device list status reconciliation
     And no fallback list is returned for the unsupported filter
 
   @device-list-status @smoke @happy
-  Scenario: Device list page size defaults to 10 with the approved options available
+  Scenario: Device list page size defaults to 50 with IP sorting active
     Given the device inventory includes more than 100 devices for page-size selection
     When the operator views the device list page
     Then "pagination-page-size" offers "10", "25", "50", "100", and "All"
-    And "pagination-page-size" keeps "10" selected
-    And "pagination-info" displays "Showing 1-10 of 120 devices"
+    And "pagination-page-size" keeps "50" selected
+    And "pagination-info" displays "Showing 1-50 of 120 devices"
+    And "device-table-sort-ip" stays sorted
+    And the first visible device IPs are "192.168.1.1", "192.168.1.2", and "192.168.1.3"
 
   @device-list-status @happy
   Scenario: Changing the device list page size updates visible rows immediately
@@ -88,6 +90,19 @@ Feature: Device list status reconciliation
     And "device-table-sort-last-seen" stays sorted
     And "pagination-info" displays "Showing 1-12 of 12 devices"
     And each visible device row shows "status-badge-offline"
+
+  @device-list-status @happy
+  Scenario: Returning from device detail restores the chosen page size and sort
+    Given the device inventory includes more than 100 devices for page-size selection
+    When the operator views the device list page
+    And the operator sets "pagination-page-size" to "25"
+    And the operator sorts the device list by "device-table-sort-name"
+    And the operator opens the first visible device
+    And the operator returns to the device list from the device detail page
+    Then "pagination-page-size" keeps "25" selected
+    And "device-table-sort-name" stays sorted
+    And "device-table" shows 25 visible device rows
+    And the first visible device name stays the same
 
   @device-list-status @error
   Scenario: Device list keeps the previous page size when full-result retrieval fails

@@ -6,6 +6,7 @@ import type { CustomWorld } from '../support/world.ts';
 
 type DeviceListStatusWorld = CustomWorld & {
   previousVisibleRowCount?: number;
+  firstVisibleDeviceName?: string;
 };
 
 function latestDevices(world: CustomWorld): Array<Record<string, unknown>> {
@@ -307,6 +308,16 @@ Then('{string} stays sorted', async function (this: CustomWorld, testId: string)
   await expect(this.page.getByTestId(testId)).toContainText(/▲|▼/);
 });
 
+Then(
+  'the first visible device IPs are {string}, {string}, and {string}',
+  async function (this: CustomWorld, firstIp: string, secondIp: string, thirdIp: string) {
+    const deviceList = await ensureDeviceList(this);
+    await expect
+      .poll(() => Promise.all([0, 1, 2].map((index) => deviceList.visibleDeviceIpAt(index))))
+      .toEqual([firstIp, secondIp, thirdIp]);
+  },
+);
+
 Given('the device list currently shows {string} rows per page', async function (this: CustomWorld, value: string) {
   const world = this as DeviceListStatusWorld;
   this.latestResponse = await this.request.post('/api/v1/test-support/device-inventory', {
@@ -335,4 +346,24 @@ Then('the visible device rows stay unchanged', async function (this: CustomWorld
 
 Then('the operator sees an inline page-size error message', async function (this: CustomWorld) {
   await expect(this.page.getByTestId('pagination-page-size-error')).toBeVisible();
+});
+
+When('the operator opens the first visible device', async function (this: CustomWorld) {
+  const world = this as DeviceListStatusWorld;
+  const deviceList = await ensureDeviceList(world);
+  world.firstVisibleDeviceName = await deviceList.visibleDeviceNameAt(0);
+  await deviceList.rowNameAt(0).click();
+  await expect(this.page.getByTestId('page-device-detail')).toBeVisible();
+});
+
+When('the operator returns to the device list from the device detail page', async function (this: CustomWorld) {
+  await this.page.getByTestId('breadcrumb-devices').click();
+  this.deviceList = new DeviceListPage(this.page);
+  await expect(this.deviceList.pageContainer).toBeVisible();
+});
+
+Then('the first visible device name stays the same', async function (this: CustomWorld) {
+  const world = this as DeviceListStatusWorld;
+  const deviceList = await ensureDeviceList(world);
+  await expect.poll(() => deviceList.visibleDeviceNameAt(0)).toBe(world.firstVisibleDeviceName);
 });

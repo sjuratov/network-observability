@@ -481,13 +481,14 @@ These extensions append to the existing product plan and target gaps discovered 
 
 - **Type:** extension
 - **FRD:** frd-device-list-status.md
-- **Scope:** Add a rows-per-page control to the Device List with `10`, `25`, `50`, `100`, and `All` options. Persist the chosen value client-side, keep active filters/sorts intact while changing page size, and support fetching the full filtered dataset when `All` is selected.
+- **Scope:** Add a rows-per-page control to the Device List with `10`, `25`, `50`, `100`, and `All` options. Persist the chosen value and active sort client-side, restore them after returning from device detail, and support fetching the full filtered dataset when `All` is selected.
 - **Acceptance Criteria:**
   - [ ] The Device List exposes exactly the five approved rows-per-page options
-  - [ ] First-visit behavior defaults to 10 rows to preserve current expectations
+  - [ ] First-visit behavior defaults to 50 rows sorted by IP address ascending
   - [ ] Changing the page size updates visible rows and pagination copy immediately
   - [ ] Selecting `All` returns the full filtered result set rather than the first API page only
   - [ ] Search, filter, and sort choices survive page-size changes
+  - [ ] Rows-per-page and sort choices are restored after drilling into device detail and returning
 - **Test Strategy:**
   - Component tests for pagination controls and page-size state
   - API-client tests for multi-page/full-result retrieval behavior

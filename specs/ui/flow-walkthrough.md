@@ -34,7 +34,7 @@
 **Preconditions:** At least 10 devices exist with various names, vendors, statuses, and tags.
 
 1. User navigates to Device List via `nav-header-link-devices`.
-2. System displays `device-table` with all devices, default-sorted by last-seen descending.
+2. System displays `device-table` with all devices, showing 50 rows per page and default-sorted by IP address ascending.
 3. User types "printer" into `search-bar-input`.
 4. System filters `device-table` in real-time — only devices matching "printer" in name, MAC, IP, hostname, vendor, or tags are shown. `device-table-row-count` updates.
 5. User clicks `filter-chips-status-online` to further filter by online status.
@@ -43,6 +43,7 @@
 8. System reorders the visible rows by last-seen (toggles asc/desc on repeated click).
 9. User clicks `device-row-{deviceId}-name` on a specific device row.
 10. System navigates to Device Detail view for the selected device, displaying `device-identity-card`.
+11. When the user returns to Device List, the previously chosen rows-per-page and sort settings are restored.
 
 ---
 

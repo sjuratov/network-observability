@@ -4,6 +4,7 @@ import {
   getSortedRowModel,
   getPaginationRowModel,
   type ColumnDef,
+  type OnChangeFn,
   type SortingState,
   type RowSelectionState,
   flexRender,
@@ -13,15 +14,19 @@ import type { Device } from '@shared/types/device.js';
 import { StatusBadge } from './StatusBadge';
 import { TagPill } from './TagPill';
 import { isNewLifecycleDevice } from '../utils/deviceLifecycle';
+import { compareIpAddresses } from '../utils/filters';
+import type { DeviceListPageSizeOption } from '../utils/deviceListPreferences';
 
 interface DeviceTableProps {
   devices: Device[];
   onRowClick: (device: Device) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   pageSize?: number;
-  pageSizeSelection?: '10' | '25' | '50' | '100' | 'All';
-  onPageSizeChange?: (value: '10' | '25' | '50' | '100' | 'All') => void;
+  pageSizeSelection?: DeviceListPageSizeOption;
+  onPageSizeChange?: (value: DeviceListPageSizeOption) => void;
   pageSizeError?: string | null;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
 }
 
 function getDeviceStatus(device: Device): 'online' | 'offline' | 'unknown' {
@@ -70,8 +75,9 @@ export function DeviceTable({
   pageSizeSelection = '10',
   onPageSizeChange,
   pageSizeError = null,
+  sorting = [],
+  onSortingChange,
 }: DeviceTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -162,6 +168,10 @@ export function DeviceTable({
       id: 'ip',
       accessorKey: 'ipAddress',
       header: 'IP Address',
+      sortingFn: (rowA, rowB, columnId) => compareIpAddresses(
+        rowA.getValue<string>(columnId),
+        rowB.getValue<string>(columnId),
+      ),
       cell: ({ row }) => (
         <span data-testid={`device-row-${row.original.id}-ip`} className="font-mono">
           {row.original.ipAddress}
@@ -213,7 +223,7 @@ export function DeviceTable({
     data: devices,
     columns,
     state: { sorting, rowSelection, pagination },
-    onSortingChange: setSorting,
+    onSortingChange,
     onPaginationChange: setPagination,
     onRowSelectionChange: (updater) => {
       const next = typeof updater === 'function' ? updater(rowSelection) : updater;
@@ -230,6 +240,7 @@ export function DeviceTable({
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowId: (row) => row.id,
+    enableMultiSort: false,
   });
 
   const pageCount = table.getPageCount();
@@ -310,7 +321,7 @@ export function DeviceTable({
                 id="pagination-page-size"
                 data-testid="pagination-page-size"
                 value={pageSizeSelection}
-                onChange={(event) => onPageSizeChange?.(event.target.value as '10' | '25' | '50' | '100' | 'All')}
+                onChange={(event) => onPageSizeChange?.(event.target.value as DeviceListPageSizeOption)}
                 className="rounded-md border border-[#30363d] bg-[#1c2128] px-2 py-1 text-sm text-[#e6edf3] focus:border-[#1f6feb] focus:outline-none"
               >
                 <option value="10">10</option>

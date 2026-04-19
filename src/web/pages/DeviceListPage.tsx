@@ -1,13 +1,18 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import type { SortingState } from '@tanstack/react-table';
 import { useNavigate } from 'react-router';
 import type { Device, FilterParams } from '@shared/types/device.js';
 import { useApi } from '../hooks/useApi';
 import { searchDevices, filterDevices } from '../utils/filters';
 import { isNewLifecycleDevice } from '../utils/deviceLifecycle';
 import { DeviceTable } from '../components/DeviceTable';
+import {
+  loadDeviceListPreferences,
+  saveDeviceListPreferences,
+  type DeviceListPageSizeOption,
+} from '../utils/deviceListPreferences';
 
 const STATUS_OPTIONS = ['all', 'online', 'offline', 'new'] as const;
-type PageSizeOption = '10' | '25' | '50' | '100' | 'All';
 
 function getUniqueVendors(devices: Device[]): string[] {
   const set = new Set(devices.map((d) => d.vendor ?? 'Unknown'));
@@ -61,7 +66,9 @@ export function DeviceListPage() {
   const [tagFilter, setTagFilter] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState<PageSizeOption>('10');
+  const storedPreferences = useMemo(() => loadDeviceListPreferences(), []);
+  const [pageSize, setPageSize] = useState<DeviceListPageSizeOption>(storedPreferences.pageSize);
+  const [sorting, setSorting] = useState<SortingState>(storedPreferences.sorting);
   const [pageSizeError, setPageSizeError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,6 +87,10 @@ export function DeviceListPage() {
       });
     return () => { cancelled = true; };
   }, [api]);
+
+  useEffect(() => {
+    saveDeviceListPreferences({ pageSize, sorting });
+  }, [pageSize, sorting]);
 
   const refreshAllDevices = useCallback(async () => {
     const refreshedDevices = await api.getAllDevices();
@@ -116,7 +127,7 @@ export function DeviceListPage() {
     navigate(`/devices/${device.id}`);
   }, [navigate]);
 
-  const handlePageSizeChange = useCallback(async (nextPageSize: PageSizeOption) => {
+  const handlePageSizeChange = useCallback(async (nextPageSize: DeviceListPageSizeOption) => {
     if (nextPageSize === pageSize) {
       return;
     }
@@ -284,6 +295,8 @@ export function DeviceListPage() {
         pageSizeSelection={pageSize}
         onPageSizeChange={handlePageSizeChange}
         pageSizeError={pageSizeError}
+        sorting={sorting}
+        onSortingChange={setSorting}
       />
 
       {/* Export */}

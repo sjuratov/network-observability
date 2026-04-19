@@ -1,5 +1,9 @@
 import type { Device, Scan, DashboardStats, FilterParams } from '@shared/types/device.js';
 
+export function compareIpAddresses(left: string | undefined, right: string | undefined): number {
+  return (left ?? '').localeCompare(right ?? '', undefined, { numeric: true });
+}
+
 export function filterDevices(devices: Device[], filters: FilterParams): Device[] {
   return devices.filter((d) => {
     const status = d.status ?? (d.isOnline ? 'online' : 'offline');
@@ -22,7 +26,7 @@ export function sortDevices(devices: Device[], sortBy: string, order: 'asc' | 'd
         cmp = new Date(a.lastSeenAt).getTime() - new Date(b.lastSeenAt).getTime();
         break;
       case 'ip':
-        cmp = (a.ipAddress ?? '').localeCompare(b.ipAddress ?? '', undefined, { numeric: true });
+        cmp = compareIpAddresses(a.ipAddress, b.ipAddress);
         break;
       default:
         cmp = 0;

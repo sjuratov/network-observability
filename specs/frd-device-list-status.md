@@ -21,7 +21,8 @@ Correct the device list so connectivity status reflects real presence data, offl
 ## Acceptance Criteria
 
 - [ ] The Device List page exposes a rows-per-page control with exactly these options: `10`, `25`, `50`, `100`, and `All`.
-- [ ] The first visit preserves the current default of 10 rows to avoid a surprise behavior change; users can change it without losing search, filter, or sort state.
+- [ ] The first visit defaults to 50 rows with the device list sorted by IP address ascending.
+- [ ] When a user changes the rows-per-page or sort order, the device list restores those preferences when they navigate to a device detail page and return to the list.
 - [ ] Selecting `All` loads the full filtered result set rather than silently stopping at the current API cap of 100 records.
 - [ ] Selecting the `Offline` status filter returns only devices whose derived presence status is `offline`.
 - [ ] The dashboard offline metric and the device list filtered by `Offline` return the same count for the same dataset.
