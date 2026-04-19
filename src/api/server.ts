@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AppConfig } from '@shared/types/config.js';
@@ -15,6 +16,21 @@ import { tagRoutes } from './routes/tags.js';
 import { testSupportRoutes } from './routes/test-support.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export function resolveStaticAssetsDir(moduleDir: string = __dirname): string | null {
+  const candidates = [
+    path.join(moduleDir, '..', '..', 'public'),
+    path.join(moduleDir, '..', '..', '..', 'public'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(path.join(candidate, 'index.html'))) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
 
 export interface ServerDeps {
   config: AppConfig;
@@ -78,8 +94,8 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   );
 
   // Serve SPA static files
-  const publicDir = path.join(__dirname, '..', '..', 'public');
-  try {
+  const publicDir = resolveStaticAssetsDir();
+  if (publicDir) {
     await server.register(fastifyStatic, {
       root: publicDir,
     });
@@ -95,8 +111,6 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
         meta: { timestamp: new Date().toISOString() },
       };
     });
-  } catch {
-    // Static dir may not exist yet — that's fine during development
   }
 
   return server;

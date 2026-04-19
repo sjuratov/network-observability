@@ -203,3 +203,7 @@
 [2026-04-19T21:16:30Z] increment=ext-008 step=implementation action=verification lint=green vitest=green cucumber=green playwright=green build=green skip_scan=green environment=local-8080 result=done
 [2026-04-19T21:16:30Z] gate=ext-008-implementation decision=pending result=awaiting-human-approval
 [2026-04-19T21:17:00Z] gate=ext-008-implementation decision=approved result=approved
+[2026-04-19T21:30:52Z] step=bugfix action=test-created bug=bugfix-013 frd=frd-dashboard test=tests/unit/api/server-static-assets.test.ts result=failing
+[2026-04-19T21:30:52Z] step=bugfix action=test-approved bug=bugfix-013 approver=human result=approved
+[2026-04-19T21:31:19Z] step=bugfix action=fix-applied bug=bugfix-013 files=src/api/server.ts result=done
+[2026-04-19T21:33:40Z] step=bugfix action=regression-verified bug=bugfix-013 result=lint-green vitest-green cucumber-green playwright-green build-green docker-root-200
