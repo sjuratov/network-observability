@@ -128,3 +128,4 @@
 [2026-04-19T10:12:48Z] step=bugfix action=test-approved bug=bugfix-011 approver=human result=approved
 [2026-04-19T10:24:03Z] step=bugfix action=fix-applied bug=bugfix-011 files=src/api/config/loader.ts,src/api/presence/device-status.ts,src/api/presence/tracker.ts,src/api/routes/devices.ts,src/api/routes/test-support.ts,src/web/pages/DashboardPage.tsx,tests/unit/config/loader.test.ts,tests/unit/presence/tracker.test.ts,specs/frd-presence.md,specs/features/presence.feature,specs/frd-configuration.md,specs/tech-stack.md,specs/prd.md,README.md result=done
 [2026-04-19T10:38:45Z] step=bugfix action=regression-verified bug=bugfix-011 result=vitest-green cucumber-green playwright-green build-green lint-green
+[2026-04-19T10:53:58Z] step=ops action=cleanup-generated-artifacts files=.gitignore,docs/screenshots,playwright-report,test-results result=done
