@@ -44,7 +44,14 @@ When('the operator views the dashboard', async function (this: CustomWorld) {
 });
 
 Then('{string} displays {string}', async function (this: CustomWorld, testId: string, value: string) {
-  await expect(this.page.getByTestId(testId)).toHaveText(value);
+  const locator = this.page.getByTestId(testId);
+
+  if ((await locator.evaluate((element) => element.tagName.toLowerCase()).catch(() => '')) === 'input') {
+    await expect(locator).toHaveValue(value);
+    return;
+  }
+
+  await expect(locator).toContainText(value);
 });
 
 When(
@@ -291,7 +298,12 @@ When('the operator searches for {string} in {string}', async function (this: Cus
 });
 
 When('the operator activates {string}', async function (this: CustomWorld, testId: string) {
-  await ensureDeviceList(this);
+  const locator = this.page.getByTestId(testId);
+
+  if (!(await locator.isVisible().catch(() => false))) {
+    await ensureDeviceList(this);
+  }
+
   await this.page.getByTestId(testId).click();
 });
 

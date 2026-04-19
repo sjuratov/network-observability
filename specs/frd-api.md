@@ -8,7 +8,7 @@ Provide a RESTful API for programmatic access to all application data and operat
 
 ## PRD References
 - PRD Feature: F11 (REST API)
-- Related Features: F10 (Dashboard — primary consumer), F12 (Data Export — export endpoints), F1 (Discovery — scan trigger), F2 (Fingerprinting — device identity), F3 (Scheduling — scan management), F4 (Storage — data source), F5 (Port Detection — port data), F8 (Presence — device status), F9 (Tagging — device metadata), F13 (Configuration — API key)
+- Related Features: F10 (Dashboard — primary consumer), F12 (Data Export — export endpoints), F1 (Discovery — scan trigger), F2 (Fingerprinting — device identity), F3 (Scheduling — scan management), F4 (Storage — data source), F5 (Port Detection — port data), F8 (Presence — device status), F9 (Tagging — device metadata), F13 (Configuration — API key), F14 (Settings UI — config management endpoints)
 
 ## User Stories
 
@@ -207,3 +207,4 @@ Provide a RESTful API for programmatic access to all application data and operat
 - **F8 (Presence Tracking):** Device status (online/offline) and presence data for history endpoints.
 - **F5 (Port & Service Detection):** Port and service data included in device detail and history.
 - **F13 (Configuration):** API key management and server port configuration.
+- **F14 (Settings UI):** Runtime config management endpoints: `GET /api/v1/config`, `PATCH /api/v1/config`, `GET /api/v1/config/api-key`, `GET /api/v1/config/subnets`, `POST /api/v1/config/test-webhook`, `POST /api/v1/config/test-email`, `POST /api/v1/config/regenerate-key`. See `specs/frd-settings-ui.md` for full API contract.

@@ -429,6 +429,35 @@ Modern mobile devices (iOS, Android) randomize MAC addresses per network. The sy
 
 ---
 
+### F14: Settings UI Management
+
+**Description:** The Settings dashboard page enables users to view, modify, test, and persist application configuration through the web UI. Bridges F13 (backend config system) and F10 (dashboard) with runtime config API endpoints and frontend wiring for all four settings tabs (General, Network, Alerts, API).
+
+**Requirements:**
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| F14.1 | Read current config via `GET /api/v1/config` (secrets redacted) | Must |
+| F14.2 | Update config via `PATCH /api/v1/config` with server-side validation | Must |
+| F14.3 | Test webhook delivery with candidate URL before saving | Must |
+| F14.4 | Test email delivery with candidate SMTP settings before saving | Must |
+| F14.5 | Regenerate API key with confirmation and immediate old-key invalidation | Must |
+| F14.6 | Display detected vs. configured subnets with add/remove management | Must |
+| F14.7 | Persist runtime config changes to SQLite (survives restarts) | Must |
+| F14.8 | Indicate restart-required vs. runtime-changeable settings in the UI | Should |
+| F14.9 | Surface server-side validation errors per-field in the UI | Should |
+
+**Acceptance Criteria:**
+
+- Given the Settings page is opened, when it loads, then all form fields are populated with the current server configuration from `GET /api/v1/config`.
+- Given a user changes scan cadence and clicks Save, when the save succeeds, then the change is persisted and a "Requires restart" indicator is shown.
+- Given a user enters a webhook URL and clicks "Test Webhook", when the test payload is sent, then the delivery result (success/failure with details) is displayed.
+- Given a user clicks "Regenerate Key" and confirms, when the new key is generated, then the old key is immediately invalidated and the new key is displayed.
+
+**Full specification:** See `specs/frd-settings-ui.md`
+
+---
+
 ## Non-Functional Requirements
 
 ### Deployment

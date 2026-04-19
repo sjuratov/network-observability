@@ -161,3 +161,37 @@ nmap                      7.95
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PRESENCE_OFFLINE_THRESHOLD` | `1` | Number of missed completed scans required before a device transitions from `unknown`/`online` to `offline`. This value must be used consistently by the scan pipeline, `GET /api/v1/devices`, and `GET /api/v1/stats/overview`. |
+
+### ext-005 — Settings runtime config foundation
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `API_KEY` | auto-generated / supplied | Continues to secure all `/api/v1/config*` endpoints. Regeneration updates the in-memory auth middleware and the persisted key file/runtime store. |
+| `STORAGE_DB_PATH` | `/data/network-obs.db` | Existing SQLite database path; ext-005 adds the `runtime_config` table in this database for persisted dashboard-driven settings updates. |
+| `CONFIG_FILE` | `/config/config.yaml` | Optional YAML settings source. ext-005 keeps the existing precedence chain and inserts the runtime store between YAML and environment variables. |
+
+> ext-005 does **not** require any new runtime services, Azure resources, or deployment tiers. It extends the existing Fastify application contract with runtime config endpoints and persisted settings metadata.
+
+### ext-006 — Settings General tab wiring
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| _No new variables_ | — | ext-006 consumes the existing `GET /api/v1/config` and `PATCH /api/v1/config` contract from ext-005 to load and save General-tab settings, including `envOverridden` metadata for read-only presentation. |
+
+> ext-006 does **not** require any new runtime services, Azure resources, or deployment tiers. It is a frontend wiring increment over the existing Settings runtime config foundation.
+
+### ext-007 — Settings Network and Alerts tab wiring
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| _No new variables_ | — | ext-007 reuses the existing `GET /api/v1/config`, `PATCH /api/v1/config`, and `GET /api/v1/config/subnets` contract surface and adds pre-save delivery tests via `POST /api/v1/config/test-webhook` and `POST /api/v1/config/test-email` without introducing any new deployment-time configuration. |
+
+> ext-007 does **not** require any new runtime services, Azure resources, or deployment tiers. It extends the existing Settings foundation with delivery-test endpoints and additional Network/Alerts UI wiring only.
+
+### ext-008 — Settings API key tab wiring
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| _No new variables_ | — | ext-008 reuses the existing `GET /api/v1/config`, `GET /api/v1/config/api-key`, and `POST /api/v1/config/regenerate-key` contract surface so the dashboard can reveal the full key on demand, roll over local storage after regeneration, and keep the redacted-on-load behavior without any new deployment-time configuration. |
+
+> ext-008 does **not** require any new runtime services, Azure resources, or deployment tiers. It is a frontend/API-client wiring increment over the existing Settings runtime config and API-key management foundation.

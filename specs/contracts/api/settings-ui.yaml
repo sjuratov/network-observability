@@ -1,0 +1,625 @@
+feature: settings-ui
+version: "1.0"
+basePath: /api/v1
+
+endpoints:
+  - path: /config
+    method: GET
+    description: Return the current effective settings for the dashboard with secrets redacted and source metadata describing where each value came from. The ext-006 General tab uses this payload to hydrate scan cadence, scan intensity, retention, loading state, and env-managed read-only indicators.
+    auth: api-key
+    responses:
+      200:
+        description: Effective configuration returned successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required:
+                [subnets, scanCadence, scanIntensity, presenceOfflineThreshold, dataRetentionDays, portRange, alertCooldownSeconds, apiKey, webUiPort, logLevel, dbPath]
+              properties:
+                subnets:
+                  type: array
+                  items: { type: string }
+                scanCadence:
+                  type: string
+                  description: Cron expression that controls the scheduled scan cadence.
+                scanIntensity:
+                  type: string
+                  enum: [quick, normal, thorough]
+                presenceOfflineThreshold:
+                  type: integer
+                  minimum: 1
+                dataRetentionDays:
+                  type: integer
+                  minimum: 30
+                portRange:
+                  type: string
+                alertWebhookUrl:
+                  type: string
+                  nullable: true
+                alertEmailSmtp:
+                  type: object
+                  nullable: true
+                  properties:
+                    host: { type: string }
+                    port: { type: integer, minimum: 1, maximum: 65535 }
+                    user: { type: string }
+                    password:
+                      type: string
+                      description: Always returned as a redacted placeholder.
+                    recipient:
+                      type: string
+                      format: email
+                alertCooldownSeconds:
+                  type: integer
+                  minimum: 0
+                apiKey:
+                  type: string
+                  description: Redacted API key display value for the Settings UI.
+                webUiPort:
+                  type: integer
+                logLevel:
+                  type: string
+                  enum: [debug, info, warn, error]
+                dbPath:
+                  type: string
+            meta:
+              type: object
+              required: [timestamp, configSources, envOverridden, restartRequired]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+                configSources:
+                  type: array
+                  items:
+                    type: string
+                    enum: [defaults, yaml, runtime, env]
+                envOverridden:
+                  type: array
+                  description: Mutable or read-only fields currently controlled by environment variables and therefore shown as read-only in the dashboard.
+                  items: { type: string }
+                restartRequired:
+                  type: boolean
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config/api-key
+    method: GET
+    description: Reveal the full API key for the authenticated Settings API tab so the client can show it once and locally re-mask it without another network request.
+    auth: api-key
+    responses:
+      200:
+        description: Full API key returned successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required: [apiKey]
+              properties:
+                apiKey:
+                  type: string
+                  pattern: "^[a-fA-F0-9]{64}$"
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config
+    method: PATCH
+    description: Persist a partial runtime configuration update, validate the submitted fields, and report which changes apply immediately versus after restart. The ext-006 General tab sends only changed General fields in this request body.
+    auth: api-key
+    request:
+      body:
+        type: object
+        minProperties: 1
+        properties:
+          subnets:
+            type: array
+            items:
+              type: string
+              description: CIDR notation, for example 192.168.1.0/24.
+          scanCadence:
+            type: string
+          scanIntensity:
+            type: string
+            enum: [quick, normal, thorough]
+          presenceOfflineThreshold:
+            type: integer
+            minimum: 1
+          dataRetentionDays:
+            type: integer
+            minimum: 30
+          portRange:
+            type: string
+          alertWebhookUrl:
+            type: string
+            nullable: true
+          alertEmailSmtp:
+            type: object
+            properties:
+              host: { type: string }
+              port: { type: integer, minimum: 1, maximum: 65535 }
+              user: { type: string }
+              password: { type: string }
+              recipient:
+                type: string
+                format: email
+          alertCooldownSeconds:
+            type: integer
+            minimum: 0
+          logLevel:
+            type: string
+            enum: [debug, info, warn, error]
+    responses:
+      200:
+        description: Runtime configuration update accepted and persisted.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              description: Updated effective configuration using the same redacted shape as GET /config.
+            meta:
+              type: object
+              required: [timestamp, applied, restartRequired, rejected]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+                applied:
+                  type: array
+                  description: Fields that take effect immediately without a restart.
+                  items: { type: string }
+                restartRequired:
+                  type: array
+                  description: Fields that were accepted but require a restart before the running scanner/runtime reflects the change.
+                  items: { type: string }
+                rejected:
+                  type: array
+                  items: { type: string }
+      400:
+        description: Validation failed or no supported fields were provided.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [BAD_REQUEST, VALIDATION_ERROR]
+                message: { type: string }
+                details:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, message]
+                    properties:
+                      field: { type: string }
+                      message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config/subnets
+    method: GET
+    description: Return detected, configured, and effective subnet sets for the Settings network tab.
+    auth: api-key
+    responses:
+      200:
+        description: Subnet inventory returned successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required: [detected, configured, effective]
+              properties:
+                detected:
+                  type: array
+                  items:
+                    type: object
+                    required: [cidr, source]
+                    properties:
+                      cidr: { type: string }
+                      interface:
+                        type: string
+                        nullable: true
+                      source:
+                        type: string
+                        enum: [auto]
+                configured:
+                  type: array
+                  items:
+                    type: object
+                    required: [cidr, source]
+                    properties:
+                      cidr: { type: string }
+                      source:
+                        type: string
+                        enum: [user]
+                effective:
+                  type: array
+                  items: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config/test-webhook
+    method: POST
+    description: Send a delivery test to the candidate webhook URL currently entered in the Alerts tab without persisting the form value.
+    auth: api-key
+    request:
+      body:
+        type: object
+        required: [url]
+        properties:
+          url:
+            type: string
+            format: uri
+    responses:
+      200:
+        description: Candidate webhook delivery completed successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required: [success, statusCode, message]
+              properties:
+                success:
+                  type: boolean
+                  enum: [true]
+                statusCode:
+                  type: integer
+                  minimum: 100
+                  maximum: 599
+                message:
+                  type: string
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      400:
+        description: The candidate webhook payload is invalid or incomplete.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [BAD_REQUEST, VALIDATION_ERROR]
+                message: { type: string }
+                details:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, message]
+                    properties:
+                      field: { type: string }
+                      message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      502:
+        description: The candidate webhook delivery attempt failed and diagnostics are returned to the operator.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [WEBHOOK_TEST_FAILED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config/test-email
+    method: POST
+    description: Send a delivery test using the candidate SMTP settings entered in the Alerts tab without persisting the form values.
+    auth: api-key
+    request:
+      body:
+        type: object
+        required: [host, port, recipient]
+        properties:
+          host:
+            type: string
+          port:
+            type: integer
+            minimum: 1
+            maximum: 65535
+          user:
+            type: string
+          password:
+            type: string
+          recipient:
+            type: string
+            format: email
+    responses:
+      200:
+        description: Candidate SMTP delivery completed successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required: [success, message]
+              properties:
+                success:
+                  type: boolean
+                  enum: [true]
+                message:
+                  type: string
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      400:
+        description: The candidate SMTP payload is invalid or incomplete.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [BAD_REQUEST, VALIDATION_ERROR]
+                message: { type: string }
+                details:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, message]
+                    properties:
+                      field: { type: string }
+                      message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      502:
+        description: The candidate SMTP delivery attempt failed and diagnostics are returned to the operator.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [EMAIL_TEST_FAILED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+
+  - path: /config/regenerate-key
+    method: POST
+    description: Generate and persist a new API key, immediately invalidating the previous key so the dashboard can replace its stored credential before issuing subsequent authenticated requests.
+    auth: api-key
+    responses:
+      200:
+        description: API key regenerated successfully.
+        body:
+          type: object
+          required: [data, meta]
+          properties:
+            data:
+              type: object
+              required: [apiKey, message]
+              properties:
+                apiKey:
+                  type: string
+                  pattern: "^[a-fA-F0-9]{64}$"
+                message:
+                  type: string
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+      401:
+        description: Missing or invalid API key.
+        body:
+          type: object
+          required: [error, meta]
+          properties:
+            error:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [UNAUTHORIZED]
+                message: { type: string }
+            meta:
+              type: object
+              required: [timestamp]
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time

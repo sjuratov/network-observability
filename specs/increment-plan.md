@@ -560,3 +560,168 @@ These extensions append to the existing product plan and target gaps discovered 
 - **Dependencies:** ext-003
 - **Rollback Plan:** Restore the Version column if inline service metadata proves insufficient for operational use
 - **Complexity:** Low
+
+---
+
+## Extension — Settings UI Management (2026-07)
+
+These extensions implement the Settings dashboard page functionality defined in FRD-F14 (Settings UI Management). The Settings page currently exists as a UI scaffold with hardcoded values and no backend connectivity. These increments wire the frontend to real backend config APIs, enabling users to view, modify, test, and persist application settings. Ordered so the backend API foundation lands first, then each UI tab is wired incrementally.
+
+### ext-005: Settings Runtime Config Foundation
+
+- **Type:** extension
+- **FRD:** frd-settings-ui.md (F14)
+- **Scope:** Build the backend runtime configuration API layer: SQLite-backed runtime config store, config read/write endpoints (`GET /api/v1/config`, `PATCH /api/v1/config`), server-side validation, config source metadata (defaults/yaml/env/runtime), and runtime-apply vs restart-required semantics. The `loadConfig()` startup flow is extended to merge the runtime store layer. This increment does NOT touch the frontend — it establishes the API contract that all subsequent settings increments consume.
+- **Acceptance Criteria:**
+  - [ ] `runtime_config` table created in SQLite: `(key TEXT PK, value TEXT, updated_at TEXT)`
+  - [ ] `GET /api/v1/config` returns the current effective config with secrets redacted (API key, SMTP password)
+  - [ ] `PATCH /api/v1/config` validates input, persists to runtime store, applies runtime-changeable params, returns applied/restartRequired/rejected lists
+  - [ ] `loadConfig()` merges: defaults → YAML → runtime store → env vars (env wins)
+  - [ ] Server-side validation rejects invalid cron expressions, out-of-range values, invalid CIDR
+  - [ ] Fields overridden by env vars are flagged in the response as `envOverridden`
+  - [ ] Concurrent PATCH requests are serialized (mutex)
+  - [ ] Validation error responses include per-field error details
+- **Test Strategy:**
+  - Unit tests for runtime config store CRUD
+  - Unit tests for config merge precedence (defaults < yaml < runtime < env)
+  - Unit tests for all validation rules
+  - Integration tests for GET/PATCH endpoints (auth, validation, persistence)
+  - BDD scenarios covering config read, update, validation errors, env override
+- **Gherkin Deltas:**
+  - New: Scenarios for `GET /api/v1/config` (returns current config, redacts secrets)
+  - New: Scenarios for `PATCH /api/v1/config` (valid update, validation error, restart-required field, env-override rejection)
+  - New: Scenarios for runtime config persistence across restarts
+  - Regression: Existing `configuration.feature` scenarios must still pass
+- **Integration Points:**
+  - New: `src/api/routes/config.ts` (config endpoints)
+  - New: `src/api/config/runtime-store.ts` (SQLite runtime config CRUD)
+  - Modified: `src/api/config/loader.ts` (merge runtime store layer)
+  - Modified: `src/api/index.ts` (register config routes)
+  - Existing: `src/shared/types/config.ts` (AppConfig interface)
+  - Existing: `src/api/middleware/auth.ts` (API key auth for config endpoints)
+- **Dependencies:** None (builds on existing INC-01 config + INC-05 API foundation)
+- **Rollback Plan:** Remove config routes and runtime_config table; system reverts to startup-only config
+- **Complexity:** High — config merge precedence, validation, concurrent writes, env-override detection
+
+### ext-006: Settings General Tab Wiring
+
+- **Type:** extension
+- **FRD:** frd-settings-ui.md (F14)
+- **Scope:** Wire the Settings General tab (scan cadence, scan intensity, data retention) to the backend config API. The page loads current values from `GET /api/v1/config` on mount, Save calls `PATCH /api/v1/config`, and restart-required fields are visually indicated. Includes loading states, error handling, and success/error toasts.
+- **Acceptance Criteria:**
+  - [ ] Settings page calls `GET /api/v1/config` on mount and populates all General tab fields
+  - [ ] Loading spinner shown while config loads; error state with retry on failure
+  - [ ] "Save Changes" button on General tab sends `PATCH /api/v1/config` with changed fields only
+  - [ ] Success toast "Settings saved successfully" on save; error toast on failure
+  - [ ] Save button shows loading state during request (disabled + spinner)
+  - [ ] Scan cadence and scan intensity fields show "Requires restart" indicator
+  - [ ] If a restart-required field is saved, an info banner appears: "Some changes require a restart"
+  - [ ] Validation errors from server shown per-field (e.g., invalid cron)
+  - [ ] Fields overridden by env vars are shown as read-only with "Set via environment variable" badge
+- **Test Strategy:**
+  - E2E tests: load settings, verify fields populated, change value, save, verify toast
+  - E2E tests: save invalid value, verify validation error shown
+  - Component tests: loading state, error state, save button states
+  - BDD scenarios: configure scan settings flow (matches Flow 6 from walkthrough)
+- **Gherkin Deltas:**
+  - New: `Scenario: Load current settings on page open`
+  - New: `Scenario: Save general settings successfully`
+  - New: `Scenario: Save invalid general settings shows validation errors`
+  - New: `Scenario: Restart-required fields show indicator`
+  - New: `Scenario: Env-overridden fields shown as read-only`
+  - Regression: Existing e2e settings render tests must still pass
+- **Integration Points:**
+  - Modified: `src/web/pages/SettingsPage.tsx` (replace local state with API calls for General tab)
+  - New/Modified: `src/web/hooks/useSettings.ts` (custom hook for settings CRUD)
+  - Existing: `src/web/hooks/useApi.ts` (HTTP client)
+  - Existing: Toast/notification system
+  - Existing: `e2e/pages/SettingsPage.ts` (POM — extend with save/load assertions)
+- **Dependencies:** ext-005 (config API must exist)
+- **Rollback Plan:** Revert SettingsPage.tsx to local state; General tab becomes scaffold again
+- **Complexity:** Medium — standard API wiring with loading/error states and restart indicators
+
+### ext-007: Settings Alerts & Network Tabs Wiring
+
+- **Type:** extension
+- **FRD:** frd-settings-ui.md (F14)
+- **Scope:** Wire the Network tab (subnet display, add/remove subnets) and Alerts tab (webhook URL, SMTP config, cooldown, test buttons) to backend APIs. Includes `GET /api/v1/config/subnets` for subnet data, `POST /api/v1/config/test-webhook` and `POST /api/v1/config/test-email` for delivery testing. Test endpoints accept candidate values from the form (not persisted config), enabling test-before-save workflow.
+- **Acceptance Criteria:**
+  - [ ] Network tab loads subnets from `GET /api/v1/config/subnets`
+  - [ ] Auto-detected subnets shown with "Detected" badge (read-only); configured subnets editable
+  - [ ] User can add a new subnet (CIDR validated client-side) and save via `PATCH /api/v1/config`
+  - [ ] User can remove a configured subnet and save
+  - [ ] Alerts tab loads webhook URL, SMTP settings, cooldown from `GET /api/v1/config`
+  - [ ] "Test Webhook" sends candidate URL from form field to `POST /api/v1/config/test-webhook`
+  - [ ] Webhook test result shown: success with status code, or error with details
+  - [ ] "Test Webhook" disabled when URL field is empty
+  - [ ] "Test Email" sends candidate SMTP settings from form to `POST /api/v1/config/test-email`
+  - [ ] Email test result shown: success or SMTP error diagnostics
+  - [ ] "Test Email" disabled when required SMTP fields (host, port, recipient) are empty
+  - [ ] "Save Changes" on Alerts tab saves webhook, SMTP, and cooldown fields
+  - [ ] `POST /api/v1/config/test-webhook` endpoint accepts `{ url }` and returns delivery result
+  - [ ] `POST /api/v1/config/test-email` endpoint accepts SMTP config and returns delivery result
+  - [ ] `GET /api/v1/config/subnets` returns `{ detected, configured, effective }` lists
+- **Test Strategy:**
+  - Unit tests for test-webhook and test-email endpoints (mock HTTP/SMTP)
+  - Unit tests for subnet endpoint (mock detectSubnets)
+  - E2E tests: load subnets, add subnet, save, verify; test webhook flow; test email flow
+  - BDD scenarios: webhook setup flow (matches Flow 7 from walkthrough)
+- **Gherkin Deltas:**
+  - New: `Scenario: Display detected and configured subnets`
+  - New: `Scenario: Add a manual subnet`
+  - New: `Scenario: Remove a configured subnet`
+  - New: `Scenario: Test webhook before saving`
+  - New: `Scenario: Test webhook with unreachable URL`
+  - New: `Scenario: Test email delivery`
+  - New: `Scenario: Save alert settings`
+  - Regression: All ext-005 and ext-006 scenarios still pass
+- **Integration Points:**
+  - New: `POST /api/v1/config/test-webhook` route in `src/api/routes/config.ts`
+  - New: `POST /api/v1/config/test-email` route in `src/api/routes/config.ts`
+  - New: `GET /api/v1/config/subnets` route in `src/api/routes/config.ts`
+  - Modified: `src/web/pages/SettingsPage.tsx` (Network + Alerts tabs wired)
+  - Existing: `src/api/alerts/notifier.ts` (reuse sendWebhookAlert/sendEmailAlert for test delivery)
+  - Existing: `src/api/config/loader.ts` (reuse detectSubnets)
+- **Dependencies:** ext-005 (config API), ext-006 (settings load pattern established)
+- **Rollback Plan:** Revert Network + Alerts tabs to scaffold; remove test endpoints
+- **Complexity:** High — multiple new endpoints, delivery testing with real HTTP/SMTP, subnet management
+
+### ext-008: Settings API Key Tab Wiring
+
+- **Type:** extension
+- **FRD:** frd-settings-ui.md (F14)
+- **Scope:** Wire the API tab to real backend key management: load redacted key from `GET /api/v1/config`, reveal full key via `GET /api/v1/config/api-key`, copy to clipboard, and regenerate via `POST /api/v1/config/regenerate-key`. Key regeneration invalidates the old key immediately and the frontend updates its stored API key for subsequent requests.
+- **Acceptance Criteria:**
+  - [ ] API tab shows redacted API key on load (from `GET /api/v1/config`)
+  - [ ] "Reveal" toggle fetches full key via `GET /api/v1/config/api-key` and displays it
+  - [ ] "Hide" re-masks the key without a new API call
+  - [ ] "Copy" copies the revealed full key to clipboard with "Copied!" feedback
+  - [ ] "Copy" is disabled when key is in redacted state
+  - [ ] "Regenerate Key" shows confirmation dialog warning about invalidation
+  - [ ] On confirm, `POST /api/v1/config/regenerate-key` is called
+  - [ ] New key is displayed (revealed) after regeneration
+  - [ ] Frontend updates its stored API key header for subsequent requests
+  - [ ] `GET /api/v1/config/api-key` endpoint returns the full unredacted key
+  - [ ] `POST /api/v1/config/regenerate-key` generates a new 64-char hex key, persists it, invalidates the old key, and returns the new key
+  - [ ] Rate limit info shown as read-only (informational)
+- **Test Strategy:**
+  - Unit tests for regenerate-key endpoint (key generation, persistence, old key invalidation)
+  - Unit tests for api-key reveal endpoint
+  - E2E tests: reveal key, copy key, regenerate key flow
+  - BDD scenarios: API key management lifecycle
+- **Gherkin Deltas:**
+  - New: `Scenario: Reveal API key`
+  - New: `Scenario: Copy API key to clipboard`
+  - New: `Scenario: Regenerate API key with confirmation`
+  - New: `Scenario: Regenerated key works for authentication`
+  - New: `Scenario: Old key rejected after regeneration`
+  - Regression: All ext-005 through ext-007 scenarios still pass
+- **Integration Points:**
+  - New: `GET /api/v1/config/api-key` route in `src/api/routes/config.ts`
+  - New: `POST /api/v1/config/regenerate-key` route in `src/api/routes/config.ts`
+  - Modified: `src/web/pages/SettingsPage.tsx` (API tab wired)
+  - Modified: `src/api/middleware/auth.ts` (key update on regeneration)
+  - Existing: `src/api/config/loader.ts` (resolveApiKey, generateApiKey)
+- **Dependencies:** ext-005 (config API), ext-006 (settings load pattern)
+- **Rollback Plan:** Revert API tab to scaffold; remove key management endpoints
+- **Complexity:** Medium — key lifecycle management, auth header update, clipboard interaction

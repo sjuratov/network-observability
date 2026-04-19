@@ -1,11 +1,11 @@
 {
   "mode": "greenfield",
-  "phase": "phase-2-complete",
-  "status": "done",
-  "lastUpdatedAt": "2026-04-19T14:40:34Z",
+  "phase": "phase-2-extension",
+  "status": "implementation-approved",
+  "lastUpdatedAt": "2026-04-19T21:17:00Z",
   "project": "network-observability",
-  "currentIncrement": null,
-  "currentStep": "release-complete",
+  "currentIncrement": "ext-008",
+  "currentStep": "deployment",
   "increments": [
     { "id": "INC-01", "status": "done", "step": "superseded-by-extension-plan" },
     {
@@ -424,6 +424,445 @@
       },
       "implementedAt": "2026-04-18T19:46:43Z",
       "approvedAt": "2026-04-18T19:48:05Z"
+    },
+    {
+      "id": "ext-005",
+      "status": "implementation-approved",
+      "step": "implementation-approved",
+      "frd": "specs/frd-settings-ui.md",
+      "featureFiles": [
+        "specs/features/settings-ui.feature"
+      ],
+      "gherkinGeneratedAt": "2026-04-19T15:19:22Z",
+      "gherkinApprovedAt": "2026-04-19T15:34:29Z",
+      "testFiles": [
+        "cucumber.js",
+        "tests/features/step-definitions/settings-ui.steps.ts",
+        "tests/unit/api/settings-config.test.ts"
+      ],
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 10
+      },
+      "testGeneratedAt": "2026-04-19T15:34:29Z",
+      "testApprovedAt": "2026-04-19T15:37:07Z",
+      "testAdjustmentApprovedAt": "2026-04-19T17:47:26Z",
+      "contractFiles": [
+        "specs/contracts/api/settings-ui.yaml",
+        "src/shared/types/settings-ui.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "yaml": "green",
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "contractsGeneratedAt": "2026-04-19T15:37:07Z",
+      "contractsApprovedAt": "2026-04-19T15:38:37Z",
+      "implementationFiles": [
+        "src/api/config/loader.ts",
+        "src/api/config/runtime-store.ts",
+        "src/api/db/database.ts",
+        "src/api/routes/config.ts",
+        "src/api/server.ts",
+        "playwright.config.ts",
+        "specs/features/settings-ui.feature",
+        "tests/features/step-definitions/settings-ui.steps.ts"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/config/loader.ts",
+            "src/api/config/runtime-store.ts",
+            "src/api/db/database.ts",
+            "src/api/routes/config.ts",
+            "src/api/server.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [],
+          "note": "No frontend changes are part of ext-005 after approved scope alignment."
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "specs/features/settings-ui.feature",
+            "tests/features/step-definitions/settings-ui.steps.ts",
+            "playwright.config.ts"
+          ],
+          "lastTestRun": {
+            "cucumberDryRun": "green",
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8090"
+          },
+          "note": "Approved settings BDD scope matches ext-005 backend foundation and passes against the live local app."
+        }
+      },
+      "implementationVerification": {
+        "vitest": "green",
+        "lint": "green",
+        "build": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "environment": "local-8090"
+      },
+      "implementedAt": "2026-04-19T17:53:00Z",
+      "approvedAt": "2026-04-19T17:54:00Z"
+    },
+    {
+      "id": "ext-006",
+      "status": "implementation-approved",
+      "step": "implementation-approved",
+      "frd": "specs/frd-settings-ui.md",
+      "e2eFiles": [
+        "e2e/settings-general.spec.ts"
+      ],
+      "e2ePageObjects": [
+        "e2e/pages/SettingsPage.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "e2eNotes": [
+        "Generated against the approved ext-006 increment scope and current Settings selectors.",
+        "Settings entries in specs/ui/flow-walkthrough.md and specs/ui/component-inventory.md still use legacy Scanning/Retention naming."
+      ],
+      "e2eGeneratedAt": "2026-04-19T18:14:13Z",
+      "featureFiles": [
+        "specs/features/settings-ui.feature"
+      ],
+      "testFiles": [
+        "tests/features/step-definitions/settings-ui.steps.ts",
+        "tests/unit/web/settings-general.test.ts"
+      ],
+      "gherkinVerification": {
+        "parse": "green"
+      },
+      "gherkinGeneratedAt": "2026-04-19T18:18:51Z",
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 5,
+        "passingRegressionTests": 300,
+        "lint": "green",
+        "build": "green"
+      },
+      "testGeneratedAt": "2026-04-19T18:27:04Z",
+      "testApprovedAt": "2026-04-19T18:27:30Z",
+      "contractFiles": [
+        "specs/contracts/api/settings-ui.yaml",
+        "src/shared/types/settings-ui.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "yaml": "green",
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "contractsGeneratedAt": "2026-04-19T18:30:54Z",
+      "implementationFiles": [
+        "src/api/config/loader.ts",
+        "src/api/server.ts",
+        "src/web/api-client.ts",
+        "src/web/pages/SettingsPage.tsx"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/config/loader.ts",
+            "src/api/server.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/pages/SettingsPage.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/config/loader.ts",
+            "src/api/server.ts",
+            "src/web/api-client.ts",
+            "src/web/pages/SettingsPage.tsx"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8080"
+          }
+        }
+      },
+      "implementationVerification": {
+        "lint": "green",
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8080"
+      },
+      "implementedAt": "2026-04-19T18:49:41Z",
+      "approvedAt": "2026-04-19T18:51:18Z",
+      "stepNotes": [
+        "ext-006 reuses the ext-005 settings endpoints and runtime store.",
+        "No new infrastructure resources or environment variables are required for General tab wiring.",
+        "Custom CONFIG_FILE paths now isolate their runtime-config database relative to the config file location so full regression stays deterministic after Settings writes."
+      ]
+    },
+    {
+      "id": "ext-007",
+      "status": "implementation-approved",
+      "step": "implementation-approved",
+      "frd": "specs/frd-settings-ui.md",
+      "e2eFiles": [
+        "e2e/settings-network-alerts.spec.ts"
+      ],
+      "e2ePageObjects": [
+        "e2e/pages/SettingsPage.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "e2eNotes": [
+        "Generated against the approved ext-007 increment scope covering only the Network and Alerts tabs.",
+        "Settings entries in specs/ui/flow-walkthrough.md and specs/ui/component-inventory.md still use legacy naming, so ext-007 uses the approved increment scope and current Settings tab selectors."
+      ],
+      "e2eGeneratedAt": "2026-04-19T19:05:00Z",
+      "featureFiles": [
+        "specs/features/settings-ui.feature"
+      ],
+      "gherkinVerification": {
+        "parse": "green"
+      },
+      "gherkinGeneratedAt": "2026-04-19T19:09:00Z",
+      "gherkinApprovedAt": "2026-04-19T19:10:00Z",
+      "testFiles": [
+        "tests/features/step-definitions/settings-ui.steps.ts",
+        "tests/unit/api/settings-network-alerts.test.ts",
+        "tests/unit/web/settings-network-alerts.test.ts"
+      ],
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 6,
+        "passingRegressionTests": 51,
+        "build": "green"
+      },
+      "testGeneratedAt": "2026-04-19T20:08:00Z",
+      "testApprovedAt": "2026-04-19T20:12:00Z",
+      "contractFiles": [
+        "specs/contracts/api/settings-ui.yaml",
+        "src/shared/types/settings-ui.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "yaml": "green",
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "contractsGeneratedAt": "2026-04-19T20:20:00Z",
+      "implementationFiles": [
+        "src/api/routes/config.ts",
+        "src/web/api-client.ts",
+        "src/web/pages/SettingsPage.tsx"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/routes/config.ts"
+          ],
+          "lastTestRun": {
+            "vitest": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/pages/SettingsPage.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/api/routes/config.ts",
+            "src/web/api-client.ts",
+            "src/web/pages/SettingsPage.tsx"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8080"
+          }
+        }
+      },
+      "implementationVerification": {
+        "lint": "green",
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8080"
+      },
+      "implementedAt": "2026-04-19T20:22:00Z",
+      "approvedAt": "2026-04-19T20:23:00Z",
+      "stepNotes": [
+        "Full vitest regression remained green apart from the three new missing backend delivery-route tests.",
+        "The targeted web client contract file adds three red-baseline failures for the missing getSettingsSubnets, testSettingsWebhook, and testSettingsEmail client methods.",
+        "ext-007 extends the existing settings-ui contract and shared types; it does not introduce any new environment variables, services, or Azure resources.",
+        "Integration validation required rebuilding the Vite bundle so the Settings page served from public/assets matched the implemented Network and Alerts wiring."
+      ]
+    },
+    {
+      "id": "ext-008",
+      "status": "implementation-approved",
+      "step": "implementation-approved",
+      "frd": "specs/frd-settings-ui.md",
+      "e2eFiles": [
+        "e2e/settings-api-key.spec.ts"
+      ],
+      "e2ePageObjects": [
+        "e2e/pages/SettingsPage.ts"
+      ],
+      "e2eVerification": {
+        "playwrightList": "green",
+        "tsc": "green"
+      },
+      "e2eNotes": [
+        "Generated against the approved ext-008 increment scope covering only the Settings API key tab wiring.",
+        "The API tab contract is scoped to reveal, hide, copy, regenerate, and frontend API-key rollover behavior."
+      ],
+      "e2eGeneratedAt": "2026-04-19T20:37:30Z",
+      "featureFiles": [
+        "specs/features/settings-ui.feature"
+      ],
+      "gherkinVerification": {
+        "parse": "green"
+      },
+      "gherkinGeneratedAt": "2026-04-19T20:41:30Z",
+      "gherkinApprovedAt": "2026-04-19T20:43:00Z",
+      "testFiles": [
+        "tests/features/step-definitions/settings-ui.steps.ts",
+        "tests/unit/web/settings-api-key.test.ts"
+      ],
+      "testVerification": {
+        "cucumberDryRun": "green",
+        "playwrightList": "green",
+        "vitest": "red-baseline",
+        "failingTests": 4,
+        "passingRegressionTests": 311,
+        "build": "green"
+      },
+      "testGeneratedAt": "2026-04-19T20:51:00Z",
+      "testApprovedAt": "2026-04-19T20:53:00Z",
+      "contractFiles": [
+        "specs/contracts/api/settings-ui.yaml",
+        "src/shared/types/settings-ui.ts",
+        "specs/contracts/infra/resources.yaml"
+      ],
+      "contractVerification": {
+        "yaml": "green",
+        "tsc": "green",
+        "infraDelta": "none"
+      },
+      "contractsGeneratedAt": "2026-04-19T20:56:00Z",
+      "implementationFiles": [
+        "src/web/api-client.ts",
+        "src/web/hooks/useApi.ts",
+        "src/web/pages/SettingsPage.tsx",
+        "tests/features/support/world.ts",
+        "e2e/helpers/config.ts"
+      ],
+      "implementationSlices": {
+        "api": {
+          "status": "done",
+          "modifiedFiles": [],
+          "lastTestRun": {
+            "vitest": "green",
+            "build": "green"
+          }
+        },
+        "web": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/hooks/useApi.ts",
+            "src/web/pages/SettingsPage.tsx"
+          ],
+          "lastTestRun": {
+            "unit": "green",
+            "lint": "green",
+            "build": "green"
+          }
+        },
+        "integration": {
+          "status": "done",
+          "modifiedFiles": [
+            "src/web/api-client.ts",
+            "src/web/hooks/useApi.ts",
+            "src/web/pages/SettingsPage.tsx",
+            "tests/features/support/world.ts",
+            "e2e/helpers/config.ts"
+          ],
+          "lastTestRun": {
+            "cucumber": "green",
+            "playwright": "green",
+            "environment": "local-8080"
+          }
+        }
+      },
+      "implementationVerification": {
+        "lint": "green",
+        "vitest": "green",
+        "cucumber": "green",
+        "playwright": "green",
+        "build": "green",
+        "skipScan": "green",
+        "environment": "local-8080"
+      },
+      "implementedAt": "2026-04-19T21:16:30Z",
+      "approvedAt": "2026-04-19T21:17:00Z",
+      "implementationNotes": [
+        "Settings API key reveal, hide, copy, regenerate, and localStorage rollover are implemented in src/web/api-client.ts, src/web/hooks/useApi.ts, and src/web/pages/SettingsPage.tsx.",
+        "Integration support now preserves scenario-specific browser API keys between navigations in tests/features/support/world.ts and reads data/.api-key before the fallback key in e2e/helpers/config.ts.",
+        "Implementation verification required rebuilding the Vite bundle so the Settings page served from public/assets on local-8080 matched the updated API key tab wiring."
+      ]
     }
   ],
   "contracts": {
@@ -435,6 +874,10 @@
       "device-detail-ports": {
         "status": "done",
         "specFile": "specs/contracts/api/device-detail-ports.yaml"
+      },
+      "settings-ui": {
+        "status": "done",
+        "specFile": "specs/contracts/api/settings-ui.yaml"
       }
     },
     "sharedTypes": {
@@ -448,6 +891,12 @@
         "status": "done",
         "outputFiles": [
           "src/shared/types/device-detail-ports.ts"
+        ]
+      },
+      "settings-ui": {
+        "status": "done",
+        "outputFiles": [
+          "src/shared/types/settings-ui.ts"
         ]
       }
     },
@@ -486,6 +935,30 @@
       "type": "extension",
       "frd": "specs/frd-device-detail-activity.md",
       "status": "done"
+    },
+    {
+      "id": "ext-005",
+      "type": "extension",
+      "frd": "specs/frd-settings-ui.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-006",
+      "type": "extension",
+      "frd": "specs/frd-settings-ui.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-007",
+      "type": "extension",
+      "frd": "specs/frd-settings-ui.md",
+      "status": "done"
+    },
+    {
+      "id": "ext-008",
+      "type": "extension",
+      "frd": "specs/frd-settings-ui.md",
+      "status": "in-progress"
     }
   ],
   "bugFixes": [
@@ -709,10 +1182,20 @@
     { "phase": "ext-003-implementation", "status": "approved", "timestamp": "2026-04-18T19:30:18Z" },
     { "phase": "ext-004-gherkin", "status": "approved", "timestamp": "2026-04-18T19:40:00Z" },
     { "phase": "ext-004-tests", "status": "approved", "timestamp": "2026-04-18T19:42:15Z" },
-    { "phase": "ext-004-implementation", "status": "approved", "timestamp": "2026-04-18T19:48:05Z" }
+    { "phase": "ext-004-implementation", "status": "approved", "timestamp": "2026-04-18T19:48:05Z" },
+    { "phase": "settings-extension-plan-2026-04", "status": "approved", "timestamp": "2026-04-19T15:17:42Z" },
+    { "phase": "ext-005-gherkin", "status": "approved", "timestamp": "2026-04-19T15:34:29Z" },
+    { "phase": "ext-005-tests", "status": "approved", "timestamp": "2026-04-19T15:37:07Z" },
+    { "phase": "ext-005-contracts", "status": "approved", "timestamp": "2026-04-19T15:38:37Z" },
+    { "phase": "ext-006-tests", "status": "approved", "timestamp": "2026-04-19T18:27:30Z" },
+    { "phase": "ext-006-implementation", "status": "approved", "timestamp": "2026-04-19T18:51:18Z" },
+    { "phase": "ext-007-implementation", "status": "approved", "timestamp": "2026-04-19T20:23:00Z" },
+    { "phase": "ext-008-gherkin", "status": "approved", "timestamp": "2026-04-19T20:43:00Z" },
+    { "phase": "ext-008-tests", "status": "approved", "timestamp": "2026-04-19T20:53:00Z" },
+    { "phase": "ext-008-implementation", "status": "approved", "timestamp": "2026-04-19T21:17:00Z" }
   ],
   "adrs": [
     { "id": "ADR-001", "title": "Technology Stack Selection", "status": "accepted" }
   ],
-  "lastUpdated": "2026-04-19T14:40:34Z"
+  "lastUpdated": "2026-04-19T21:06:00Z"
 }

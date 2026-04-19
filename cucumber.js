@@ -3,6 +3,7 @@ export default {
     'specs/features/device-list-status.feature',
     'specs/features/device-detail-activity.feature',
     'specs/features/device-detail-ports.feature',
+    'specs/features/settings-ui.feature',
   ],
   import: [
     'tsx/esm',

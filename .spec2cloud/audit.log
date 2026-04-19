@@ -131,3 +131,75 @@
 [2026-04-19T10:53:58Z] step=ops action=cleanup-generated-artifacts files=.gitignore,docs/screenshots,playwright-report,test-results result=done
 [2026-04-19T14:40:34Z] step=bugfix action=fix-applied bug=bugfix-012 files=src/web/components/DeviceTable.tsx,src/web/pages/DeviceListPage.tsx,src/web/utils/deviceListPreferences.ts,src/web/utils/filters.ts,e2e/device-list-page-size.spec.ts,e2e/pages/DeviceListPage.ts,tests/features/step-definitions/device-list-status.steps.ts,specs/frd-device-list-status.md,specs/frd-dashboard.md,specs/features/device-list-status.feature,specs/ui/flow-walkthrough.md,specs/increment-plan.md,public/index.html,public/assets/index-ChlkB0r3.js result=done
 [2026-04-19T14:40:34Z] step=bugfix action=regression-verified bug=bugfix-012 result=lint-green vitest-green build-green cucumber-device-list-status-green playwright-device-list-page-size-green
+[2026-04-19T15:17:42Z] step=spec action=extension-plan-approved phase=settings-extension-plan-2026-04 approver=human files=specs/frd-settings-ui.md,specs/increment-plan.md result=approved
+[2026-04-19T15:19:22Z] step=gherkin action=feature-generated increment=ext-005 frd=specs/frd-settings-ui.md feature=specs/features/settings-ui.feature result=done
+[2026-04-19T15:34:29Z] step=gherkin action=approved increment=ext-005 approver=human feature=specs/features/settings-ui.feature result=approved
+[2026-04-19T15:34:29Z] step=test-generation action=scaffold-generated increment=ext-005 files=cucumber.js,tests/features/step-definitions/settings-ui.steps.ts,tests/unit/api/settings-config.test.ts result=done
+[2026-04-19T15:34:29Z] step=test-generation action=verification increment=ext-005 result=cucumber-dry-run-green playwright-list-green vitest-red-baseline-10-failures
+[2026-04-19T15:37:07Z] step=test-generation action=approved increment=ext-005 approver=human files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/api/settings-config.test.ts result=approved
+[2026-04-19T15:37:07Z] increment=ext-005 step=contracts action=contracts-generated result=done
+[2026-04-19T15:38:37Z] increment=ext-005 step=contracts action=approved approver=human files=specs/contracts/api/settings-ui.yaml,src/shared/types/settings-ui.ts,specs/contracts/infra/resources.yaml result=approved
+[2026-04-19T17:47:26Z] gate=ext-005-test-adjustment decision=approved result=approved
+[2026-04-19T17:46:00Z] increment=ext-005 slice=api action=slice-implemented files=src/api/config/loader.ts,src/api/config/runtime-store.ts,src/api/db/database.ts,src/api/routes/config.ts,src/api/server.ts result=pass
+[2026-04-19T17:46:00Z] increment=ext-005 step=implementation action=verification vitest=green lint=green build=green result=partial
+[2026-04-19T17:51:00Z] increment=ext-005 step=test-alignment action=feature-scope-corrected files=specs/features/settings-ui.feature,tests/features/step-definitions/settings-ui.steps.ts result=done
+[2026-04-19T17:51:00Z] increment=ext-005 slice=integration action=verification cucumber_dry_run=green result=pending
+[2026-04-19T17:52:00Z] increment=ext-005 step=verification-blocker-fixed files=src/api/server.ts,playwright.config.ts result=done
+[2026-04-19T17:53:00Z] increment=ext-005 slice=integration action=slice-implemented files=specs/features/settings-ui.feature,tests/features/step-definitions/settings-ui.steps.ts,playwright.config.ts environment=local-8090 result=pass
+[2026-04-19T17:53:00Z] increment=ext-005 step=implementation action=verification lint=green vitest=green build=green cucumber=green playwright=green environment=local-8090 result=done
+[2026-04-19T17:54:00Z] gate=ext-005-implementation decision=approved result=approved
+[2026-04-19T17:54:00Z] increment=ext-005 action=increment-complete result=done next_increment=ext-006 next_step=tests
+[2026-04-19T18:14:13Z] step=e2e-generation action=specs-generated increment=ext-006 flows=1 files=e2e/settings-general.spec.ts result=done
+[2026-04-19T18:14:13Z] step=e2e-generation action=page-objects-updated increment=ext-006 files=e2e/pages/SettingsPage.ts result=done
+[2026-04-19T18:14:13Z] step=e2e-generation action=verification increment=ext-006 playwright_list=green tsc=green note=generated-from-approved-increment-scope-while-settings-ui-docs-still-use-legacy-tab-names result=done
+[2026-04-19T18:18:51Z] step=gherkin-generation action=features-updated increment=ext-006 files=specs/features/settings-ui.feature scenarios_added=7 result=done
+[2026-04-19T18:18:51Z] step=gherkin-generation action=verification increment=ext-006 gherkin_parse=green result=done
+[2026-04-19T18:27:04Z] step=test-generation action=scaffolding-generated increment=ext-006 files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/web/settings-general.test.ts result=done
+[2026-04-19T18:27:04Z] step=test-generation action=verification increment=ext-006 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=5 passing_regression_tests=300 lint=green build=green result=done
+[2026-04-19T18:27:30Z] step=test-generation action=approved increment=ext-006 approver=human files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/web/settings-general.test.ts result=approved
+[2026-04-19T18:30:54Z] increment=ext-006 step=contracts action=contracts-generated files=specs/contracts/api/settings-ui.yaml,src/shared/types/settings-ui.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-19T18:30:54Z] increment=ext-006 step=contracts action=verification yaml=green tsc=green infra_delta=none result=done
+[2026-04-19T18:49:41Z] increment=ext-006 slice=api action=slice-implemented files=src/api/config/loader.ts,src/api/server.ts result=pass
+[2026-04-19T18:49:41Z] increment=ext-006 slice=web action=slice-implemented files=src/web/api-client.ts,src/web/pages/SettingsPage.tsx result=pass
+[2026-04-19T18:49:41Z] increment=ext-006 slice=integration action=slice-implemented files=src/api/config/loader.ts,src/api/server.ts,src/web/api-client.ts,src/web/pages/SettingsPage.tsx environment=local-8080 result=pass
+[2026-04-19T18:49:41Z] increment=ext-006 step=implementation action=verification lint=green vitest=green cucumber=green playwright=green build=green skip_scan=green environment=local-8080 result=done
+[2026-04-19T18:51:18Z] gate=ext-006-implementation decision=approved result=approved
+[2026-04-19T18:51:18Z] increment=ext-006 action=increment-complete result=done next_increment=ext-007 next_step=tests
+[2026-04-19T19:05:00Z] step=e2e-generation action=specs-generated increment=ext-007 flows=1 files=e2e/settings-network-alerts.spec.ts result=done
+[2026-04-19T19:05:00Z] step=e2e-generation action=page-objects-updated increment=ext-007 files=e2e/pages/SettingsPage.ts result=done
+[2026-04-19T19:05:00Z] step=e2e-generation action=verification increment=ext-007 playwright_list=green tsc=green note=generated-from-approved-increment-scope-while-settings-ui-docs-still-use-legacy-naming result=done
+[2026-04-19T19:09:00Z] step=gherkin-generation action=features-updated increment=ext-007 files=specs/features/settings-ui.feature scenarios_added=11 result=done
+[2026-04-19T19:09:00Z] step=gherkin-generation action=verification increment=ext-007 gherkin_parse=green result=done
+[2026-04-19T19:10:00Z] gate=ext-007-gherkin decision=approved result=approved
+[2026-04-19T20:08:00Z] step=test-generation action=scaffolding-generated increment=ext-007 files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/api/settings-network-alerts.test.ts,tests/unit/web/settings-network-alerts.test.ts result=done
+[2026-04-19T20:08:00Z] step=test-generation action=verification increment=ext-007 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=6 passing_regression_tests=51 build=green note=backend-routes-missing(3)-and-web-client-methods-missing(3) result=done
+[2026-04-19T20:12:00Z] gate=ext-007-tests decision=approved result=approved
+[2026-04-19T20:20:00Z] increment=ext-007 step=contracts action=contracts-generated files=specs/contracts/api/settings-ui.yaml,src/shared/types/settings-ui.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-19T20:20:00Z] increment=ext-007 step=contracts action=verification yaml=green tsc=green infra_delta=none result=done
+[2026-04-19T20:22:00Z] increment=ext-007 slice=api action=slice-implemented files=src/api/routes/config.ts result=pass
+[2026-04-19T20:22:00Z] increment=ext-007 slice=web action=slice-implemented files=src/web/api-client.ts,src/web/pages/SettingsPage.tsx result=pass
+[2026-04-19T20:22:00Z] increment=ext-007 slice=integration action=slice-implemented files=src/api/routes/config.ts,src/web/api-client.ts,src/web/pages/SettingsPage.tsx environment=local-8080 result=pass
+[2026-04-19T20:22:00Z] increment=ext-007 step=implementation action=verification lint=green vitest=green cucumber=green playwright=green build=green skip_scan=green environment=local-8080 result=done
+[2026-04-19T20:22:00Z] gate=ext-007-implementation decision=pending result=awaiting-human-approval
+[2026-04-19T20:23:00Z] gate=ext-007-implementation decision=approved result=approved
+[2026-04-19T20:23:00Z] increment=ext-007 action=increment-complete result=done next_increment=ext-008 next_step=tests
+[2026-04-19T20:37:30Z] step=e2e-generation action=specs-generated increment=ext-008 flows=1 files=e2e/settings-api-key.spec.ts result=done
+[2026-04-19T20:37:30Z] step=e2e-generation action=page-objects-updated increment=ext-008 files=e2e/pages/SettingsPage.ts result=done
+[2026-04-19T20:37:30Z] step=e2e-generation action=verification increment=ext-008 playwright_list=green tsc=green note=generated-from-approved-increment-scope-for-api-key-tab-wiring result=done
+[2026-04-19T20:41:30Z] step=gherkin-generation action=features-updated increment=ext-008 files=specs/features/settings-ui.feature scenarios_added=7 result=done
+[2026-04-19T20:41:30Z] step=gherkin-generation action=verification increment=ext-008 gherkin_parse=green result=done
+[2026-04-19T20:41:30Z] gate=ext-008-gherkin decision=pending result=awaiting-human-approval
+[2026-04-19T20:43:00Z] gate=ext-008-gherkin decision=approved result=approved
+[2026-04-19T20:51:00Z] step=test-generation action=scaffolding-generated increment=ext-008 files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/web/settings-api-key.test.ts result=done
+[2026-04-19T20:51:00Z] step=test-generation action=verification increment=ext-008 cucumber_dry_run=green playwright_list=green vitest=red-baseline failing_tests=4 passing_regression_tests=311 build=green note=missing-api-tab-client-methods(2)-and-api-tab-ui-affordances(2) result=done
+[2026-04-19T20:51:00Z] gate=ext-008-tests decision=pending result=awaiting-human-approval
+[2026-04-19T20:53:00Z] step=test-generation action=approved increment=ext-008 approver=human files=tests/features/step-definitions/settings-ui.steps.ts,tests/unit/web/settings-api-key.test.ts result=approved
+[2026-04-19T20:56:00Z] increment=ext-008 step=contracts action=contracts-generated files=specs/contracts/api/settings-ui.yaml,src/shared/types/settings-ui.ts,specs/contracts/infra/resources.yaml result=done
+[2026-04-19T20:56:00Z] increment=ext-008 step=contracts action=verification yaml=green tsc=green infra_delta=none result=done
+[2026-04-19T21:06:00Z] increment=ext-008 slice=api action=slice-implemented files= result=pass:10/fail:0
+[2026-04-19T21:06:00Z] increment=ext-008 slice=web action=slice-implemented files=src/web/api-client.ts,src/web/pages/SettingsPage.tsx result=pass:12/fail:0
+[2026-04-19T21:06:00Z] increment=ext-008 slice=integration action=verification cucumber=blocked-by-test-harness playwright=blocked-by-environment environment=local-8080 result=blocked
+[2026-04-19T21:16:30Z] increment=ext-008 slice=integration action=slice-implemented files=src/web/api-client.ts,src/web/hooks/useApi.ts,src/web/pages/SettingsPage.tsx,tests/features/support/world.ts,e2e/helpers/config.ts environment=local-8080 result=pass
+[2026-04-19T21:16:30Z] increment=ext-008 step=implementation action=verification lint=green vitest=green cucumber=green playwright=green build=green skip_scan=green environment=local-8080 result=done
+[2026-04-19T21:16:30Z] gate=ext-008-implementation decision=pending result=awaiting-human-approval
+[2026-04-19T21:17:00Z] gate=ext-008-implementation decision=approved result=approved

@@ -28,6 +28,8 @@ resources:
         secretRef: api-key
       - name: STORAGE_DB_PATH
         value: /data/network-obs.db
+      - name: CONFIG_FILE
+        value: /config/config.yaml
       - name: WEB_UI_PORT
         value: "8080"
       - name: PRESENCE_OFFLINE_THRESHOLD
@@ -55,3 +57,11 @@ gaps:
     description: ext-003 reuses the existing application container, SQLite store, and API-key auth model; the structured device activity history contract and Activity tab do not require any new runtime services, Azure resources, or environment variables.
   - kind: infrastructure-delta
     description: ext-004 keeps the existing device-ports endpoint and runtime topology; simplifying the Ports & Services table presentation and preserving raw version fields introduce no new services, Azure resources, or environment variables.
+  - kind: infrastructure-delta
+    description: ext-005 reuses the existing application container and SQLite data volume; the runtime settings foundation adds new Fastify config endpoints and a runtime_config table inside the existing database, but does not require any new services or Azure resources.
+  - kind: infrastructure-delta
+    description: ext-006 reuses the existing application container, settings endpoints, and SQLite runtime store; wiring the General tab to GET/PATCH /api/v1/config adds no new runtime services, Azure resources, or environment variables.
+  - kind: infrastructure-delta
+    description: ext-007 reuses the existing application container, Settings API-key auth, and existing webhook/SMTP libraries; adding subnet presentation plus webhook/email test endpoints does not introduce any new runtime services, Azure resources, or environment variables.
+  - kind: infrastructure-delta
+    description: ext-008 reuses the existing application container, persisted API-key store, and Settings config endpoints; wiring the API tab to reveal and regenerate keys adds no new runtime services, Azure resources, or environment variables.

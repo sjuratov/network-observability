@@ -1,9 +1,11 @@
 import type { AppConfig } from '@shared/types/config.js';
+import type { RedactedSmtpConfig, SettingsMutableField, SettingsReadOnlyField } from '@shared/types/settings-ui.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import yaml from 'js-yaml';
+import { readRuntimeConfig } from './runtime-store.js';
 
 const DEFAULTS: AppConfig = {
   subnets: [],
@@ -12,6 +14,13 @@ const DEFAULTS: AppConfig = {
   presenceOfflineThreshold: 1,
   dataRetentionDays: 365,
   portRange: '',
+  alertEmailSmtp: {
+    host: '',
+    port: 587,
+    user: '',
+    password: '',
+    recipient: '',
+  },
   alertCooldownSeconds: 300,
   apiKey: '',
   webUiPort: 8080,
@@ -28,6 +37,29 @@ interface YamlConfig {
   api_key?: string;
   alert?: { webhook_url?: string; cooldown_seconds?: number };
   port_range?: string;
+}
+
+const ENV_TO_CONFIG_FIELD = {
+  SCAN_CADENCE: 'scanCadence',
+  SCAN_INTENSITY: 'scanIntensity',
+  SCAN_SUBNETS: 'subnets',
+  PRESENCE_OFFLINE_THRESHOLD: 'presenceOfflineThreshold',
+  STORAGE_RETENTION_DAYS: 'dataRetentionDays',
+  STORAGE_DB_PATH: 'dbPath',
+  WEB_UI_PORT: 'webUiPort',
+  LOG_LEVEL: 'logLevel',
+  API_KEY: 'apiKey',
+  ALERT_WEBHOOK_URL: 'alertWebhookUrl',
+  ALERT_COOLDOWN_SECONDS: 'alertCooldownSeconds',
+  PORT_RANGE: 'portRange',
+} as const;
+
+function resolveDbPath(configFilePath: string, dbPath: string): string {
+  if (path.isAbsolute(dbPath)) {
+    return dbPath;
+  }
+
+  return path.resolve(path.dirname(configFilePath), dbPath);
 }
 
 function applyYaml(base: AppConfig, doc: YamlConfig): AppConfig {
@@ -64,6 +96,14 @@ function applyEnv(base: AppConfig): AppConfig {
   return cfg;
 }
 
+function applyRuntime(base: AppConfig, runtime: Partial<AppConfig>): AppConfig {
+  return {
+    ...base,
+    ...runtime,
+    alertEmailSmtp: runtime.alertEmailSmtp ?? base.alertEmailSmtp,
+  };
+}
+
 function resolveApiKey(config: AppConfig): string {
   if (config.apiKey) return config.apiKey;
 
@@ -93,7 +133,7 @@ export async function loadConfig(): Promise<AppConfig> {
   let config: AppConfig = { ...DEFAULTS };
 
   // Layer 2: YAML file
-  const configFile = process.env['CONFIG_FILE'] || './config.yaml';
+  const configFile = path.resolve(process.env['CONFIG_FILE'] || './config.yaml');
   try {
     if (fs.existsSync(configFile)) {
       const content = fs.readFileSync(configFile, 'utf-8');
@@ -109,7 +149,15 @@ export async function loadConfig(): Promise<AppConfig> {
     throw new Error(`Failed to parse YAML config file "${configFile}": ${msg}`, { cause: err });
   }
 
-  // Layer 3: Environment variables
+  const runtimeDbPath = process.env['STORAGE_DB_PATH'] || resolveDbPath(configFile, config.dbPath);
+  config.dbPath = runtimeDbPath;
+  config.configFilePath = configFile;
+
+  // Layer 3: Runtime config store
+  const runtimeConfig = readRuntimeConfig(runtimeDbPath);
+  config = applyRuntime(config, runtimeConfig);
+
+  // Layer 4: Environment variables
   config = applyEnv(config);
 
   // Auto-detect subnets if none configured
@@ -121,6 +169,35 @@ export async function loadConfig(): Promise<AppConfig> {
   config.apiKey = resolveApiKey(config);
 
   return config;
+}
+
+export function getEnvOverriddenFields(): Array<SettingsMutableField | SettingsReadOnlyField> {
+  return Object.entries(ENV_TO_CONFIG_FIELD)
+    .filter(([envName]) => process.env[envName] !== undefined && process.env[envName] !== '')
+    .map(([, configField]) => configField);
+}
+
+export function redactApiKey(apiKey: string): string {
+  if (!apiKey) {
+    return '';
+  }
+
+  if (apiKey.length <= 8) {
+    return '****';
+  }
+
+  return `****${apiKey.slice(-4)}`;
+}
+
+export function redactSmtpConfig(smtpConfig: AppConfig['alertEmailSmtp']): RedactedSmtpConfig | undefined {
+  if (!smtpConfig) {
+    return undefined;
+  }
+
+  return {
+    ...smtpConfig,
+    password: '****',
+  };
 }
 
 export function validateConfig(config: Partial<AppConfig>): { valid: boolean; errors: string[] } {

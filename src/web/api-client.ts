@@ -8,6 +8,18 @@ import type {
   ScanListParams,
 } from '@shared/types/device.js';
 import type { DeviceActivityHistory } from '@shared/types/device-detail-activity.js';
+import type {
+  SettingsApiKeyRegenerateResponse,
+  SettingsApiKeyRevealResponse,
+  SettingsConfigResponse,
+  SettingsConfigUpdateRequest,
+  SettingsConfigUpdateResponse,
+  SettingsEmailTestRequest,
+  SettingsEmailTestResponse,
+  SettingsSubnetsResponse,
+  SettingsWebhookTestRequest,
+  SettingsWebhookTestResponse,
+} from '@shared/types/settings-ui.js';
 
 export interface ApiClient {
   getDevices(params?: DeviceListParams): Promise<PaginatedResponse<Device>>;
@@ -18,6 +30,13 @@ export interface ApiClient {
   getScans(params?: ScanListParams): Promise<PaginatedResponse<Scan>>;
   triggerScan(): Promise<Scan>;
   getStats(): Promise<DashboardStats>;
+  getSettings(): Promise<SettingsConfigResponse>;
+  revealSettingsApiKey(): Promise<SettingsApiKeyRevealResponse>;
+  regenerateSettingsApiKey(): Promise<SettingsApiKeyRegenerateResponse>;
+  getSettingsSubnets(): Promise<SettingsSubnetsResponse>;
+  updateSettings(data: SettingsConfigUpdateRequest): Promise<SettingsConfigUpdateResponse>;
+  testSettingsWebhook(data: SettingsWebhookTestRequest): Promise<SettingsWebhookTestResponse>;
+  testSettingsEmail(data: SettingsEmailTestRequest): Promise<SettingsEmailTestResponse>;
   getTags(): Promise<Tag[]>;
   createTag(name: string): Promise<Tag>;
   deleteTag(id: string): Promise<void>;
@@ -46,7 +65,7 @@ function buildMockDeviceInventory(): Device[] {
   return Array.from({ length: 120 }, (_, index) => buildMockDevice(index + 1));
 }
 
-export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
+export function createApiClient(baseUrl: string, apiKey: string | (() => string)): ApiClient {
   function buildDeviceQuery(params?: DeviceListParams): string {
     const searchParams = new URLSearchParams();
     if (params?.limit) searchParams.set('limit', String(params.limit));
@@ -61,8 +80,9 @@ export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
   }
 
   async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const resolvedApiKey = typeof apiKey === 'function' ? apiKey() : apiKey;
     const reqHeaders: Record<string, string> = {
-      'X-API-Key': apiKey,
+      'X-API-Key': resolvedApiKey,
       ...options?.headers as Record<string, string>,
     };
     if (options?.body) {
@@ -147,6 +167,38 @@ export function createApiClient(baseUrl: string, apiKey: string): ApiClient {
     async getStats(): Promise<DashboardStats> {
       const res = await request<{ data: DashboardStats }>('/stats/overview');
       return res.data;
+    },
+    async getSettings(): Promise<SettingsConfigResponse> {
+      return request<SettingsConfigResponse>('/config');
+    },
+    async revealSettingsApiKey(): Promise<SettingsApiKeyRevealResponse> {
+      return request<SettingsApiKeyRevealResponse>('/config/api-key');
+    },
+    async regenerateSettingsApiKey(): Promise<SettingsApiKeyRegenerateResponse> {
+      return request<SettingsApiKeyRegenerateResponse>('/config/regenerate-key', {
+        method: 'POST',
+      });
+    },
+    async getSettingsSubnets(): Promise<SettingsSubnetsResponse> {
+      return request<SettingsSubnetsResponse>('/config/subnets');
+    },
+    async updateSettings(data: SettingsConfigUpdateRequest): Promise<SettingsConfigUpdateResponse> {
+      return request<SettingsConfigUpdateResponse>('/config', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    async testSettingsWebhook(data: SettingsWebhookTestRequest): Promise<SettingsWebhookTestResponse> {
+      return request<SettingsWebhookTestResponse>('/config/test-webhook', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    async testSettingsEmail(data: SettingsEmailTestRequest): Promise<SettingsEmailTestResponse> {
+      return request<SettingsEmailTestResponse>('/config/test-email', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     },
     async getTags(): Promise<Tag[]> {
       return request<Tag[]>('/tags');

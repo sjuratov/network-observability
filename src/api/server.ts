@@ -7,6 +7,7 @@ import type { AppConfig } from '@shared/types/config.js';
 import type { Database } from './db/database.js';
 import type { Logger } from 'pino';
 import { authMiddleware, setApiKey } from './middleware/auth.js';
+import { configRoutes } from './routes/config.js';
 import { deviceRoutes } from './routes/devices.js';
 import { scanRoutes } from './routes/scans.js';
 import { statsRoutes } from './routes/stats.js';
@@ -58,6 +59,8 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   // Decorate server with db reference for route handlers (must be before route registration)
   if (deps?.db) {
     server.decorate('db', deps.db);
+  }
+  if (deps?.config) {
     server.decorate('appConfig', deps.config);
   }
 
@@ -65,6 +68,7 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   await server.register(
     async (api) => {
       await api.register(deviceRoutes);
+      await api.register(configRoutes);
       await api.register(scanRoutes);
       await api.register(statsRoutes);
       await api.register(tagRoutes);
@@ -74,16 +78,15 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   );
 
   // Serve SPA static files
-  const publicDir = path.join(__dirname, '..', '..', '..', 'public');
+  const publicDir = path.join(__dirname, '..', '..', 'public');
   try {
     await server.register(fastifyStatic, {
       root: publicDir,
-      wildcard: false,
     });
 
     // SPA fallback: serve index.html for non-API routes
     server.setNotFoundHandler(async (request, reply) => {
-      if (!request.url.startsWith('/api/')) {
+      if (!request.url.startsWith('/api/') && !request.url.startsWith('/assets/')) {
         return reply.sendFile('index.html');
       }
       reply.status(404);

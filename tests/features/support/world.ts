@@ -47,7 +47,9 @@ export class CustomWorld extends World {
     this.context = await this.browser.newContext({ baseURL: DEFAULT_BASE_URL, viewport: { width: 1280, height: 720 } });
     this.page = await this.context.newPage();
     await this.page.addInitScript((key: string) => {
-      localStorage.setItem('netobserver-api-key', key);
+      if (!localStorage.getItem('netobserver-api-key')) {
+        localStorage.setItem('netobserver-api-key', key);
+      }
     }, apiKey);
     this.request = await playwrightRequest.newContext({
       baseURL: DEFAULT_BASE_URL,

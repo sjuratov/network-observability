@@ -71,6 +71,12 @@ CREATE TABLE IF NOT EXISTS device_tags (
   FOREIGN KEY (device_id) REFERENCES devices(id)
 );
 
+CREATE TABLE IF NOT EXISTS runtime_config (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS schema_migrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   version TEXT UNIQUE,
