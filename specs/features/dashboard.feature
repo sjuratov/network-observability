@@ -19,10 +19,23 @@ Feature: Dashboard & Visualization
     Then the "New (24h)" metric card displays "3"
 
   @must
+  Scenario: Dashboard shows online device count
+    Given 50 devices exist and 5 are currently offline
+    When the dashboard overview page loads
+    Then the "Online" metric card displays "45"
+
+  @must
   Scenario: Dashboard shows offline device count
     Given 50 devices exist and 5 are currently offline
     When the dashboard overview page loads
     Then the "Offline" metric card displays "5"
+
+  @must
+  Scenario: Dashboard metric cards appear in correct order
+    Given 50 devices exist and 3 were first seen within the last 24 hours
+    And 5 are currently offline
+    When the dashboard overview page loads
+    Then the metric cards appear in order: "Total Devices", "New (24h)", "Online", "Offline", "Last Scan"
 
   @must
   Scenario: Dashboard shows last scan status and timestamp
@@ -45,6 +58,56 @@ Feature: Dashboard & Visualization
     When the dashboard overview page loads
     Then an empty state is displayed with title "No Devices Yet"
     And a call-to-action button "Run Your First Scan" is shown
+
+  # --- Device Breakdown Chart ---
+
+  @must
+  Scenario: Device Breakdown defaults to Vendor view
+    Given devices exist with vendors "Apple" (12), "Samsung" (8), "TP-Link" (5), and "Unknown" (3)
+    When the dashboard overview page loads
+    Then a "Device Breakdown" section is visible
+    And the breakdown dropdown defaults to "By Vendor"
+    And a horizontal bar chart displays vendors sorted descending by count
+    And the first bar is "Apple" with count 12
+
+  @must
+  Scenario: Device Breakdown dropdown switches to Tag view
+    Given devices exist with tags "IoT" (14), "Workstation" (10), and "Untagged" (7)
+    When the user selects "By Tag" from the breakdown dropdown
+    Then the bar chart updates to show tags sorted descending by count
+    And the first bar is "IoT" with count 14
+
+  @must
+  Scenario: Device Breakdown dropdown switches to Status view
+    Given 45 devices are online and 2 are offline
+    When the user selects "By Status" from the breakdown dropdown
+    Then the bar chart shows "Online" with count 45 and "Offline" with count 2
+
+  @must
+  Scenario: Device Breakdown supports Discovery Method grouping
+    Given devices exist with discovery methods "arp" (38), "ping" (6), and "mdns" (3)
+    When the user selects "By Discovery Method" from the breakdown dropdown
+    Then the bar chart displays discovery methods sorted descending by count
+
+  @must
+  Scenario: Device Breakdown supports Device Age grouping
+    Given devices exist with various first-seen dates
+    When the user selects "By Device Age" from the breakdown dropdown
+    Then the bar chart displays age buckets: "< 1 day", "1–7 days", "7–30 days", "30+ days"
+    And buckets are sorted descending by count
+
+  @must
+  Scenario: Device Breakdown supports Known/Unknown grouping
+    Given 32 devices are known and 15 are unknown
+    When the user selects "By Known / Unknown" from the breakdown dropdown
+    Then the bar chart shows "Known" with count 32 and "Unknown" with count 15
+
+  @must
+  Scenario: Network Summary and Device Trend are not displayed
+    Given devices have been discovered on the network
+    When the dashboard overview page loads
+    Then there is no "Network Summary" section
+    And there is no "Device Trend" chart
 
   # --- Device List ---
 

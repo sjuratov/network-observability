@@ -16,7 +16,9 @@
   .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
   h2 { font-size: 1.25rem; margin-bottom: 1rem; }
   /* ---------- Metric Cards ---------- */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  @media (max-width: 1024px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
   .metric-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; }
   .metric-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem; }
   .metric-card .value { font-size: 2rem; font-weight: 700; }
@@ -25,12 +27,14 @@
   .value.success { color: #22c55e; }
   .value.danger { color: #ef4444; }
   .value.warning { color: #eab308; }
+  .value.online { color: #22c55e; }
   /* ---------- Two-column ---------- */
   .columns { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
   @media (max-width: 768px) { .columns { grid-template-columns: 1fr; } }
   /* ---------- Card ---------- */
   .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
   .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
   /* ---------- Activity list ---------- */
   .activity-list { list-style: none; }
   .activity-list li { padding: 0.6rem 0; border-bottom: 1px solid #334155; display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.875rem; }
@@ -51,6 +55,16 @@
   /* ---------- Status badge ---------- */
   .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
   .badge-success { background: rgba(34,197,94,0.15); color: #22c55e; }
+  /* ---------- Dropdown ---------- */
+  .dropdown { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; color: #e2e8f0; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.5rem center; padding-right: 1.75rem; }
+  .dropdown:focus { outline: none; border-color: #0ea5e9; }
+  /* ---------- Bar chart ---------- */
+  .bar-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+  .bar-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
+  .bar-label { width: 120px; text-align: right; color: #94a3b8; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; background: #334155; border-radius: 4px; height: 22px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; font-size: 0.7rem; font-weight: 600; color: #fff; min-width: 28px; }
+  .bar-count { width: 32px; text-align: right; color: #e2e8f0; font-weight: 600; font-size: 0.8rem; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -67,27 +81,50 @@
 <div class="page">
   <h2>Dashboard</h2>
 
-  <!-- Metric Cards -->
+  <!-- Metric Cards — 5 cards: Total, New, Online, Offline, Last Scan -->
   <div class="metrics" data-testid="metrics">
     <div class="metric-card" data-testid="metric-total-devices">
       <div class="label">Total Devices</div>
       <div class="value primary">47</div>
-      <div class="sub">across 2 subnets</div>
+      <div class="sub">across all subnets</div>
     </div>
     <div class="metric-card" data-testid="metric-new-devices">
       <div class="label">New (24h)</div>
-      <div class="value success">3</div>
+      <div class="value warning">3</div>
       <div class="sub">since yesterday</div>
+    </div>
+    <div class="metric-card" data-testid="metric-online-devices">
+      <div class="label">Online</div>
+      <div class="value online">45</div>
+      <div class="sub">currently online</div>
     </div>
     <div class="metric-card" data-testid="metric-offline-devices">
       <div class="label">Offline</div>
       <div class="value danger">2</div>
-      <div class="sub">not seen in last scan</div>
+      <div class="sub">currently offline</div>
     </div>
     <div class="metric-card" data-testid="metric-last-scan">
       <div class="label">Last Scan</div>
       <div class="value" style="font-size:1.25rem;">14:32:05</div>
       <div class="sub"><span class="badge badge-success">Completed</span> · 3 min 45 sec</div>
+    </div>
+  </div>
+
+  <!-- Device Breakdown — full-width bar chart with dropdown -->
+  <div class="card" data-testid="device-breakdown" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+      <div class="card-title" style="margin-bottom:0;">Device Breakdown</div>
+      <select class="dropdown" data-testid="breakdown-select" id="breakdownSelect" onchange="switchBreakdown(this.value)">
+        <option value="vendor" selected>By Vendor</option>
+        <option value="tag">By Tag</option>
+        <option value="status">By Status</option>
+        <option value="method">By Discovery Method</option>
+        <option value="age">By Device Age</option>
+        <option value="known">By Known / Unknown</option>
+      </select>
+    </div>
+    <div id="breakdownChart" class="bar-chart">
+      <!-- Default: By Vendor (sorted DESC) -->
     </div>
   </div>
 
@@ -138,26 +175,78 @@
           <button class="btn btn-outline" data-testid="btn-export-devices">↓ Export Devices</button>
         </div>
       </div>
-
-      <div class="card" data-testid="network-summary">
-        <div class="card-title">Network Summary</div>
-        <div style="font-size:0.85rem;color:#94a3b8;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>Online</span><span style="color:#22c55e;font-weight:600;">45</span></div>
-          <div style="width:100%;background:#334155;border-radius:4px;height:8px;margin-bottom:0.75rem;">
-            <div style="width:95.7%;background:#22c55e;border-radius:4px;height:8px;"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>Offline</span><span style="color:#ef4444;font-weight:600;">2</span></div>
-          <div style="width:100%;background:#334155;border-radius:4px;height:8px;margin-bottom:0.75rem;">
-            <div style="width:4.3%;background:#ef4444;border-radius:4px;height:8px;"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;"><span>New (24h)</span><span style="color:#eab308;font-weight:600;">3</span></div>
-          <div style="width:100%;background:#334155;border-radius:4px;height:8px;">
-            <div style="width:6.4%;background:#eab308;border-radius:4px;height:8px;"></div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>
+
+<script>
+  const COLORS = ['#0ea5e9', '#22c55e', '#eab308', '#ef4444', '#a78bfa', '#2dd4bf', '#f97316', '#ec4899'];
+
+  const breakdownData = {
+    vendor: [
+      { label: 'Apple', count: 12 },
+      { label: 'Samsung', count: 8 },
+      { label: 'TP-Link', count: 7 },
+      { label: 'Intel', count: 5 },
+      { label: 'Raspberry Pi', count: 4 },
+      { label: 'Synology', count: 3 },
+      { label: 'HP', count: 3 },
+      { label: 'Unknown', count: 5 },
+    ],
+    tag: [
+      { label: 'IoT', count: 14 },
+      { label: 'Workstation', count: 10 },
+      { label: 'Mobile', count: 8 },
+      { label: 'Server', count: 5 },
+      { label: 'Printer', count: 3 },
+      { label: 'Untagged', count: 7 },
+    ],
+    status: [
+      { label: 'Online', count: 45 },
+      { label: 'Offline', count: 2 },
+    ],
+    method: [
+      { label: 'ARP', count: 38 },
+      { label: 'Ping', count: 6 },
+      { label: 'mDNS', count: 3 },
+    ],
+    age: [
+      { label: '30+ days', count: 28 },
+      { label: '7–30 days', count: 10 },
+      { label: '1–7 days', count: 6 },
+      { label: '< 1 day', count: 3 },
+    ],
+    known: [
+      { label: 'Known', count: 32 },
+      { label: 'Unknown', count: 15 },
+    ],
+  };
+
+  function renderBars(items) {
+    const chart = document.getElementById('breakdownChart');
+    const max = Math.max(...items.map(i => i.count));
+    chart.innerHTML = items.map((item, idx) => {
+      const pct = max > 0 ? (item.count / max) * 100 : 0;
+      const color = COLORS[idx % COLORS.length];
+      return `
+        <div class="bar-row">
+          <span class="bar-label" title="${item.label}">${item.label}</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pct}%; background:${color};"></div>
+          </div>
+          <span class="bar-count">${item.count}</span>
+        </div>`;
+    }).join('');
+  }
+
+  function switchBreakdown(key) {
+    const data = breakdownData[key] || [];
+    const sorted = [...data].sort((a, b) => b.count - a.count);
+    renderBars(sorted);
+  }
+
+  // Render default view
+  switchBreakdown('vendor');
+</script>
 </body>
 </html>

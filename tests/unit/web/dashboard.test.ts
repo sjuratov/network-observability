@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterDevices, sortDevices, searchDevices, computeStats } from '../../../src/web/utils/filters.js';
+import { filterDevices, sortDevices, searchDevices, computeStats, buildBreakdownData } from '../../../src/web/utils/filters.js';
 import type { Device, Scan } from '@shared/types/device.js';
 
 function makeDevice(overrides: Partial<Device> = {}): Device {
@@ -64,6 +64,18 @@ describe('Dashboard — computeStats', () => {
     ];
     const stats = computeStats(devices, []);
     expect(stats.offlineDevices).toBe(2);
+  });
+
+  it('computes online device count as total minus offline', () => {
+    const devices = [
+      makeDevice({ id: 'd1', isOnline: true }),
+      makeDevice({ id: 'd2', isOnline: false }),
+      makeDevice({ id: 'd3', isOnline: true }),
+      makeDevice({ id: 'd4', isOnline: true }),
+    ];
+    const stats = computeStats(devices, []);
+    expect(stats.onlineDevices).toBe(3);
+    expect(stats.onlineDevices).toBe(stats.totalDevices - stats.offlineDevices);
   });
 
   it('includes last scan timestamp and status', () => {
@@ -197,5 +209,117 @@ describe('Dashboard — searchDevices', () => {
   it('returns all devices for empty query', () => {
     const result = searchDevices(devices, '');
     expect(result).toHaveLength(3);
+  });
+});
+
+describe('Dashboard — buildBreakdownData', () => {
+  it('returns empty array for empty device list', () => {
+    expect(buildBreakdownData([], 'vendor')).toEqual([]);
+  });
+
+  it('groups by vendor sorted descending', () => {
+    const devices = [
+      makeDevice({ id: 'd1', vendor: 'Apple' }),
+      makeDevice({ id: 'd2', vendor: 'Apple' }),
+      makeDevice({ id: 'd3', vendor: 'Samsung' }),
+      makeDevice({ id: 'd4', vendor: 'Apple' }),
+      makeDevice({ id: 'd5', vendor: 'Samsung' }),
+      makeDevice({ id: 'd6', vendor: 'TP-Link' }),
+    ];
+    const result = buildBreakdownData(devices, 'vendor');
+    expect(result).toEqual([
+      { label: 'Apple', count: 3 },
+      { label: 'Samsung', count: 2 },
+      { label: 'TP-Link', count: 1 },
+    ]);
+  });
+
+  it('uses "Unknown" for devices with no vendor', () => {
+    const devices = [
+      makeDevice({ id: 'd1', vendor: undefined }),
+      makeDevice({ id: 'd2', vendor: '' }),
+      makeDevice({ id: 'd3', vendor: 'Apple' }),
+    ];
+    const result = buildBreakdownData(devices, 'vendor');
+    expect(result).toEqual([
+      { label: 'Unknown', count: 2 },
+      { label: 'Apple', count: 1 },
+    ]);
+  });
+
+  it('groups by tag with multi-tag devices counted in each group', () => {
+    const devices = [
+      makeDevice({ id: 'd1', tags: ['IoT', 'Critical'] }),
+      makeDevice({ id: 'd2', tags: ['IoT'] }),
+      makeDevice({ id: 'd3', tags: [] }),
+    ];
+    const result = buildBreakdownData(devices, 'tag');
+    expect(result).toEqual([
+      { label: 'IoT', count: 2 },
+      { label: 'Critical', count: 1 },
+      { label: 'Untagged', count: 1 },
+    ]);
+  });
+
+  it('groups by status including unknown status', () => {
+    const devices = [
+      makeDevice({ id: 'd1', status: 'online', isOnline: true }),
+      makeDevice({ id: 'd2', status: 'offline', isOnline: false }),
+      makeDevice({ id: 'd3', status: 'unknown', isOnline: false }),
+      makeDevice({ id: 'd4', isOnline: true }),
+    ];
+    const result = buildBreakdownData(devices, 'status');
+    expect(result).toEqual([
+      { label: 'Online', count: 2 },
+      { label: 'Offline', count: 1 },
+      { label: 'Unknown', count: 1 },
+    ]);
+  });
+
+  it('groups by discovery method', () => {
+    const devices = [
+      makeDevice({ id: 'd1', discoveryMethod: 'arp' }),
+      makeDevice({ id: 'd2', discoveryMethod: 'arp' }),
+      makeDevice({ id: 'd3', discoveryMethod: 'ping' }),
+      makeDevice({ id: 'd4', discoveryMethod: 'mdns' }),
+    ];
+    const result = buildBreakdownData(devices, 'method');
+    expect(result).toEqual([
+      { label: 'arp', count: 2 },
+      { label: 'ping', count: 1 },
+      { label: 'mdns', count: 1 },
+    ]);
+  });
+
+  it('groups by age buckets with frozen time', () => {
+    const now = new Date('2024-02-15T12:00:00Z').getTime();
+    const DAY = 24 * 60 * 60 * 1000;
+    const devices = [
+      makeDevice({ id: 'd1', firstSeenAt: new Date(now - 6 * 60 * 60 * 1000).toISOString() }),  // 6h ago → < 1 day
+      makeDevice({ id: 'd2', firstSeenAt: new Date(now - 3 * DAY).toISOString() }),               // 3d ago → 1–7 days
+      makeDevice({ id: 'd3', firstSeenAt: new Date(now - 15 * DAY).toISOString() }),              // 15d ago → 7–30 days
+      makeDevice({ id: 'd4', firstSeenAt: new Date(now - 60 * DAY).toISOString() }),              // 60d ago → 30+ days
+      makeDevice({ id: 'd5', firstSeenAt: new Date(now - 90 * DAY).toISOString() }),              // 90d ago → 30+ days
+    ];
+    const result = buildBreakdownData(devices, 'age', now);
+    expect(result).toEqual([
+      { label: '30+ days', count: 2 },
+      { label: '< 1 day', count: 1 },
+      { label: '1–7 days', count: 1 },
+      { label: '7–30 days', count: 1 },
+    ]);
+  });
+
+  it('groups by known/unknown flag', () => {
+    const devices = [
+      makeDevice({ id: 'd1', isKnown: true }),
+      makeDevice({ id: 'd2', isKnown: true }),
+      makeDevice({ id: 'd3', isKnown: false }),
+    ];
+    const result = buildBreakdownData(devices, 'known');
+    expect(result).toEqual([
+      { label: 'Known', count: 2 },
+      { label: 'Unknown', count: 1 },
+    ]);
   });
 });

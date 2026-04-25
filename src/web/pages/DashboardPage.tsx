@@ -1,32 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  Cell,
 } from 'recharts';
 import type { DashboardStats, Scan, Device, PaginatedResponse } from '@shared/types/device.js';
+import { buildBreakdownData } from '../utils/filters';
+import type { BreakdownGroupBy } from '../utils/filters';
 import { useApi } from '../hooks/useApi';
 import { MetricCard } from '../components/MetricCard';
 import { ScanButton } from '../components/ScanButton';
 
-const CHART_COLORS = ['#58a6ff', '#3fb950', '#d29922', '#f85149', '#bc8cff', '#39d2c0'];
+const CHART_COLORS = ['#58a6ff', '#3fb950', '#d29922', '#f85149', '#bc8cff', '#39d2c0', '#f97316', '#ec4899'];
 
-const placeholderTimeSeries = [
-  { date: '6d ago', devices: 38 },
-  { date: '5d ago', devices: 40 },
-  { date: '4d ago', devices: 41 },
-  { date: '3d ago', devices: 43 },
-  { date: '2d ago', devices: 44 },
-  { date: '1d ago', devices: 45 },
-  { date: 'Today', devices: 47 },
+const BREAKDOWN_OPTIONS: { value: BreakdownGroupBy; label: string }[] = [
+  { value: 'vendor', label: 'By Vendor' },
+  { value: 'tag', label: 'By Tag' },
+  { value: 'status', label: 'By Status' },
+  { value: 'method', label: 'By Discovery Method' },
+  { value: 'age', label: 'By Device Age' },
+  { value: 'known', label: 'By Known / Unknown' },
 ];
 
 function formatTime(iso: string | null): string {
@@ -36,15 +33,6 @@ function formatTime(iso: string | null): string {
   } catch {
     return '—';
   }
-}
-
-function buildVendorData(devices: Device[]) {
-  const counts: Record<string, number> = {};
-  for (const d of devices) {
-    const vendor = d.vendor || 'Unknown';
-    counts[vendor] = (counts[vendor] || 0) + 1;
-  }
-  return Object.entries(counts).map(([name, value]) => ({ name, value }));
 }
 
 function ApiKeyPrompt({ onSave }: { onSave: (key: string) => void }) {
@@ -86,6 +74,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [breakdownGroupBy, setBreakdownGroupBy] = useState<BreakdownGroupBy>('vendor');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -172,7 +161,7 @@ export function DashboardPage() {
   };
 
   const isEmpty = !loading && stats?.totalDevices === 0 && devices.length === 0;
-  const vendorData = buildVendorData(devices);
+  const breakdownData = buildBreakdownData(devices, breakdownGroupBy);
 
   return (
     <div data-testid="page-dashboard">
@@ -217,10 +206,10 @@ export function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Metric Cards */}
+          {/* Metric Cards — 5 cards: Total, New, Online, Offline, Last Scan */}
           <div
             data-testid="metrics"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8"
           >
             <MetricCard
               metric="total-devices"
@@ -235,6 +224,13 @@ export function DashboardPage() {
               value={loading ? '—' : stats?.newDevices24h ?? 0}
               sub="since yesterday"
               colorClass="text-[#d29922]"
+            />
+            <MetricCard
+              metric="online-devices"
+              label="Online"
+              value={loading ? '—' : stats?.onlineDevices ?? 0}
+              sub="currently online"
+              colorClass="text-[#3fb950]"
             />
             <MetricCard
               metric="offline-devices"
@@ -264,56 +260,39 @@ export function DashboardPage() {
             />
           </div>
 
-          {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-            {/* Left column */}
-            <div className="space-y-6">
-              {/* Recent Activity */}
-              <div
-                data-testid="recent-activity"
-                className="bg-[#161b22] border border-[#30363d] rounded-lg p-5"
-              >
-                <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Recent Activity</h3>
-                {recentScans.length === 0 && !loading ? (
-                  <p className="text-sm text-[#8b949e]">No recent activity.</p>
-                ) : (
-                  <ul className="space-y-0">
-                    {recentScans.map((scan, i) => (
-                      <li
-                        key={scan.id}
-                        data-testid={`activity-item-${i + 1}`}
-                        className="flex items-start gap-3 py-2.5 border-b border-[#30363d] last:border-b-0 text-sm"
-                      >
-                        <span
-                          className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                            scan.status === 'completed'
-                              ? 'bg-[#3fb950]'
-                              : scan.status === 'failed'
-                                ? 'bg-[#f85149]'
-                                : 'bg-[#58a6ff]'
-                          }`}
-                        />
-                        <span className="text-[#e6edf3]">
-                          <strong>Scan {scan.status}</strong> — {scan.devicesFound} devices found
-                          {scan.newDevices > 0 && `, ${scan.newDevices} new`}
-                        </span>
-                        <span className="text-[#6e7681] text-xs ml-auto whitespace-nowrap">
-                          {formatTime(scan.startedAt)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+          {/* Device Breakdown — full-width bar chart with dropdown */}
+          {devices.length > 0 && (
+            <div
+              data-testid="device-breakdown"
+              className="bg-[#161b22] border border-[#30363d] rounded-xl p-5 mb-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#e6edf3]">Device Breakdown</h3>
+                <select
+                  data-testid="breakdown-select"
+                  value={breakdownGroupBy}
+                  onChange={(e) => setBreakdownGroupBy(e.target.value as BreakdownGroupBy)}
+                  className="bg-[#0d1117] border border-[#30363d] rounded-md px-3 py-1.5 text-sm text-[#e6edf3] focus:outline-none focus:ring-2 focus:ring-[#1f6feb] cursor-pointer"
+                >
+                  {BREAKDOWN_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-
-              {/* Device Trend Chart */}
-              <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
-                <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Device Trend</h3>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={placeholderTimeSeries}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#21262d" />
-                    <XAxis dataKey="date" tick={{ fill: '#6e7681', fontSize: 12 }} axisLine={false} />
-                    <YAxis tick={{ fill: '#6e7681', fontSize: 12 }} axisLine={false} />
+              <div data-testid="breakdown-chart">
+                <ResponsiveContainer width="100%" height={Math.max(breakdownData.length * 36, 80)}>
+                  <BarChart data={breakdownData} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                    <XAxis type="number" tick={{ fill: '#6e7681', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      tick={{ fill: '#8b949e', fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={120}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#21262d',
@@ -322,135 +301,79 @@ export function DashboardPage() {
                         fontSize: 12,
                         color: '#e6edf3',
                       }}
+                      cursor={{ fill: 'rgba(48, 54, 61, 0.3)' }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="devices"
-                      stroke="#58a6ff"
-                      strokeWidth={2}
-                      dot={{ r: 3, fill: '#58a6ff' }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </LineChart>
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                      {breakdownData.map((_entry, index) => (
+                        <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
+          )}
 
-            {/* Right column */}
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <div
-                data-testid="quick-actions"
-                className="bg-[#161b22] border border-[#30363d] rounded-lg p-5"
-              >
-                <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Quick Actions</h3>
-                <div className="flex flex-col gap-3">
-                  <ScanButton loading={scanning} onClick={handleScan} />
-                  <button
-                    data-testid="btn-export-devices"
-                    onClick={handleExport}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-[#30363d] text-[#e6edf3] bg-transparent hover:border-[#58a6ff] hover:text-[#58a6ff] transition-colors duration-150 w-full"
-                  >
-                    ↓ Export Devices
-                  </button>
-                </div>
-              </div>
-
-              {/* Network Summary */}
-              <div
-                data-testid="network-summary"
-                className="bg-[#161b22] border border-[#30363d] rounded-lg p-5"
-              >
-                <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Network Summary</h3>
-                <div className="text-sm text-[#8b949e] space-y-3">
-                  <NetworkBar
-                    label="Online"
-                    count={stats ? stats.totalDevices - stats.offlineDevices : 0}
-                    total={stats?.totalDevices ?? 1}
-                    color="#3fb950"
-                  />
-                  <NetworkBar
-                    label="Offline"
-                    count={stats?.offlineDevices ?? 0}
-                    total={stats?.totalDevices ?? 1}
-                    color="#f85149"
-                  />
-                  <NetworkBar
-                    label="New (24h)"
-                    count={stats?.newDevices24h ?? 0}
-                    total={stats?.totalDevices ?? 1}
-                    color="#d29922"
-                  />
-                </div>
-              </div>
-
-              {/* Vendor Breakdown */}
-              {vendorData.length > 0 && (
-                <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
-                  <h3 className="text-base font-semibold text-[#e6edf3] mb-3">By Vendor</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={vendorData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {vendorData.map((_entry, index) => (
-                          <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#21262d',
-                          border: '1px solid #30363d',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          color: '#e6edf3',
-                        }}
+          {/* Two-column layout: Recent Activity + Quick Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+            {/* Recent Activity */}
+            <div
+              data-testid="recent-activity"
+              className="bg-[#161b22] border border-[#30363d] rounded-lg p-5"
+            >
+              <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Recent Activity</h3>
+              {recentScans.length === 0 && !loading ? (
+                <p className="text-sm text-[#8b949e]">No recent activity.</p>
+              ) : (
+                <ul className="space-y-0">
+                  {recentScans.map((scan, i) => (
+                    <li
+                      key={scan.id}
+                      data-testid={`activity-item-${i + 1}`}
+                      className="flex items-start gap-3 py-2.5 border-b border-[#30363d] last:border-b-0 text-sm"
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          scan.status === 'completed'
+                            ? 'bg-[#3fb950]'
+                            : scan.status === 'failed'
+                              ? 'bg-[#f85149]'
+                              : 'bg-[#58a6ff]'
+                        }`}
                       />
-                      <Legend
-                        wrapperStyle={{ fontSize: 12, color: '#8b949e' }}
-                        iconSize={8}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                      <span className="text-[#e6edf3]">
+                        <strong>Scan {scan.status}</strong> — {scan.devicesFound} devices found
+                        {scan.newDevices > 0 && `, ${scan.newDevices} new`}
+                      </span>
+                      <span className="text-[#6e7681] text-xs ml-auto whitespace-nowrap">
+                        {formatTime(scan.startedAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
+            </div>
+
+            {/* Quick Actions */}
+            <div
+              data-testid="quick-actions"
+              className="bg-[#161b22] border border-[#30363d] rounded-lg p-5"
+            >
+              <h3 className="text-base font-semibold text-[#e6edf3] mb-3">Quick Actions</h3>
+              <div className="flex flex-col gap-3">
+                <ScanButton loading={scanning} onClick={handleScan} />
+                <button
+                  data-testid="btn-export-devices"
+                  onClick={handleExport}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-[#30363d] text-[#e6edf3] bg-transparent hover:border-[#58a6ff] hover:text-[#58a6ff] transition-colors duration-150 w-full"
+                >
+                  ↓ Export Devices
+                </button>
+              </div>
             </div>
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-function NetworkBar({
-  label,
-  count,
-  total,
-  color,
-}: {
-  label: string;
-  count: number;
-  total: number;
-  color: string;
-}) {
-  const pct = total > 0 ? Math.max((count / total) * 100, 1) : 0;
-  return (
-    <div>
-      <div className="flex justify-between mb-1">
-        <span>{label}</span>
-        <span style={{ color }} className="font-semibold">
-          {count}
-        </span>
-      </div>
-      <div className="w-full bg-[#30363d] rounded h-2">
-        <div className="rounded h-2" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export interface Tag {
 
 export interface DashboardStats {
   totalDevices: number;
+  onlineDevices: number;
   newDevices24h: number;
   offlineDevices: number;
   lastScanAt: string | null;

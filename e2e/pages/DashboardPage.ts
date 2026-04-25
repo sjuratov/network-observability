@@ -10,11 +10,14 @@ export class DashboardPage {
   readonly navLinkDevices: Locator;
 
   // Metric cards
+  readonly metricsContainer: Locator;
   readonly metricTotalDevices: Locator;
   readonly metricTotalDevicesValue: Locator;
   readonly metricTotalDevicesLabel: Locator;
   readonly metricNewDevices: Locator;
   readonly metricNewDevicesValue: Locator;
+  readonly metricOnlineDevices: Locator;
+  readonly metricOnlineDevicesValue: Locator;
   readonly metricOfflineDevices: Locator;
   readonly metricOfflineDevicesValue: Locator;
   readonly metricLastScan: Locator;
@@ -29,7 +32,15 @@ export class DashboardPage {
   // Sections
   readonly recentActivity: Locator;
   readonly quickActions: Locator;
+
+  // Retired sections (should not exist after redesign)
   readonly networkSummary: Locator;
+  readonly deviceTrend: Locator;
+
+  // Device Breakdown
+  readonly deviceBreakdown: Locator;
+  readonly breakdownSelect: Locator;
+  readonly breakdownChart: Locator;
 
   // Alert
   readonly alertBanner: Locator;
@@ -43,11 +54,14 @@ export class DashboardPage {
     this.apiKeySave = page.getByTestId('api-key-save');
     this.navLinkDevices = page.getByTestId('nav-header-link-devices');
 
+    this.metricsContainer = page.getByTestId('metrics');
     this.metricTotalDevices = page.getByTestId('metric-card-total-devices');
     this.metricTotalDevicesValue = page.getByTestId('metric-card-total-devices-value');
     this.metricTotalDevicesLabel = page.getByTestId('metric-card-total-devices-label');
     this.metricNewDevices = page.getByTestId('metric-card-new-devices');
     this.metricNewDevicesValue = page.getByTestId('metric-card-new-devices-value');
+    this.metricOnlineDevices = page.getByTestId('metric-card-online-devices');
+    this.metricOnlineDevicesValue = page.getByTestId('metric-card-online-devices-value');
     this.metricOfflineDevices = page.getByTestId('metric-card-offline-devices');
     this.metricOfflineDevicesValue = page.getByTestId('metric-card-offline-devices-value');
     this.metricLastScan = page.getByTestId('metric-card-last-scan');
@@ -60,7 +74,13 @@ export class DashboardPage {
 
     this.recentActivity = page.getByTestId('recent-activity');
     this.quickActions = page.getByTestId('quick-actions');
+
     this.networkSummary = page.getByTestId('network-summary');
+    this.deviceTrend = page.getByTestId('device-trend');
+
+    this.deviceBreakdown = page.getByTestId('device-breakdown');
+    this.breakdownSelect = page.getByTestId('breakdown-select');
+    this.breakdownChart = page.getByTestId('breakdown-chart');
 
     this.alertBanner = page.getByTestId('alert-banner');
     this.alertBannerMessage = page.getByTestId('alert-banner-message');

@@ -22,7 +22,7 @@ Provide a web-based dashboard for viewing network status, device inventory, scan
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| F10.1 | Overview dashboard displays metric cards: total devices, new devices (last 24h), offline devices, last scan timestamp and status | Must | Cards link to filtered views (e.g., clicking "new devices" filters device list) |
+| F10.1 | Overview dashboard displays metric cards in order: Total Devices, New (24h), Online, Offline, Last Scan (timestamp and status) | Must | 5 cards in a single row; Online = totalDevices − offlineDevices; cards link to filtered views |
 | F10.2 | Device list view with full-text search across name, MAC, IP, hostname, vendor, tags | Must | Search is client-side for datasets ≤500 devices |
 | F10.3 | Device list supports filtering by: tag, online/offline status, vendor, first-seen date range | Must | Filters are combinable (AND logic) |
 | F10.4 | Device list supports sorting by: name, IP, vendor, first-seen, last-seen, status | Must | Default sort: IP address ascending; user-selected sort persists when returning from device detail |
@@ -33,7 +33,7 @@ Provide a web-based dashboard for viewing network status, device inventory, scan
 | F10.9 | Device detail view — Tags & Notes section: display and edit tags, display and edit freeform notes | Must | Inline editing, auto-save |
 | F10.10 | Scan history view: paginated list of past scans showing start time, duration, devices found, new devices, errors | Must | |
 | F10.11 | Scan history: expandable row showing per-scan device list with status changes detected | Must | |
-| F10.12 | Network summary charts: device count over time (line chart, selectable range), device type/vendor breakdown (pie/donut chart) | Should | Chart data aggregated server-side |
+| F10.12 | Device Breakdown chart: full-width horizontal bar chart with a dropdown selector. Dropdown options: Vendor (default), Tag, Status, Discovery Method, Device Age, Known/Unknown. Bars sorted descending by count. | Must | Replaces previous pie chart and device trend. Data computed client-side from device list. Device Age buckets: <1 day, 1–7 days, 7–30 days, 30+ days. |
 | F10.13 | Responsive layout: desktop (≥1024px), tablet (768–1023px) | Must | No mobile-first requirement; tablet is minimum |
 | F10.14 | Scan progress indicator: show real-time progress when a scan is in progress | Should | Poll GET /api/scans/current every 5 seconds during active scan |
 | F10.15 | Manual scan trigger button on dashboard with confirmation | Must | Calls POST /api/scans; disabled while scan is in progress |
@@ -45,7 +45,8 @@ Provide a web-based dashboard for viewing network status, device inventory, scan
 ### AC-10.1: Overview Dashboard Loads with Correct Metrics
 - **Given** 50 devices are discovered and 3 are new in the last 24 hours and 5 are offline
 - **When** the dashboard overview loads
-- **Then** the metric cards display "50 Total Devices", "3 New (24h)", "5 Offline", and the last scan timestamp with status
+- **Then** the metric cards display "50 Total Devices", "3 New (24h)", "45 Online", "5 Offline", and the last scan timestamp with status
+- **And** the cards appear in order: Total Devices, New (24h), Online, Offline, Last Scan
 
 ### AC-10.2: Device Search Returns Matching Results
 - **Given** a device list containing a device named "Office Printer" with vendor "HP" and tag "Printer"
@@ -87,11 +88,37 @@ Provide a web-based dashboard for viewing network status, device inventory, scan
 - **When** the user clicks "Scan Now" and confirms
 - **Then** a scan is triggered via the API and the progress indicator appears
 
+### AC-10.10: Device Breakdown Chart Defaults to Vendor View
+- **Given** devices exist with various vendors
+- **When** the dashboard loads
+- **Then** a "Device Breakdown" section is displayed with a dropdown defaulting to "By Vendor"
+- **And** a horizontal bar chart shows vendor names on the left, bars proportional to count, and counts on the right
+- **And** bars are sorted in descending order by device count
+
+### AC-10.11: Device Breakdown Dropdown Switches View
+- **Given** the dashboard is loaded with the Device Breakdown chart visible
+- **When** the user selects "By Tag" from the dropdown
+- **Then** the bar chart updates to show device counts grouped by tag, sorted descending
+- **When** the user selects "By Status" from the dropdown
+- **Then** the bar chart updates to show device counts grouped by online/offline status
+
+### AC-10.12: Device Breakdown Supports All Groupings
+- **Given** devices exist with various attributes
+- **When** the user cycles through all dropdown options: Vendor, Tag, Status, Discovery Method, Device Age, Known/Unknown
+- **Then** each selection renders a valid bar chart with appropriate labels and counts
+- **And** Device Age uses buckets: "< 1 day", "1–7 days", "7–30 days", "30+ days"
+- **And** Known/Unknown groups by the device's isKnown flag
+
+### AC-10.13: Network Summary and Device Trend Are Removed
+- **Given** the dashboard overview loads
+- **Then** there is no "Network Summary" card
+- **And** there is no "Device Trend" line chart
+
 ## Technical Considerations
 - The dashboard is a client-side web application served by the same container as the API.
 - All data is fetched from the REST API (F11) — the dashboard has no direct database access.
 - Polling (not WebSocket) is used for scan progress updates to keep infrastructure simple. Poll interval: 5 seconds during active scan, no polling when idle.
-- Charts use a lightweight client-side charting library (e.g., Chart.js or similar). Chart data is aggregated server-side and returned as pre-computed series via the API.
+- Charts use Recharts (lightweight React charting library). The Device Breakdown bar chart is computed client-side from the device list. No server-side aggregation needed for the breakdown chart.
 - Device list search and filtering is client-side for datasets up to 500 devices. For larger datasets, search/filter parameters are sent to the API for server-side processing.
 - Timestamps are stored in UTC and displayed in the user's local timezone.
 

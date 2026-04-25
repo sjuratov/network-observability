@@ -43,6 +43,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
     return {
       data: {
         totalDevices,
+        onlineDevices: totalDevices - offlineDevices,
         newDevices24h,
         offlineDevices,
         lastScanAt: lastScan?.completed_at ?? lastScan?.started_at ?? null,
