@@ -1,0 +1,103 @@
+openapi: '3.0.3'
+info:
+  title: Network Observability — DB Management API
+  version: '1.0'
+  description: Database statistics and manual cleanup endpoints.
+
+paths:
+  /api/v1/db/stats:
+    get:
+      summary: Get database statistics
+      description: Returns row counts per table, DB file size, WAL size, retention config, and last cleanup timestamp.
+      responses:
+        '200':
+          description: Database statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DbStatsResponse'
+        '401':
+          description: Unauthorized
+
+  /api/v1/db/cleanup:
+    post:
+      summary: Trigger manual retention cleanup
+      description: Runs retention cleanup on demand. Optionally override the retention period.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionDays:
+                  type: integer
+                  minimum: 1
+                  description: Override retention period (days). Defaults to configured value.
+      responses:
+        '200':
+          description: Cleanup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+components:
+  schemas:
+    DbStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            tables:
+              type: object
+              properties:
+                devices:
+                  type: integer
+                scans:
+                  type: integer
+                scan_results:
+                  type: integer
+                device_history:
+                  type: integer
+                device_tags:
+                  type: integer
+            dbSizeBytes:
+              type: integer
+            walSizeBytes:
+              type: integer
+            retentionDays:
+              type: integer
+            lastCleanupAt:
+              type: string
+              format: date-time
+              nullable: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+    CleanupResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            scansDeleted:
+              type: integer
+            scanResultsDeleted:
+              type: integer
+            historyDeleted:
+              type: integer
+            durationMs:
+              type: integer
+        meta:
+          $ref: '#/components/schemas/Meta'
+    Meta:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time

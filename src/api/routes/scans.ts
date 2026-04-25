@@ -14,6 +14,7 @@ import {
 } from '../scanner/ports.js';
 import { getPresenceOfflineThreshold } from '../presence/device-status.js';
 import { runRetentionCleanup } from '../db/retention.js';
+import { setLastCleanupAt } from './db-management.js';
 
 interface DbScanRow {
   id: string;
@@ -432,6 +433,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
           if (cleanupResult.scansDeleted > 0 || cleanupResult.scanResultsDeleted > 0 || cleanupResult.historyDeleted > 0) {
             console.log(`Post-scan retention cleanup: ${cleanupResult.scansDeleted} scans, ${cleanupResult.scanResultsDeleted} scan_results, ${cleanupResult.historyDeleted} history entries deleted (${cleanupResult.durationMs}ms)`);
           }
+          setLastCleanupAt(new Date().toISOString());
         } catch (cleanupErr) {
           console.error('Post-scan retention cleanup failed:', cleanupErr);
         }
