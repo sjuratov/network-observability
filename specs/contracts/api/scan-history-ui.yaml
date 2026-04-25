@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Scan History UI Contract
+  version: 1.0.0
+  description: |
+    Extends GET /api/v1/scans with optional status filter query parameter.
+    No new endpoints — only query parameter additions.
+
+paths:
+  /api/v1/scans:
+    get:
+      summary: List scans with optional status filter
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            description: Offset-based cursor for pagination
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, in-progress, completed, failed]
+          description: Filter scans by status. Omit to return all statuses.
+      responses:
+        '200':
+          description: Paginated scan list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Scan'
+                  meta:
+                    $ref: '#/components/schemas/PaginatedMeta'
+
+components:
+  schemas:
+    Scan:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, in-progress, completed, failed]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        devicesFound:
+          type: integer
+        newDevices:
+          type: integer
+        subnetsScanned:
+          type: array
+          items:
+            type: string
+        errors:
+          type: array
+          items:
+            type: string
+        scanIntensity:
+          type: string
+    PaginatedMeta:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        pagination:
+          type: object
+          properties:
+            limit:
+              type: integer
+            hasMore:
+              type: boolean
+            nextCursor:
+              type: string
+              nullable: true
+            total:
+              type: integer

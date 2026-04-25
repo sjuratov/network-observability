@@ -33,6 +33,7 @@ export interface ApiClient {
   updateDevice(id: string, data: Partial<Pick<Device, 'displayName' | 'tags' | 'notes'>>): Promise<Device>;
   getDeviceHistory(id: string): Promise<DeviceActivityHistory>;
   getScans(params?: ScanListParams): Promise<PaginatedResponse<Scan>>;
+  getAllScans(): Promise<Scan[]>;
   triggerScan(): Promise<Scan>;
   getStats(): Promise<DashboardStats>;
   getSettings(): Promise<SettingsConfigResponse>;
@@ -166,8 +167,26 @@ export function createApiClient(baseUrl: string, apiKey: string | (() => string)
       const searchParams = new URLSearchParams();
       if (params?.limit) searchParams.set('limit', String(params.limit));
       if (params?.cursor) searchParams.set('cursor', params.cursor);
+      if (params?.status) searchParams.set('status', params.status);
       const qs = searchParams.toString();
       return request<PaginatedResponse<Scan>>(`/scans${qs ? `?${qs}` : ''}`);
+    },
+    async getAllScans(): Promise<Scan[]> {
+      const scans: Scan[] = [];
+      let cursor: string | undefined;
+
+      while (true) {
+        const page = await request<PaginatedResponse<Scan>>(
+          `/scans?limit=100${cursor ? `&cursor=${cursor}` : ''}`,
+        );
+        scans.push(...page.data);
+
+        if (!page.meta.pagination.hasMore || !page.meta.pagination.nextCursor) {
+          return scans;
+        }
+
+        cursor = page.meta.pagination.nextCursor;
+      }
     },
     async triggerScan(): Promise<Scan> {
       return request<Scan>('/scans', { method: 'POST' });

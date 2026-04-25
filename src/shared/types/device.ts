@@ -98,6 +98,7 @@ export interface DeviceListParams {
 export interface ScanListParams {
   limit?: number;
   cursor?: string;
+  status?: Scan['status'];
 }
 
 export interface FilterParams {

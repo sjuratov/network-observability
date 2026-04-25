@@ -1,6 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApi } from '../hooks/useApi';
-import type { Scan, PaginatedResponse } from '@shared/types/device.js';
+import type { Scan } from '@shared/types/device.js';
+
+type ScanPageSizeOption = '10' | '25' | '50' | '100' | 'All';
+
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'pending', label: 'Pending' },
+];
 
 function formatDuration(startedAt: string, completedAt?: string): string {
   if (!completedAt) return '—';
@@ -41,43 +51,93 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function buildPageNumbers(currentPage: number, totalPages: number): (number | '...')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages: (number | '...')[] = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  if (start > 2) pages.push('...');
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < totalPages - 1) pages.push('...');
+  pages.push(totalPages);
+  return pages;
+}
+
 export function ScanHistoryPage() {
   const api = useApi();
-  const [scans, setScans] = useState<Scan[]>([]);
+  const [allScans, setAllScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [triggering, setTriggering] = useState(false);
 
-  // Pagination
+  // Pagination & filtering
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState<ScanPageSizeOption>('10');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const fetchScans = useCallback(async () => {
+  const fetchAllScans = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const cursor = String((page - 1) * pageSize);
-      const result: PaginatedResponse<Scan> = await api.getScans({ limit: pageSize, cursor });
-      setScans(result.data);
-      setTotal(result.meta.pagination.total);
+      const scans = await api.getAllScans();
+      setAllScans(scans);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load scans');
     } finally {
       setLoading(false);
     }
-  }, [api, page, pageSize]);
+  }, [api]);
 
   useEffect(() => {
-    fetchScans();
-  }, [fetchScans]);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api.getAllScans()
+      .then((scans) => {
+        if (!cancelled) setAllScans(scans);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [api]);
+
+  const filteredScans = useMemo(() => {
+    if (statusFilter === 'all') return allScans;
+    return allScans.filter((s) => s.status === statusFilter);
+  }, [allScans, statusFilter]);
+
+  const resolvedPageSize = pageSize === 'All'
+    ? Math.max(filteredScans.length, 1)
+    : Number.parseInt(pageSize, 10);
+
+  const totalPages = Math.max(1, Math.ceil(filteredScans.length / resolvedPageSize));
+
+  // Clamp page when filtered results or pageSize changes
+  const clampedPage = Math.min(page, totalPages);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedScans = useMemo(() => {
+    const start = (clampedPage - 1) * resolvedPageSize;
+    return filteredScans.slice(start, start + resolvedPageSize);
+  }, [filteredScans, clampedPage, resolvedPageSize]);
+
+  const from = filteredScans.length === 0 ? 0 : (clampedPage - 1) * resolvedPageSize + 1;
+  const to = filteredScans.length === 0 ? 0 : Math.min(clampedPage * resolvedPageSize, filteredScans.length);
 
   const handleScanNow = async () => {
     try {
       setTriggering(true);
       await api.triggerScan();
-      await fetchScans();
+      await fetchAllScans();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger scan');
     } finally {
@@ -94,7 +154,15 @@ export function ScanHistoryPage() {
     });
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handlePageSizeChange = (value: ScanPageSizeOption) => {
+    setPageSize(value);
+    setPage(1);
+  };
 
   return (
     <div data-testid="page-scan-history">
@@ -125,8 +193,8 @@ export function ScanHistoryPage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!loading && scans.length === 0 && !error && (
+      {/* Empty state — no scans at all */}
+      {!loading && allScans.length === 0 && !error && (
         <div data-testid="empty-state" className="text-center py-16">
           <div data-testid="empty-state-icon" className="text-4xl mb-3">📡</div>
           <h3 data-testid="empty-state-title" className="text-lg font-semibold text-[#e6edf3] mb-1">No Scans Yet</h3>
@@ -143,86 +211,142 @@ export function ScanHistoryPage() {
         </div>
       )}
 
-      {/* Scan table */}
-      {!loading && scans.length > 0 && (
+      {/* Main content — scans exist */}
+      {!loading && allScans.length > 0 && (
         <>
-          <table data-testid="scan-history-table" className="w-full border-collapse text-sm">
-            <thead>
-              <tr data-testid="scan-history-table-header">
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d] w-8" />
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Scan ID</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Start Time</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">End Time</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Duration</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Status</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Devices Found</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">New Devices</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scans.map((scan, idx) => {
-                const isExpanded = expandedRows.has(scan.id);
-                return (
-                  <ScanRow
-                    key={scan.id}
-                    scan={scan}
-                    index={idx}
-                    isExpanded={isExpanded}
-                    onToggle={() => toggleRow(scan.id)}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          <div data-testid="pagination" className="flex items-center justify-between mt-4">
-            <span data-testid="pagination-info" className="text-xs text-[#8b949e]">
-              Showing {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} of {total}
-            </span>
-            <div className="flex gap-1">
-              <button
-                data-testid="pagination-prev"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                ← Prev
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  data-testid={`pagination-page-${p}`}
-                  onClick={() => setPage(p)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    p === page
-                      ? 'bg-[#1f6feb] text-white'
-                      : 'border border-[#30363d] text-[#e6edf3] hover:border-[#1f6feb]'
-                  }`}
-                >
-                  {p}
-                </button>
+          {/* Status filter */}
+          <div className="flex items-center gap-3 mb-4">
+            <label htmlFor="scan-status-filter" className="text-xs uppercase tracking-wider text-[#6e7681]">
+              Status
+            </label>
+            <select
+              id="scan-status-filter"
+              data-testid="scan-status-filter"
+              value={statusFilter}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              className="px-2 py-1 rounded-md border border-[#30363d] bg-[#1c2128] text-sm text-[#e6edf3] cursor-pointer focus:outline-none focus:border-[#1f6feb]"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-              <button
-                data-testid="pagination-next"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Next →
-              </button>
-            </div>
+            </select>
           </div>
 
-          {/* Export actions */}
-          <div data-testid="export-actions" className="flex gap-2 justify-end mt-4">
-            <button data-testid="export-scans-csv" className="px-3 py-1.5 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] hover:text-[#58a6ff] transition-colors">
-              ↓ Export CSV
-            </button>
-            <button data-testid="export-scans-json" className="px-3 py-1.5 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] hover:text-[#58a6ff] transition-colors">
-              ↓ Export JSON
-            </button>
-          </div>
+          {/* Filtered empty state */}
+          {filteredScans.length === 0 && (
+            <div data-testid="filtered-empty-state" className="text-center py-12">
+              <p className="text-sm text-[#8b949e]">No scans match the selected status filter.</p>
+            </div>
+          )}
+
+          {/* Scan table */}
+          {filteredScans.length > 0 && (
+            <>
+              <table data-testid="scan-history-table" className="w-full border-collapse text-sm">
+                <thead>
+                  <tr data-testid="scan-history-table-header">
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d] w-8" />
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Scan ID</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Start Time</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">End Time</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Duration</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Status</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">Devices Found</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-[#8b949e] uppercase tracking-wider border-b border-[#30363d]">New Devices</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedScans.map((scan, idx) => {
+                    const isExpanded = expandedRows.has(scan.id);
+                    return (
+                      <ScanRow
+                        key={scan.id}
+                        scan={scan}
+                        index={idx}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleRow(scan.id)}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              <div data-testid="pagination" className="mt-4 space-y-2 text-sm text-[#8b949e]">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="pagination-page-size" className="text-xs uppercase tracking-wider text-[#6e7681]">
+                      Rows per page
+                    </label>
+                    <select
+                      id="pagination-page-size"
+                      data-testid="pagination-page-size"
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(e.target.value as ScanPageSizeOption)}
+                      className="rounded-md border border-[#30363d] bg-[#1c2128] px-2 py-1 text-sm text-[#e6edf3] focus:border-[#1f6feb] focus:outline-none"
+                    >
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <span data-testid="pagination-info">
+                    Showing {from}–{to} of {filteredScans.length} scans
+                  </span>
+                </div>
+                {pageSize !== 'All' && totalPages > 1 && (
+                  <div className="flex gap-1">
+                    <button
+                      data-testid="pagination-prev"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={clampedPage <= 1}
+                      className="px-2 py-1 rounded border border-[#30363d] text-[#8b949e] hover:border-[#1f6feb] hover:text-[#e6edf3] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ← Prev
+                    </button>
+                    {buildPageNumbers(clampedPage, totalPages).map((p, idx) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 py-1 text-[#6e7681]">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          data-testid={`pagination-page-${p}`}
+                          onClick={() => setPage(p)}
+                          className={`px-2 py-1 rounded border text-sm ${
+                            clampedPage === p
+                              ? 'bg-[#1f6feb] text-white border-[#1f6feb]'
+                              : 'border-[#30363d] text-[#8b949e] hover:border-[#1f6feb] hover:text-[#e6edf3]'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      data-testid="pagination-next"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={clampedPage >= totalPages}
+                      className="px-2 py-1 rounded border border-[#30363d] text-[#8b949e] hover:border-[#1f6feb] hover:text-[#e6edf3] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Export actions */}
+              <div data-testid="export-actions" className="flex gap-2 justify-end mt-4">
+                <button data-testid="export-scans-csv" className="px-3 py-1.5 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] hover:text-[#58a6ff] transition-colors">
+                  ↓ Export CSV
+                </button>
+                <button data-testid="export-scans-json" className="px-3 py-1.5 text-sm border border-[#30363d] rounded-md text-[#e6edf3] hover:border-[#1f6feb] hover:text-[#58a6ff] transition-colors">
+                  ↓ Export JSON
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

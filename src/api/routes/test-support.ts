@@ -316,7 +316,7 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
     const body = request.body as { fixture?: string };
     const now = new Date();
 
-    if (body.fixture !== 'pagination-controls') {
+    if (body.fixture !== 'pagination-controls' && body.fixture !== 'pagination-and-filtering') {
       reply.status(400);
       return { error: { code: 'VALIDATION_ERROR', message: 'Unsupported scan history fixture' }, meta: { timestamp: now.toISOString() } };
     }
@@ -325,26 +325,60 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
     resetTestSupportState();
 
     const ids: string[] = [];
-    for (let index = 1; index <= 16; index += 1) {
-      const timestamp = new Date(now.getTime() - index * 60_000).toISOString();
-      const scanId = `scan-fixture-${String(index).padStart(2, '0')}`;
-      raw.prepare(`
-        INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        scanId,
-        'completed',
-        timestamp,
-        timestamp,
-        1000,
-        index,
-        index === 1 ? 1 : 0,
-        '["192.168.1.0/24"]',
-        '[]',
-        'normal',
-        timestamp,
-      );
-      ids.push(scanId);
+
+    if (body.fixture === 'pagination-and-filtering') {
+      // 30 scans: 20 completed, 7 failed, 3 in-progress (no pending — used for empty filter test)
+      const statuses: Array<'completed' | 'failed' | 'in-progress'> = [];
+      for (let i = 0; i < 20; i++) statuses.push('completed');
+      for (let i = 0; i < 7; i++) statuses.push('failed');
+      for (let i = 0; i < 3; i++) statuses.push('in-progress');
+
+      for (let index = 0; index < statuses.length; index += 1) {
+        const timestamp = new Date(now.getTime() - (index + 1) * 60_000).toISOString();
+        const scanId = `scan-fixture-${String(index + 1).padStart(2, '0')}`;
+        const status = statuses[index];
+        const completedAt = status === 'in-progress' ? null : timestamp;
+        const errors = status === 'failed' ? '["Network unreachable"]' : '[]';
+        raw.prepare(`
+          INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          scanId,
+          status,
+          timestamp,
+          completedAt,
+          status === 'in-progress' ? null : 1000,
+          index + 1,
+          index === 0 ? 1 : 0,
+          '["192.168.1.0/24"]',
+          errors,
+          'normal',
+          timestamp,
+        );
+        ids.push(scanId);
+      }
+    } else {
+      for (let index = 1; index <= 16; index += 1) {
+        const timestamp = new Date(now.getTime() - index * 60_000).toISOString();
+        const scanId = `scan-fixture-${String(index).padStart(2, '0')}`;
+        raw.prepare(`
+          INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          scanId,
+          'completed',
+          timestamp,
+          timestamp,
+          1000,
+          index,
+          index === 1 ? 1 : 0,
+          '["192.168.1.0/24"]',
+          '[]',
+          'normal',
+          timestamp,
+        );
+        ids.push(scanId);
+      }
     }
 
     reply.status(201);

@@ -89,13 +89,24 @@ export async function scanRoutes(fastify: FastifyInstance) {
     const query = request.query as Record<string, string>;
     const limit = Math.min(parseInt(query.limit || '25', 10), 100);
     const cursor = parseInt(query.cursor || '0', 10);
+    const statusFilter = query.status;
 
-    const countRow = raw.prepare('SELECT COUNT(*) as cnt FROM scans').get() as { cnt: number };
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (statusFilter) {
+      conditions.push('status = ?');
+      params.push(statusFilter);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countRow = raw.prepare(`SELECT COUNT(*) as cnt FROM scans ${where}`).get(...params) as { cnt: number };
     const total = countRow.cnt;
 
     const rows = raw
-      .prepare('SELECT * FROM scans ORDER BY started_at DESC LIMIT ? OFFSET ?')
-      .all(limit, cursor) as DbScanRow[];
+      .prepare(`SELECT * FROM scans ${where} ORDER BY started_at DESC LIMIT ? OFFSET ?`)
+      .all(...params, limit, cursor) as DbScanRow[];
 
     const hasMore = cursor + limit < total;
 
