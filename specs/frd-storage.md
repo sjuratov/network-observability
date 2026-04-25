@@ -21,7 +21,7 @@ Persist all network scan results and device state changes in an embedded SQLite 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
+| ---- | ----------- | -------- | ----- |
 | F4.1 | Store all scan results with timestamps (start time, end time, devices found, errors) | Must | Each scan creates a `scans` record |
 | F4.2 | Configurable data retention period (default: 1 year, minimum: 1 day) | Must | Configured via `DATA_RETENTION_DAYS` env var |
 | F4.3 | Automatic cleanup of data beyond the retention period | Must | Runs after each scan completes and on application startup |
@@ -44,11 +44,13 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** device records themselves are NOT deleted (devices are permanent identities)
 - **And** the cleanup operation completes without locking the database for reads
 
+
 ### AC-2: Device State Change Tracking
 - **Given** a device had IP 192.168.1.50 in the previous scan
 - **When** the next scan discovers the same device (same MAC) at 192.168.1.75
 - **Then** a `device_history` record is created with `field=ip`, `old_value=192.168.1.50`, `new_value=192.168.1.75`, and the scan timestamp
 - **And** the device's current IP is updated to 192.168.1.75
+
 
 ### AC-3: High-Frequency Write Performance
 - **Given** scanning is configured to run every 15 minutes on a /24 subnet with ~100 devices
@@ -56,11 +58,13 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **Then** inserting a new scan's results completes in under 2 seconds
 - **And** querying the device list with latest state completes in under 500ms
 
+
 ### AC-4: Database Durability
 - **Given** the application is writing scan results to the database
 - **When** the container is unexpectedly killed (SIGKILL)
 - **Then** the database is not corrupted on restart (WAL mode ensures crash recovery)
 - **And** the most recent fully committed scan is intact
+
 
 ### AC-5: Startup Initialization
 - **Given** the application starts for the first time with no existing database
@@ -70,10 +74,12 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** WAL mode is enabled
 - **And** no errors are logged
 
+
 ### AC-6: Docker Volume Persistence
 - **Given** the database is stored at `/data/network-observability.db`
 - **When** the Docker container is stopped and restarted with the same volume mount
 - **Then** all previously stored data is intact and queryable
+
 
 ### AC-7: Database Statistics Endpoint (F4.10)
 - **Given** the application is running with data in the database
@@ -84,6 +90,7 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** the response contains the configured retention period in days
 - **And** the response contains the timestamp of the last retention cleanup (or null if never run)
 
+
 ### AC-8: Manual Cleanup Endpoint (F4.11)
 - **Given** the application is running with expired data in the database
 - **When** a POST request is made to `/api/v1/db/cleanup` with `{ "keepDays": 7 }`
@@ -93,6 +100,7 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** device_tags are NOT deleted (user configuration)
 - **And** the response contains counts of deleted rows and duration in milliseconds
 
+
 ### AC-9: Manual Cleanup Delete All Temporal Data (F4.11)
 - **Given** the application is running with data in the database
 - **When** a POST request is made to `/api/v1/db/cleanup` with `{ "keepDays": 0 }`
@@ -100,11 +108,13 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** device records are preserved
 - **And** device_tags are preserved
 
+
 ### AC-10: Manual Cleanup Validation (F4.11)
 - **Given** a POST request is made to `/api/v1/db/cleanup`
 - **When** the request body contains an invalid keepDays value (negative or non-integer)
 - **Then** the response is 400 with error code `VALIDATION_ERROR`
 - **And** no data is deleted
+
 
 ### AC-11: Factory Reset (F4.12)
 - **Given** the application is running with devices, scans, and tags in the database
@@ -113,6 +123,7 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **And** runtime_config is preserved
 - **And** schema_migrations is preserved
 - **And** the response confirms the reset with row counts deleted per table
+
 
 ### AC-12: Factory Reset Requires Confirmation (F4.12)
 - **Given** a POST request is made to `/api/v1/db/factory-reset`
@@ -203,6 +214,7 @@ CREATE TABLE schema_migrations (
 - **Cache size**: Set to 10MB (`PRAGMA cache_size=-10000`)
 
 ### Indexing Strategy
+
 ```sql
 CREATE INDEX idx_scan_results_scan_id ON scan_results(scan_id);
 CREATE INDEX idx_scan_results_device_id ON scan_results(device_id);
@@ -217,13 +229,14 @@ CREATE INDEX idx_devices_is_online ON devices(is_online);
 ### Data Volume Estimates
 
 | Scan Frequency | Devices | Scans/Year | scan_results Rows/Year | Est. DB Size |
-|----------------|---------|------------|------------------------|--------------|
+| -------------- | ------- | ---------- | ---------------------- | ------------ |
 | Every 6 hours (default) | 50 | 1,460 | 73,000 | ~50 MB |
 | Every 1 hour | 50 | 8,760 | 438,000 | ~300 MB |
 | Every 15 minutes | 50 | 35,040 | 1,752,000 | ~1.2 GB |
 | Every 15 minutes | 200 | 35,040 | 7,008,000 | ~4.5 GB |
 
 ### Retention Cleanup Strategy
+
 1. Runs automatically after each scan completes (non-blocking, in a background task)
 2. Also runs once on application startup
 3. Deletes in batches of 1,000 rows to avoid long-running transactions
@@ -233,7 +246,7 @@ CREATE INDEX idx_devices_is_online ON devices(is_online);
 ## Edge Cases & Error Handling
 
 | Scenario | Handling |
-|----------|----------|
+| -------- | -------- |
 | Database file corruption | On startup, run `PRAGMA integrity_check`. If it fails, log an error, rename the corrupted file to `*.corrupt.{timestamp}`, and create a fresh database. Alert the user via logs. |
 | Disk space exhaustion | Before each scan write, check available disk space. If below a configurable threshold (default: 100MB), skip the scan write, log a warning, and trigger an early retention cleanup. |
 | Concurrent scan writes | SQLite WAL mode supports one writer + many readers. The busy timeout (5s) handles brief contention. If a write still fails after timeout, retry once then log the error. |
@@ -245,7 +258,7 @@ CREATE INDEX idx_devices_is_online ON devices(is_online);
 ## Configuration
 
 | Parameter | Env Var | Default | Description |
-|-----------|---------|---------|-------------|
+| --------- | ------- | ------- | ----------- |
 | Database path | `DB_PATH` | `/data/network-observability.db` | Path to the SQLite database file |
 | Retention period | `DATA_RETENTION_DAYS` | `365` | Days to keep historical data (min: 30) |
 | Disk space threshold | `DB_MIN_DISK_MB` | `100` | Minimum free disk space in MB before skipping writes |
