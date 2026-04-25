@@ -11,6 +11,9 @@ import type {
   SettingsGeneralValidationErrors,
   SettingsSubnetsResponse,
 } from '@shared/types/settings-ui.js';
+import type {
+  DbStatsResponse,
+} from '@shared/types/retention.js';
 import { TabBar } from '../components/TabBar';
 import { useApi } from '../hooks/useApi';
 import { PRESETS, cronToPreset, presetToCron, describeSchedule, type SchedulePreset } from '../utils/scan-schedule-presets';
@@ -20,6 +23,7 @@ const settingsTabs = [
   { id: 'network', label: 'Network', testId: 'tab-network' },
   { id: 'alerts', label: 'Alerts', testId: 'tab-alerts' },
   { id: 'api', label: 'API', testId: 'tab-api' },
+  { id: 'database', label: 'Database', testId: 'tab-database' },
 ];
 
 type SettingsBanner = {
@@ -193,12 +197,28 @@ export function SettingsPage() {
   const [isRevealingApiKey, setIsRevealingApiKey] = useState(false);
   const [isRegeneratingApiKey, setIsRegeneratingApiKey] = useState(false);
 
+  // Database tab state
+  const [dbStats, setDbStats] = useState<DbStatsResponse['data'] | null>(null);
+  const [isLoadingDbStats, setIsLoadingDbStats] = useState(false);
+  const [dbRetentionDays, setDbRetentionDays] = useState(90);
+  const [loadedDbRetentionDays, setLoadedDbRetentionDays] = useState<number | null>(null);
+  const [isSavingDbRetention, setIsSavingDbRetention] = useState(false);
+  const [dbRetentionError, setDbRetentionError] = useState<string | null>(null);
+  const [cleanupKeepDays, setCleanupKeepDays] = useState(7);
+  const [isRunningCleanup, setIsRunningCleanup] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<string | null>(null);
+  const [isRunningFactoryReset, setIsRunningFactoryReset] = useState(false);
+  const [showFactoryResetDialog, setShowFactoryResetDialog] = useState(false);
+  const [factoryResetConfirmText, setFactoryResetConfirmText] = useState('');
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [dbBanner, setDbBanner] = useState<SettingsBanner | null>(null);
+
   const envManagedSet = useMemo(() => new Set(envManagedFields), [envManagedFields]);
   const hasGeneralChanges = loadedGeneralSettings !== null && (
     loadedGeneralSettings.scanCadence !== generalSettings.scanCadence
     || loadedGeneralSettings.scanIntensity !== generalSettings.scanIntensity
-    || loadedGeneralSettings.dataRetentionDays !== generalSettings.dataRetentionDays
   );
+  const hasDbRetentionChanges = loadedDbRetentionDays !== null && loadedDbRetentionDays !== dbRetentionDays;
   const hasNetworkChanges = !arraysEqual(loadedConfiguredSubnets, configuredSubnets);
   const currentAlertsSettings: SettingsAlertsConfig = {
     webhookUrl,
@@ -217,7 +237,7 @@ export function SettingsPage() {
     }
 
     if (field === 'dataRetentionDays' && message.includes('retention')) {
-      return 'Retention must be at least 30 days';
+      return 'Retention must be at least 1 day';
     }
 
     return message;
@@ -241,10 +261,6 @@ export function SettingsPage() {
 
     if (config.scanCadence.trim().split(/\s+/).length !== 5) {
       errors.scanCadence = 'Invalid cron expression';
-    }
-
-    if (!Number.isFinite(config.dataRetentionDays) || config.dataRetentionDays < 30) {
-      errors.dataRetentionDays = 'Retention must be at least 30 days';
     }
 
     return errors;
@@ -304,6 +320,10 @@ export function SettingsPage() {
       applyAlertsSettings(alertsConfigFromResponse(configResponse.data));
       setWebhookTestResult(null);
       setEmailTestResult(null);
+
+      // Populate Database tab retention from config
+      setDbRetentionDays(configResponse.data.dataRetentionDays);
+      setLoadedDbRetentionDays(configResponse.data.dataRetentionDays);
     } catch {
       setLoadError('Unable to load settings. Check server connection.');
     } finally {
@@ -334,10 +354,6 @@ export function SettingsPage() {
 
     if (generalSettings.scanIntensity !== loadedGeneralSettings.scanIntensity) {
       payload.scanIntensity = generalSettings.scanIntensity;
-    }
-
-    if (generalSettings.dataRetentionDays !== loadedGeneralSettings.dataRetentionDays) {
-      payload.dataRetentionDays = generalSettings.dataRetentionDays;
     }
 
     if (Object.keys(payload).length === 0) {
@@ -625,6 +641,112 @@ export function SettingsPage() {
     }
   }
 
+  // ── Database tab handlers ──────────────────────────────────────
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, i);
+    return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[i]}`;
+  }
+
+  async function loadDbStats() {
+    setIsLoadingDbStats(true);
+    try {
+      const response = await api.getDbStats();
+      setDbStats(response.data);
+    } catch {
+      // Stats load failure is non-critical
+    } finally {
+      setIsLoadingDbStats(false);
+    }
+  }
+
+  async function handleSaveDbRetention() {
+    if (!Number.isFinite(dbRetentionDays) || dbRetentionDays < 1) {
+      setDbRetentionError('Retention must be at least 1 day');
+      return;
+    }
+    if (dbRetentionDays > 365) {
+      setDbRetentionError('Retention cannot exceed 365 days');
+      return;
+    }
+
+    setIsSavingDbRetention(true);
+    setDbRetentionError(null);
+    setDbBanner(null);
+
+    try {
+      const response = await api.updateSettings({ dataRetentionDays: dbRetentionDays });
+      setDbRetentionDays(response.data.dataRetentionDays);
+      setLoadedDbRetentionDays(response.data.dataRetentionDays);
+      setDbBanner({ tone: 'success', message: 'Data retention settings saved successfully' });
+    } catch {
+      setDbBanner({ tone: 'error', message: 'Unable to save retention settings. Check server connection.' });
+    } finally {
+      setIsSavingDbRetention(false);
+    }
+  }
+
+  async function handleCleanupNow() {
+    setIsRunningCleanup(true);
+    setCleanupResult(null);
+    setDbBanner(null);
+
+    try {
+      const response = await api.runDbCleanup(cleanupKeepDays);
+      const d = response.data;
+      setCleanupResult(
+        `Deleted ${d.scansDeleted} scans, ${d.scanResultsDeleted} scan results, ${d.historyDeleted} history entries (${d.durationMs}ms)`,
+      );
+      void loadDbStats();
+    } catch {
+      setDbBanner({ tone: 'error', message: 'Cleanup failed. Check server connection.' });
+    } finally {
+      setIsRunningCleanup(false);
+    }
+  }
+
+  async function handleDeleteAllScans() {
+    setIsRunningCleanup(true);
+    setCleanupResult(null);
+    setDbBanner(null);
+    setShowDeleteAllDialog(false);
+
+    try {
+      const response = await api.runDbCleanup(0);
+      const d = response.data;
+      setCleanupResult(
+        `Deleted ${d.scansDeleted} scans, ${d.scanResultsDeleted} scan results, ${d.historyDeleted} history entries (${d.durationMs}ms)`,
+      );
+      void loadDbStats();
+    } catch {
+      setDbBanner({ tone: 'error', message: 'Delete all failed. Check server connection.' });
+    } finally {
+      setIsRunningCleanup(false);
+    }
+  }
+
+  async function handleFactoryReset() {
+    setIsRunningFactoryReset(true);
+    setDbBanner(null);
+    setShowFactoryResetDialog(false);
+    setFactoryResetConfirmText('');
+
+    try {
+      await api.runFactoryReset();
+      setDbBanner({ tone: 'success', message: 'Factory reset completed. All user data has been deleted.' });
+      void loadDbStats();
+    } catch {
+      setDbBanner({ tone: 'error', message: 'Factory reset failed. Check server connection.' });
+    } finally {
+      setIsRunningFactoryReset(false);
+    }
+  }
+
+  const dbRetentionSaveDisabled = isLoading || isSavingDbRetention || !hasDbRetentionChanges || !!dbRetentionError;
+
   const generalSaveDisabled = isLoading || isSavingGeneral || !hasGeneralChanges;
   const networkSaveDisabled = isLoading || isSavingNetwork || !!manualSubnetError || !hasNetworkChanges;
   const alertsSaveDisabled = isLoading || isSavingAlerts || !hasAlertsChanges;
@@ -792,33 +914,6 @@ export function SettingsPage() {
               </div>
               <div className="text-xs text-[#6e7681] mt-2">
                 Quick: ARP only (~30s) · Normal: ARP + basic ports (~3min) · Thorough: full port scan (~10min)
-              </div>
-            </div>
-
-            <div className={cardClass}>
-              <div className={cardTitleClass}>Data Retention</div>
-              <label htmlFor="retention-days" className={labelClass}>Keep historical data for</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  id="retention-days"
-                  data-testid="input-retention-days"
-                  value={generalSettings.dataRetentionDays}
-                  onChange={(e) => setGeneralSettings((current) => ({ ...current, dataRetentionDays: Number(e.target.value) }))}
-                  min={1}
-                  max={365}
-                  className={`${inputClass} w-24`}
-                />
-                <span className="text-sm text-[#e6edf3]">days</span>
-              </div>
-              <div
-                data-testid="field-retention-days-error"
-                className={`mt-1 text-xs text-[#f85149] ${generalFieldErrors.dataRetentionDays ? '' : 'hidden'}`}
-              >
-                {generalFieldErrors.dataRetentionDays ?? 'Retention must be at least 30 days'}
-              </div>
-              <div className="text-xs text-[#6e7681] mt-1">
-                Older scan results and presence data will be automatically purged.
               </div>
             </div>
 
@@ -1178,6 +1273,234 @@ export function SettingsPage() {
                 <p>Base URL: <code className="text-[#58a6ff]">http://localhost:8080/api/v1</code></p>
                 <p className="mt-2">Include your API key in the <code className="text-[#58a6ff]">X-API-Key</code> header with every request.</p>
               </div>
+            </div>
+        </div>
+
+        {/* Database Tab */}
+        <div data-testid="panel-database" className={activeTab === 'database' ? '' : 'hidden'}>
+            {/* Banner */}
+            {dbBanner && (
+              <div
+                data-testid="db-banner"
+                className={`mb-4 rounded-md border px-4 py-2 text-sm ${
+                  dbBanner.tone === 'error'
+                    ? 'bg-[#3d1116] border-[#f85149] text-[#f85149]'
+                    : 'bg-[#132a13] border-[#3fb950] text-[#3fb950]'
+                }`}
+              >
+                {dbBanner.message}
+              </div>
+            )}
+
+            {/* Database Stats */}
+            <div data-testid="db-stats-panel" className={cardClass}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`${cardTitleClass} mb-0`}>Database Statistics</div>
+                <button
+                  data-testid="btn-refresh-stats"
+                  className={`${btnOutline} !px-2 !py-1 text-xs`}
+                  onClick={() => { void loadDbStats(); }}
+                  disabled={isLoadingDbStats}
+                >
+                  {isLoadingDbStats ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+              {dbStats ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  {Object.entries(dbStats.tables).map(([table, count]) => (
+                    <div key={table} data-testid={`db-stats-table-${table}`} className="bg-[#0d1117] rounded-md px-3 py-2">
+                      <div className="text-xs text-[#8b949e]">{table}</div>
+                      <div className="text-[#e6edf3] font-mono">{count.toLocaleString()}</div>
+                    </div>
+                  ))}
+                  <div data-testid="db-stats-db-size" className="bg-[#0d1117] rounded-md px-3 py-2">
+                    <div className="text-xs text-[#8b949e]">DB Size</div>
+                    <div className="text-[#e6edf3] font-mono">{formatBytes(dbStats.dbSizeBytes)}</div>
+                  </div>
+                  <div data-testid="db-stats-wal-size" className="bg-[#0d1117] rounded-md px-3 py-2">
+                    <div className="text-xs text-[#8b949e]">WAL Size</div>
+                    <div className="text-[#e6edf3] font-mono">{formatBytes(dbStats.walSizeBytes)}</div>
+                  </div>
+                  <div data-testid="db-stats-last-cleanup" className="bg-[#0d1117] rounded-md px-3 py-2">
+                    <div className="text-xs text-[#8b949e]">Last Cleanup</div>
+                    <div className="text-[#e6edf3] font-mono text-xs">
+                      {dbStats.lastCleanupAt ? new Date(dbStats.lastCleanupAt).toLocaleString() : 'Never'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-[#8b949e]">
+                  {isLoadingDbStats ? 'Loading statistics...' : 'Click Refresh to load database statistics.'}
+                </div>
+              )}
+            </div>
+
+            {/* Data Retention */}
+            <div data-testid="db-retention-card" className={cardClass}>
+              <div className={cardTitleClass}>Data Retention</div>
+              <label htmlFor="db-retention-days" className={labelClass}>Keep historical data for</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  id="db-retention-days"
+                  data-testid="db-retention-days-input"
+                  value={dbRetentionDays}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setDbRetentionDays(val);
+                    setDbRetentionError(
+                      !Number.isFinite(val) || val < 1 ? 'Retention must be at least 1 day'
+                      : val > 365 ? 'Retention cannot exceed 365 days'
+                      : null,
+                    );
+                  }}
+                  min={1}
+                  max={365}
+                  className={`${inputClass} w-24`}
+                />
+                <span className="text-sm text-[#e6edf3]">days</span>
+              </div>
+              {dbRetentionError && (
+                <div data-testid="db-retention-error" className="mt-1 text-xs text-[#f85149]">
+                  {dbRetentionError}
+                </div>
+              )}
+              <div className="text-xs text-[#6e7681] mt-1">
+                Older scan results, scan data, and device history will be automatically purged after each scan.
+              </div>
+              <div className="flex justify-end mt-3">
+                <button
+                  data-testid="btn-save-db-retention"
+                  className={`${btnPrimary} ${dbRetentionSaveDisabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                  disabled={dbRetentionSaveDisabled}
+                  onClick={() => { void handleSaveDbRetention(); }}
+                >
+                  {isSavingDbRetention ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+
+            {/* Manual Cleanup */}
+            <div className={cardClass}>
+              <div className={cardTitleClass}>Manual Cleanup</div>
+              <div className="mb-3">
+                <label htmlFor="cleanup-keep-days" className={labelClass}>Keep data from the last</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    id="cleanup-keep-days"
+                    data-testid="db-cleanup-keep-days"
+                    value={cleanupKeepDays}
+                    onChange={(e) => setCleanupKeepDays(Math.max(0, Number(e.target.value)))}
+                    min={0}
+                    max={365}
+                    className={`${inputClass} w-24`}
+                  />
+                  <span className="text-sm text-[#e6edf3]">days</span>
+                  <button
+                    data-testid="btn-cleanup-now"
+                    className={`${btnPrimary} ${isRunningCleanup ? 'cursor-not-allowed opacity-60' : ''}`}
+                    disabled={isRunningCleanup}
+                    onClick={() => { void handleCleanupNow(); }}
+                  >
+                    {isRunningCleanup ? 'Cleaning...' : 'Clean Now'}
+                  </button>
+                </div>
+                <div className="text-xs text-[#6e7681] mt-1">
+                  Deletes scans, scan results, and device history older than the specified number of days. Devices and tags are preserved.
+                </div>
+              </div>
+              {cleanupResult && (
+                <div data-testid="cleanup-result" className="mt-2 rounded-md border border-[#3fb950] bg-[#132a13] px-3 py-2 text-sm text-[#3fb950]">
+                  {cleanupResult}
+                </div>
+              )}
+              <div className="mt-3 border-t border-[#30363d] pt-3">
+                <button
+                  data-testid="btn-delete-all-scans"
+                  className={`${btnDanger} ${isRunningCleanup ? 'cursor-not-allowed opacity-60' : ''}`}
+                  disabled={isRunningCleanup}
+                  onClick={() => setShowDeleteAllDialog(true)}
+                >
+                  Delete All Scan Data
+                </button>
+                <div className="text-xs text-[#6e7681] mt-1">
+                  Removes all scans, scan results, and device history. Devices and tags are preserved.
+                </div>
+              </div>
+              {showDeleteAllDialog && (
+                <div data-testid="delete-all-dialog" className="mt-3 rounded-md border border-[#f85149] bg-[#3d1116] px-4 py-3">
+                  <p className="text-sm text-[#f85149] mb-3">
+                    This will delete all scan data, results, and history. Devices and tags will be preserved.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      data-testid="btn-confirm-delete-all"
+                      className={btnDanger}
+                      onClick={() => { void handleDeleteAllScans(); }}
+                    >
+                      Confirm Delete All
+                    </button>
+                    <button
+                      className={btnOutline}
+                      onClick={() => setShowDeleteAllDialog(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Factory Reset — Danger Zone */}
+            <div data-testid="db-factory-reset-card" className="bg-[#161b22] border-2 border-[#f85149] rounded-lg p-5 mb-5">
+              <div className="text-sm font-semibold text-[#f85149] uppercase tracking-wider mb-4">
+                ⚠ Danger Zone — Factory Reset
+              </div>
+              <p className="text-sm text-[#8b949e] mb-3">
+                This will permanently delete <strong className="text-[#f85149]">ALL</strong> devices, tags, scans, scan results, and device history.
+                Only system configuration and schema will be preserved. This action cannot be undone.
+              </p>
+              <button
+                data-testid="btn-factory-reset"
+                className={`${btnDanger} ${isRunningFactoryReset ? 'cursor-not-allowed opacity-60' : ''}`}
+                disabled={isRunningFactoryReset}
+                onClick={() => { setShowFactoryResetDialog(true); setFactoryResetConfirmText(''); }}
+              >
+                {isRunningFactoryReset ? 'Resetting...' : 'Reset to Factory Defaults'}
+              </button>
+              {showFactoryResetDialog && (
+                <div data-testid="factory-reset-dialog" className="mt-3 rounded-md border border-[#f85149] bg-[#3d1116] px-4 py-3">
+                  <p className="text-sm text-[#f85149] mb-2">
+                    Type <strong>RESET</strong> to confirm factory reset:
+                  </p>
+                  <input
+                    type="text"
+                    data-testid="factory-reset-confirm-input"
+                    value={factoryResetConfirmText}
+                    onChange={(e) => setFactoryResetConfirmText(e.target.value)}
+                    placeholder="Type RESET"
+                    className={`${inputClass} w-48 mb-3`}
+                    autoComplete="off"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      data-testid="btn-confirm-factory-reset"
+                      className={`${btnDanger} ${factoryResetConfirmText !== 'RESET' ? 'cursor-not-allowed opacity-60' : ''}`}
+                      disabled={factoryResetConfirmText !== 'RESET'}
+                      onClick={() => { void handleFactoryReset(); }}
+                    >
+                      Confirm Factory Reset
+                    </button>
+                    <button
+                      className={btnOutline}
+                      onClick={() => { setShowFactoryResetDialog(false); setFactoryResetConfirmText(''); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
         </div>
       </div>

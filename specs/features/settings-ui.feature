@@ -389,3 +389,78 @@ Feature: Settings runtime config and General tab wiring
     When the operator activates "tab-api"
     And the operator regenerates the API key
     Then authenticated settings requests with the previous API key fail with status "401"
+
+  # ── Database Tab ──────────────────────────────────────────────
+
+  @database-tab @F14.23 @F14.24
+  Scenario: Database tab displays live database statistics
+    Given the Settings page is open
+    When the operator activates "tab-database"
+    Then the database stats panel is visible
+    And the stats panel shows row counts for "devices", "scans", "scan_results", "device_history", and "device_tags"
+    And the stats panel shows the database file size in human-readable format
+    And the stats panel shows the WAL file size in human-readable format
+    And the stats panel shows the last cleanup timestamp or "Never"
+
+  @database-tab @F14.25 @F14.30
+  Scenario: Data Retention setting appears in Database tab and not in General tab
+    Given the Settings page is open
+    When the operator activates "tab-general"
+    Then no "Data Retention" card is present
+    When the operator activates "tab-database"
+    Then a "Data Retention" card is present with a "Keep historical data for" input
+    And the retention days input reflects the current server value
+
+  @database-tab @F14.25
+  Scenario: Saving data retention from Database tab
+    Given the Settings page is open and the Database tab is active
+    When the operator sets the retention days input to "30"
+    And the operator clicks "Save Changes"
+    Then PATCH /api/v1/config is sent with dataRetentionDays 30
+    And a success banner is shown
+
+  @database-tab @F14.26
+  Scenario: Manual cleanup with keep days
+    Given the Settings page is open and the Database tab is active
+    When the operator enters "7" in the cleanup keep-days input
+    And the operator clicks "Clean Now"
+    Then POST /api/v1/db/cleanup is called with keepDays 7
+    And a result summary shows deleted counts and duration
+    And the database stats panel refreshes with updated row counts
+
+  @database-tab @F14.27
+  Scenario: Delete all scan data with confirmation
+    Given the Settings page is open and the Database tab is active
+    When the operator clicks "Delete All Scan Data"
+    Then a confirmation dialog appears warning that all scan data will be deleted
+    When the operator confirms the deletion
+    Then POST /api/v1/db/cleanup is called with keepDays 0
+    And a result summary is displayed
+    And the database stats panel refreshes
+
+  @database-tab @F14.28
+  Scenario: Factory reset requires typing RESET to confirm
+    Given the Settings page is open and the Database tab is active
+    When the operator clicks "Reset to Factory Defaults"
+    Then a confirmation dialog appears with a text input
+    And the confirm button is disabled
+    When the operator types "RESET" in the confirmation input
+    Then the confirm button becomes enabled
+    When the operator clicks the confirm button
+    Then POST /api/v1/db/factory-reset is called with confirm true
+    And a success message is displayed
+    And the database stats panel refreshes showing zeroed counts
+
+  @database-tab @F14.28
+  Scenario: Factory reset confirmation is rejected when text does not match
+    Given the Settings page is open and the Database tab is active
+    When the operator clicks "Reset to Factory Defaults"
+    And the operator types "reset" in the confirmation input
+    Then the confirm button remains disabled
+
+  @database-tab @F14.29
+  Scenario: Stats auto-refresh after cleanup operations
+    Given the Settings page is open and the Database tab is active
+    And the stats panel shows a scans count greater than zero
+    When the operator performs a manual cleanup with keepDays 0
+    Then the stats panel refreshes and shows scans count as 0

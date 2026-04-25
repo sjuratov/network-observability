@@ -14,12 +14,14 @@ export class SettingsPage {
   readonly tabNetwork: Locator;
   readonly tabAlerts: Locator;
   readonly tabApi: Locator;
+  readonly tabDatabase: Locator;
 
   // Panels
   readonly panelGeneral: Locator;
   readonly panelNetwork: Locator;
   readonly panelAlerts: Locator;
   readonly panelApi: Locator;
+  readonly panelDatabase: Locator;
 
   // General settings
   readonly selectSchedulePreset: Locator;
@@ -87,11 +89,13 @@ export class SettingsPage {
     this.tabNetwork = page.getByTestId('tab-network');
     this.tabAlerts = page.getByTestId('tab-alerts');
     this.tabApi = page.getByTestId('tab-api');
+    this.tabDatabase = page.getByTestId('tab-database');
 
     this.panelGeneral = page.getByTestId('panel-general');
     this.panelNetwork = page.getByTestId('panel-network');
     this.panelAlerts = page.getByTestId('panel-alerts');
     this.panelApi = page.getByTestId('panel-api');
+    this.panelDatabase = page.getByTestId('panel-database');
 
     this.selectSchedulePreset = page.getByTestId('select-schedule-preset');
     this.selectScheduleHour = page.getByTestId('select-schedule-hour');
@@ -103,10 +107,10 @@ export class SettingsPage {
     this.radioQuick = page.getByTestId('radio-quick');
     this.radioNormal = page.getByTestId('radio-normal');
     this.radioThorough = page.getByTestId('radio-thorough');
-    this.inputRetentionDays = page.getByTestId('input-retention-days');
+    this.inputRetentionDays = page.getByTestId('db-retention-days-input');
     this.btnSaveGeneral = page.getByTestId('btn-save-general');
     this.scanCadenceError = page.getByTestId('field-scan-cadence-error');
-    this.retentionDaysError = page.getByTestId('field-retention-days-error');
+    this.retentionDaysError = page.getByTestId('db-retention-error');
     this.scanCadenceRestartIndicator = page.getByTestId('field-scan-cadence-restart');
     this.scanIntensityRestartIndicator = page.getByTestId('field-scan-intensity-restart');
     this.restartRequiredBanner = page.getByTestId('restart-required-banner');

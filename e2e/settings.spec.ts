@@ -30,7 +30,6 @@ test.describe('Settings — Flow 6: Configure Settings', () => {
     await expect(settings.inputCron).toBeVisible();
     await expect(settings.cronPreview).toBeVisible();
     await expect(settings.scanIntensity).toBeVisible();
-    await expect(settings.inputRetentionDays).toBeVisible();
     await expect(settings.btnSaveGeneral).toBeVisible();
   });
 

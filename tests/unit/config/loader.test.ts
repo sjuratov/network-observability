@@ -190,11 +190,11 @@ describe('Configuration Management', () => {
     });
 
     // Scenario Outline: Invalid configuration rejected on startup — retention too low
-    it('should reject retention days less than 30', () => {
-      const result = validateConfig({ dataRetentionDays: 10 });
+    it('should reject retention days less than 1', () => {
+      const result = validateConfig({ dataRetentionDays: 0 });
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('at least 30'))).toBe(true);
+      expect(result.errors.some(e => e.includes('at least 1'))).toBe(true);
     });
 
     // Scenario Outline: Invalid configuration rejected on startup — negative retention
@@ -202,7 +202,7 @@ describe('Configuration Management', () => {
       const result = validateConfig({ dataRetentionDays: -5 });
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('at least 30'))).toBe(true);
+      expect(result.errors.some(e => e.includes('at least 1'))).toBe(true);
     });
 
     // Scenario Outline: Invalid configuration rejected on startup — invalid intensity

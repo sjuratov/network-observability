@@ -23,7 +23,7 @@ Persist all network scan results and device state changes in an embedded SQLite 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | F4.1 | Store all scan results with timestamps (start time, end time, devices found, errors) | Must | Each scan creates a `scans` record |
-| F4.2 | Configurable data retention period (default: 1 year, minimum: 1 month) | Must | Configured via `DATA_RETENTION_DAYS` env var |
+| F4.2 | Configurable data retention period (default: 1 year, minimum: 1 day) | Must | Configured via `DATA_RETENTION_DAYS` env var |
 | F4.3 | Automatic cleanup of data beyond the retention period | Must | Runs after each scan completes and on application startup |
 | F4.4 | Track device state changes over time (IP, ports, hostname, online/offline transitions) | Must | Diff consecutive scan results per device; store only deltas |
 | F4.5 | Use SQLite as the embedded database with no external dependencies | Must | Single file, WAL mode enabled |

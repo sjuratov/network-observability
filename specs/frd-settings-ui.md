@@ -77,6 +77,14 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 | F14.20 | "Custom (cron)" preset reveals a raw cron text input with human-readable preview | Must | Fallback for power users; same validation as before |
 | F14.21 | Scan cadence changes are applied at runtime without requiring a container restart | Must | Server hot-reloads the scheduler when `scanCadence` is updated via `PATCH /api/v1/config` |
 | F14.22 | On load, the current cron expression is reverse-mapped to a preset if it matches a known pattern | Must | Unknown cron patterns default to "Custom (cron)" with the raw expression shown |
+| F14.23 | Settings page includes a "Database" tab as the 5th tab | Must | Tab order: General, Network, Alerts, API, Database |
+| F14.24 | Database tab displays live database statistics from `GET /api/v1/db/stats` | Must | Row counts per table, DB file size, WAL size, last cleanup timestamp |
+| F14.25 | Database tab includes a "Data Retention" card (moved from General tab) | Must | Same "Keep historical data for N days" input; saved via `PATCH /api/v1/config` |
+| F14.26 | Database tab includes manual cleanup controls with a "keep last N days" input and "Clean Now" button | Must | Calls `POST /api/v1/db/cleanup` with `{ keepDays: N }`. Shows result summary after completion |
+| F14.27 | Database tab includes a "Delete All Scan Data" button | Must | Calls `POST /api/v1/db/cleanup` with `{ keepDays: 0 }`. Requires confirmation before executing |
+| F14.28 | Database tab includes a "Factory Reset" danger zone card | Must | Red-bordered card with "Reset to Factory Defaults" button. Type-to-confirm dialog (type "RESET"). Calls `POST /api/v1/db/factory-reset` |
+| F14.29 | Database stats auto-refresh after any cleanup or factory reset operation | Must | Stats panel reloads from `GET /api/v1/db/stats` after successful cleanup/reset |
+| F14.30 | Data Retention card is removed from the General tab | Must | Avoids duplicate controls; single source of truth in Database tab |
 
 ## Acceptance Criteria
 
@@ -200,6 +208,49 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 - **When** the server processes the `PATCH /api/v1/config` with a new `scanCadence`
 - **Then** the scheduler is restarted with the new cadence without triggering an immediate startup scan
 - **And** `scanCadence` does NOT appear in `meta.restartRequired`
+
+### AC-20: Database Tab Displays Stats
+- **Given** the Database tab is active
+- **When** the tab loads
+- **Then** `GET /api/v1/db/stats` is called and the response is displayed
+- **And** row counts for devices, scans, scan_results, device_history, and device_tags are shown
+- **And** database file size and WAL size are shown in human-readable format (e.g., "12.5 MB")
+- **And** last cleanup timestamp is shown (or "Never" if null)
+
+### AC-21: Data Retention Moved to Database Tab
+- **Given** the Settings page is loaded
+- **When** the General tab is active
+- **Then** there is NO "Data Retention" card in the General tab
+- **And** when the Database tab is active, the "Data Retention" card is present with the same input and validation
+
+### AC-22: Manual Cleanup with Keep Days
+- **Given** the Database tab is active
+- **When** the user enters "7" in the cleanup keep-days input and clicks "Clean Now"
+- **Then** `POST /api/v1/db/cleanup` is called with `{ "keepDays": 7 }`
+- **And** a result summary is displayed: "Deleted X scans, Y scan results, Z history entries (Nms)"
+- **And** the database stats panel auto-refreshes with updated counts
+
+### AC-23: Delete All Scan Data
+- **Given** the Database tab is active
+- **When** the user clicks "Delete All Scan Data"
+- **Then** a confirmation dialog appears: "This will delete all scan data, results, and history. Devices and tags will be preserved."
+- **And** upon confirmation, `POST /api/v1/db/cleanup` is called with `{ "keepDays": 0 }`
+- **And** a result summary is displayed and stats refresh
+
+### AC-24: Factory Reset with Type-to-Confirm
+- **Given** the Database tab is active
+- **When** the user clicks "Reset to Factory Defaults"
+- **Then** a confirmation dialog appears requiring the user to type "RESET"
+- **And** the confirm button is disabled until the user types "RESET" exactly
+- **And** upon confirmation, `POST /api/v1/db/factory-reset` is called with `{ "confirm": true }`
+- **And** a success message is displayed and stats refresh to show zeroed counts
+
+### AC-25: Factory Reset Preserves Config
+- **Given** the user performs a factory reset
+- **When** the reset completes
+- **Then** runtime_config and schema_migrations are preserved
+- **And** all other settings (scan cadence, retention days, alerts) remain unchanged
+- **And** only user data (devices, tags, scans, results, history) is deleted
 
 ## Schedule Preset Mapping
 

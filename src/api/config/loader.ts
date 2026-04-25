@@ -221,8 +221,8 @@ export function validateConfig(config: Partial<AppConfig>): { valid: boolean; er
   }
 
   if (config.dataRetentionDays !== undefined) {
-    if (!Number.isInteger(config.dataRetentionDays) || config.dataRetentionDays < 30) {
-      errors.push(`storage.retention_days must be at least 30, got ${config.dataRetentionDays}`);
+    if (!Number.isInteger(config.dataRetentionDays) || config.dataRetentionDays < 1) {
+      errors.push(`storage.retention_days must be at least 1, got ${config.dataRetentionDays}`);
     }
   }
 

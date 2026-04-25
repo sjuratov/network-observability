@@ -20,6 +20,11 @@ import type {
   SettingsWebhookTestRequest,
   SettingsWebhookTestResponse,
 } from '@shared/types/settings-ui.js';
+import type {
+  DbStatsResponse,
+  DbCleanupResponse,
+  DbFactoryResetResponse,
+} from '@shared/types/retention.js';
 
 export interface ApiClient {
   getDevices(params?: DeviceListParams): Promise<PaginatedResponse<Device>>;
@@ -41,6 +46,9 @@ export interface ApiClient {
   createTag(name: string): Promise<Tag>;
   deleteTag(id: string): Promise<void>;
   bulkTag(deviceIds: string[], tagId: string): Promise<void>;
+  getDbStats(): Promise<DbStatsResponse>;
+  runDbCleanup(keepDays: number): Promise<DbCleanupResponse>;
+  runFactoryReset(): Promise<DbFactoryResetResponse>;
 }
 
 function buildMockDevice(index: number): Device {
@@ -216,6 +224,21 @@ export function createApiClient(baseUrl: string, apiKey: string | (() => string)
       return request<void>('/devices/bulk-tag', {
         method: 'POST',
         body: JSON.stringify({ deviceIds, tagId }),
+      });
+    },
+    async getDbStats(): Promise<DbStatsResponse> {
+      return request<DbStatsResponse>('/db/stats');
+    },
+    async runDbCleanup(keepDays: number): Promise<DbCleanupResponse> {
+      return request<DbCleanupResponse>('/db/cleanup', {
+        method: 'POST',
+        body: JSON.stringify({ keepDays }),
+      });
+    },
+    async runFactoryReset(): Promise<DbFactoryResetResponse> {
+      return request<DbFactoryResetResponse>('/db/factory-reset', {
+        method: 'POST',
+        body: JSON.stringify({ confirm: true }),
       });
     },
   };

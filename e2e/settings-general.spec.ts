@@ -64,6 +64,8 @@ test.describe('@flow:configure-scan-settings @frd:frd-settings-ui Settings Gener
     await expect(settings.panelGeneral).toBeVisible();
     await expect(settings.selectSchedulePreset).toHaveValue('every-4h');
     await expect(settings.radioThorough).toBeChecked();
+    // Retention days now lives in the Database tab
+    await settings.tabDatabase.click();
     await expect(settings.inputRetentionDays).toHaveValue('180');
   });
 
@@ -73,7 +75,6 @@ test.describe('@flow:configure-scan-settings @frd:frd-settings-ui Settings Gener
     await settings.goto();
     await settings.selectPreset('Every hour');
     await settings.selectScanIntensity('thorough');
-    await settings.changeRetentionDays('180');
     await settings.saveGeneral();
 
     await expect(settings.alertBanner).toContainText('Settings saved successfully');
@@ -86,7 +87,6 @@ test.describe('@flow:configure-scan-settings @frd:frd-settings-ui Settings Gener
     expect(config.data).toMatchObject({
       scanCadence: '0 * * * *',
       scanIntensity: 'thorough',
-      dataRetentionDays: 180,
     });
   });
 
