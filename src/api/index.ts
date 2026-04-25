@@ -1,7 +1,6 @@
 import { loadConfig, validateConfig } from './config/loader.js';
 import { createDatabase } from './db/database.js';
 import { runRetentionCleanup } from './db/retention.js';
-import { setLastCleanupAt } from './routes/db-management.js';
 import { createServer } from './server.js';
 import { createScheduler } from './scanner/scheduler.js';
 import pino from 'pino';
@@ -56,7 +55,6 @@ async function main() {
         'Startup retention cleanup completed',
       );
     }
-    setLastCleanupAt(new Date().toISOString());
   } catch (err) {
     logger.error({ err }, 'Startup retention cleanup failed');
   }

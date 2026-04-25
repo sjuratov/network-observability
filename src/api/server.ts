@@ -15,7 +15,6 @@ import { statsRoutes } from './routes/stats.js';
 import { tagRoutes } from './routes/tags.js';
 import { testSupportRoutes } from './routes/test-support.js';
 import { exportRoutes } from './routes/export.js';
-import { dbManagementRoutes } from './routes/db-management.js';
 
 import type { ScanScheduler } from './scanner/scheduler.js';
 
@@ -98,7 +97,6 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
       await api.register(tagRoutes);
       await api.register(testSupportRoutes);
       await api.register(exportRoutes);
-      await api.register(dbManagementRoutes);
     },
     { prefix: '/api/v1' },
   );
