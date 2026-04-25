@@ -13,6 +13,7 @@ import type {
 } from '@shared/types/settings-ui.js';
 import { TabBar } from '../components/TabBar';
 import { useApi } from '../hooks/useApi';
+import { PRESETS, cronToPreset, presetToCron, describeSchedule, type SchedulePreset } from '../utils/scan-schedule-presets';
 
 const settingsTabs = [
   { id: 'general', label: 'General', testId: 'tab-general' },
@@ -20,15 +21,6 @@ const settingsTabs = [
   { id: 'alerts', label: 'Alerts', testId: 'tab-alerts' },
   { id: 'api', label: 'API', testId: 'tab-api' },
 ];
-
-const cronDescriptions: Record<string, string> = {
-  '*/5 * * * *': 'Runs every 5 minutes',
-  '*/15 * * * *': 'Runs every 15 minutes',
-  '*/30 * * * *': 'Runs every 30 minutes',
-  '0 * * * *': 'Runs every hour',
-  '0 */4 * * *': 'Runs every 4 hours',
-  '0 0 * * *': 'Runs once per day at midnight',
-};
 
 type SettingsBanner = {
   tone: 'success' | 'error';
@@ -44,26 +36,6 @@ type SettingsAlertsConfig = {
   smtpRecipient: string;
   alertCooldown: number;
 };
-
-function describeCron(expr: string): string {
-  const normalized = expr.trim();
-  if (cronDescriptions[normalized]) {
-    return cronDescriptions[normalized];
-  }
-
-  const everyMinuteMatch = normalized.match(/^\*\/(\d+)\s+\*\s+\*\s+\*\s+\*$/);
-  if (everyMinuteMatch) {
-    return `Runs every ${everyMinuteMatch[1]} minutes`;
-  }
-
-  const everyHourMatch = normalized.match(/^0\s+\*\/(\d+)\s+\*\s+\*\s+\*$/);
-  if (everyHourMatch) {
-    const interval = everyHourMatch[1];
-    return interval === '1' ? 'Runs every hour' : `Runs every ${interval} hours`;
-  }
-
-  return 'Custom schedule';
-}
 
 function maskApiKey(apiKey: string): string {
   const suffix = apiKey.slice(-4);
@@ -157,6 +129,41 @@ export function SettingsPage() {
     scanIntensity: 'normal',
     dataRetentionDays: 90,
   });
+
+  const [schedulePreset, setSchedulePreset] = useState<SchedulePreset>(() => cronToPreset('*/30 * * * *'));
+  const [customCron, setCustomCron] = useState('');
+
+  const handlePresetChange = useCallback((presetId: string) => {
+    if (presetId === 'custom') {
+      setSchedulePreset({ presetId: 'custom', cron: generalSettings.scanCadence });
+      setCustomCron(generalSettings.scanCadence);
+      return;
+    }
+    if (presetId === 'once-a-day') {
+      const newPreset: SchedulePreset = { presetId: 'once-a-day', hour: 0 };
+      setSchedulePreset(newPreset);
+      const cron = presetToCron('once-a-day', 0)!;
+      setGeneralSettings((s) => ({ ...s, scanCadence: cron }));
+      return;
+    }
+    const cron = presetToCron(presetId);
+    if (cron) {
+      setSchedulePreset({ presetId });
+      setGeneralSettings((s) => ({ ...s, scanCadence: cron }));
+    }
+  }, [generalSettings.scanCadence]);
+
+  const handleHourChange = useCallback((hour: number) => {
+    setSchedulePreset((prev) => ({ ...prev, hour }));
+    const cron = presetToCron('once-a-day', hour)!;
+    setGeneralSettings((s) => ({ ...s, scanCadence: cron }));
+  }, []);
+
+  const handleCustomCronChange = useCallback((value: string) => {
+    setCustomCron(value);
+    setSchedulePreset((prev) => ({ ...prev, cron: value }));
+    setGeneralSettings((s) => ({ ...s, scanCadence: value }));
+  }, []);
 
   const [detectedSubnets, setDetectedSubnets] = useState<SettingsSubnetsResponse['data']['detected']>([]);
   const [configuredSubnets, setConfiguredSubnets] = useState<string[]>([]);
@@ -272,6 +279,14 @@ export function SettingsPage() {
 
       setGeneralSettings(nextGeneralSettings);
       setLoadedGeneralSettings(nextGeneralSettings);
+
+      // Hydrate schedule preset from loaded cron
+      const loadedPreset = cronToPreset(configResponse.data.scanCadence);
+      setSchedulePreset(loadedPreset);
+      if (loadedPreset.presetId === 'custom' && loadedPreset.cron) {
+        setCustomCron(loadedPreset.cron);
+      }
+
       setEnvManagedFields(
         configResponse.meta.envOverridden.filter((field): field is SettingsGeneralField =>
           field === 'scanCadence' || field === 'scanIntensity' || field === 'dataRetentionDays',
@@ -679,7 +694,7 @@ export function SettingsPage() {
               <div className={cardTitleClass}>Scan Schedule</div>
               <div className="mb-0">
                 <div className="mb-1 flex items-center gap-2">
-                  <label htmlFor="cron-input" className={`${labelClass} mb-0`}>Scan Cadence (cron expression)</label>
+                  <label htmlFor="schedule-preset" className={`${labelClass} mb-0`}>How often should scans run?</label>
                   <span
                     data-testid="field-scan-cadence-restart"
                     className={`rounded-full border border-[#1f6feb] px-2 py-0.5 text-[11px] text-[#58a6ff] ${restartRequiredFields.includes('scanCadence') ? '' : 'hidden'}`}
@@ -693,15 +708,52 @@ export function SettingsPage() {
                     Set via environment variable
                   </span>
                 </div>
-                <input
-                  type="text"
-                  id="cron-input"
-                  data-testid="input-cron"
-                  value={generalSettings.scanCadence}
-                  onChange={(e) => setGeneralSettings((current) => ({ ...current, scanCadence: e.target.value }))}
-                  readOnly={envManagedSet.has('scanCadence')}
+                <select
+                  id="schedule-preset"
+                  data-testid="select-schedule-preset"
+                  value={schedulePreset.presetId}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  disabled={envManagedSet.has('scanCadence')}
                   className={inputClass}
-                />
+                >
+                  {PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+
+                {schedulePreset.presetId === 'once-a-day' && (
+                  <div className="mt-2" data-testid="hour-picker-group">
+                    <label htmlFor="schedule-hour" className={labelClass}>At what time?</label>
+                    <select
+                      id="schedule-hour"
+                      data-testid="select-schedule-hour"
+                      value={schedulePreset.hour ?? 0}
+                      onChange={(e) => handleHourChange(Number(e.target.value))}
+                      disabled={envManagedSet.has('scanCadence')}
+                      className={inputClass}
+                    >
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {schedulePreset.presetId === 'custom' && (
+                  <div className="mt-2" data-testid="custom-cron-group">
+                    <label htmlFor="cron-input" className={labelClass}>Cron expression</label>
+                    <input
+                      type="text"
+                      id="cron-input"
+                      data-testid="input-cron"
+                      value={customCron}
+                      onChange={(e) => handleCustomCronChange(e.target.value)}
+                      readOnly={envManagedSet.has('scanCadence')}
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+
                 <div
                   data-testid="field-scan-cadence-error"
                   className={`mt-1 text-xs text-[#f85149] ${generalFieldErrors.scanCadence ? '' : 'hidden'}`}
@@ -709,7 +761,7 @@ export function SettingsPage() {
                   {generalFieldErrors.scanCadence ?? 'Invalid cron expression'}
                 </div>
                 <div data-testid="cron-preview" className="text-xs text-[#6e7681] mt-1">
-                  {describeCron(generalSettings.scanCadence)}
+                  {describeSchedule(schedulePreset)}
                 </div>
               </div>
             </div>

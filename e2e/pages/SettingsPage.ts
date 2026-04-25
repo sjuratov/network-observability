@@ -22,6 +22,10 @@ export class SettingsPage {
   readonly panelApi: Locator;
 
   // General settings
+  readonly selectSchedulePreset: Locator;
+  readonly selectScheduleHour: Locator;
+  readonly hourPickerGroup: Locator;
+  readonly customCronGroup: Locator;
   readonly inputCron: Locator;
   readonly cronPreview: Locator;
   readonly scanIntensity: Locator;
@@ -89,6 +93,10 @@ export class SettingsPage {
     this.panelAlerts = page.getByTestId('panel-alerts');
     this.panelApi = page.getByTestId('panel-api');
 
+    this.selectSchedulePreset = page.getByTestId('select-schedule-preset');
+    this.selectScheduleHour = page.getByTestId('select-schedule-hour');
+    this.hourPickerGroup = page.getByTestId('hour-picker-group');
+    this.customCronGroup = page.getByTestId('custom-cron-group');
     this.inputCron = page.getByTestId('input-cron');
     this.cronPreview = page.getByTestId('cron-preview');
     this.scanIntensity = page.getByTestId('scan-intensity');
@@ -145,7 +153,19 @@ export class SettingsPage {
   }
 
   async changeScanCadence(value: string) {
+    // Switch to Custom mode first if not already showing cron input
+    if (!(await this.customCronGroup.isVisible().catch(() => false))) {
+      await this.selectSchedulePreset.selectOption({ label: 'Custom (cron)…' });
+    }
     await this.inputCron.fill(value);
+  }
+
+  async selectPreset(label: string) {
+    await this.selectSchedulePreset.selectOption({ label });
+  }
+
+  async selectHour(hour: string) {
+    await this.selectScheduleHour.selectOption({ label: hour });
   }
 
   async selectScanIntensity(intensity: 'quick' | 'normal' | 'thorough') {

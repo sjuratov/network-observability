@@ -40,10 +40,7 @@ async function main() {
     logger.info({ count: orphaned.changes }, 'Cleaned up orphaned in-progress scans');
   }
 
-  // Create Fastify server with routes, auth, CORS
-  const server = await createServer({ config, db, logger });
-
-  // Set up scan scheduler
+  // Set up scan scheduler (before server so routes can access it for hot-reload)
   const scheduler = createScheduler({
     cadence: config.scanCadence,
     intensity: config.scanIntensity,
@@ -67,6 +64,9 @@ async function main() {
       logger.info({ trigger: record.trigger }, 'Scan triggered');
     },
   });
+
+  // Create Fastify server with routes, auth, CORS
+  const server = await createServer({ config, db, logger, scheduler });
 
   // Graceful shutdown handler
   let shuttingDown = false;

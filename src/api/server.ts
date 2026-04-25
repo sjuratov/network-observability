@@ -15,6 +15,8 @@ import { statsRoutes } from './routes/stats.js';
 import { tagRoutes } from './routes/tags.js';
 import { testSupportRoutes } from './routes/test-support.js';
 
+import type { ScanScheduler } from './scanner/scheduler.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function resolveStaticAssetsDir(moduleDir: string = __dirname): string | null {
@@ -36,6 +38,7 @@ export interface ServerDeps {
   config: AppConfig;
   db: Database;
   logger: Logger;
+  scheduler?: ScanScheduler;
 }
 
 export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyInstance> {
@@ -78,6 +81,9 @@ export async function createServer(deps?: Partial<ServerDeps>): Promise<FastifyI
   }
   if (deps?.config) {
     server.decorate('appConfig', deps.config);
+  }
+  if (deps?.scheduler) {
+    server.decorate('scanScheduler', deps.scheduler);
   }
 
   // Register route modules under /api/v1

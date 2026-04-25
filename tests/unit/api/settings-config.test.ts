@@ -144,8 +144,8 @@ describe('Settings runtime config contract (F14 / ext-005)', () => {
         dataRetentionDays: 180,
       }),
       meta: expect.objectContaining({
-        applied: expect.arrayContaining(['dataRetentionDays']),
-        restartRequired: expect.arrayContaining(['scanCadence']),
+        applied: expect.arrayContaining(['scanCadence', 'dataRetentionDays']),
+        restartRequired: [],
       }),
     });
   });

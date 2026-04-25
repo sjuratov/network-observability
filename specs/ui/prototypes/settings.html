@@ -32,7 +32,12 @@
     width: 100%; padding: 0.5rem 0.75rem; background: #0f172a; border: 1px solid #334155;
     border-radius: 6px; color: #e2e8f0; font-size: 0.85rem; font-family: inherit;
   }
-  input:focus { outline: none; border-color: #0ea5e9; }
+  input:focus, select:focus { outline: none; border-color: #0ea5e9; }
+  select {
+    width: 100%; padding: 0.5rem 0.75rem; background: #0f172a; border: 1px solid #334155;
+    border-radius: 6px; color: #e2e8f0; font-size: 0.85rem; font-family: inherit;
+    cursor: pointer; appearance: auto; -webkit-appearance: auto;
+  }
   .input-row { display: flex; gap: 0.75rem; align-items: flex-end; }
   .input-row .form-group { flex: 1; margin-bottom: 0; }
   .hint { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
@@ -90,10 +95,41 @@
     <div class="card">
       <div class="card-title">Scan Schedule</div>
       <div class="form-group">
-        <label for="cron-input">Scan Cadence (cron expression)</label>
-        <input type="text" id="cron-input" value="*/30 * * * *" data-testid="input-cron" />
-        <div class="hint" data-testid="cron-preview">Runs every 30 minutes</div>
+        <label for="schedule-preset">How often should scans run?</label>
+        <select id="schedule-preset" data-testid="select-schedule-preset">
+          <option value="every-5min">Every 5 minutes</option>
+          <option value="every-15min">Every 15 minutes</option>
+          <option value="every-30min">Every 30 minutes</option>
+          <option value="every-hour">Every hour</option>
+          <option value="every-4h">Every 4 hours</option>
+          <option value="every-6h" selected>Every 6 hours</option>
+          <option value="every-12h">Every 12 hours</option>
+          <option value="once-a-day">Once a day</option>
+          <option value="custom">Custom (cron)…</option>
+        </select>
       </div>
+      <div class="form-group" id="hour-picker-group" style="display:none;">
+        <label for="schedule-hour">At what time?</label>
+        <select id="schedule-hour" data-testid="select-schedule-hour">
+          <option value="0">00:00</option><option value="1">01:00</option>
+          <option value="2">02:00</option><option value="3">03:00</option>
+          <option value="4">04:00</option><option value="5">05:00</option>
+          <option value="6">06:00</option><option value="7">07:00</option>
+          <option value="8">08:00</option><option value="9">09:00</option>
+          <option value="10">10:00</option><option value="11">11:00</option>
+          <option value="12">12:00</option><option value="13">13:00</option>
+          <option value="14">14:00</option><option value="15">15:00</option>
+          <option value="16">16:00</option><option value="17">17:00</option>
+          <option value="18">18:00</option><option value="19">19:00</option>
+          <option value="20">20:00</option><option value="21">21:00</option>
+          <option value="22">22:00</option><option value="23">23:00</option>
+        </select>
+      </div>
+      <div class="form-group" id="custom-cron-group" style="display:none;">
+        <label for="cron-input">Cron expression</label>
+        <input type="text" id="cron-input" value="0 */6 * * *" data-testid="input-cron" />
+      </div>
+      <div class="hint" data-testid="cron-preview" id="cron-preview">Runs every 6 hours</div>
     </div>
 
     <div class="card">
@@ -255,11 +291,48 @@
 
 <script>
 function showTab(id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`[data-testid="tab-${id}"]`).classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.querySelector('[data-testid="tab-' + id + '"]').classList.add('active');
   document.getElementById('tab-' + id).classList.add('active');
 }
+
+(function() {
+  var presetSelect = document.getElementById('schedule-preset');
+  var hourSelect = document.getElementById('schedule-hour');
+  var hourGroup = document.getElementById('hour-picker-group');
+  var cronGroup = document.getElementById('custom-cron-group');
+  var cronPreview = document.getElementById('cron-preview');
+  var cronInput = document.getElementById('cron-input');
+
+  var labels = {
+    'every-5min': 'Every 5 minutes',
+    'every-15min': 'Every 15 minutes',
+    'every-30min': 'Every 30 minutes',
+    'every-hour': 'Every hour',
+    'every-4h': 'Every 4 hours',
+    'every-6h': 'Every 6 hours',
+    'every-12h': 'Every 12 hours'
+  };
+
+  function update() {
+    var v = presetSelect.value;
+    hourGroup.style.display = (v === 'once-a-day') ? 'block' : 'none';
+    cronGroup.style.display = (v === 'custom') ? 'block' : 'none';
+    if (labels[v]) {
+      cronPreview.textContent = labels[v];
+    } else if (v === 'once-a-day') {
+      var h = hourSelect.value;
+      cronPreview.textContent = 'Runs once a day at ' + (h < 10 ? '0' : '') + h + ':00';
+    } else if (v === 'custom') {
+      cronPreview.textContent = 'Custom: ' + cronInput.value;
+    }
+  }
+
+  presetSelect.addEventListener('change', update);
+  hourSelect.addEventListener('change', update);
+  cronInput.addEventListener('input', update);
+})();
 </script>
 </body>
 </html>

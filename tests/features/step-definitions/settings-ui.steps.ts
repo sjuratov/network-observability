@@ -380,7 +380,7 @@ async function installSettingsRoutes(world: SettingsApiWorld): Promise<void> {
           effective: payload.subnets.map((cidr) => String(cidr)),
         };
       }
-      fixture.meta.restartRequired = Object.keys(payload).filter((field) => ['scanCadence', 'scanIntensity', 'subnets'].includes(field));
+      fixture.meta.restartRequired = Object.keys(payload).filter((field) => ['scanIntensity', 'subnets'].includes(field));
       fixture.meta.timestamp = new Date().toISOString();
 
       await route.fulfill({
@@ -389,7 +389,7 @@ async function installSettingsRoutes(world: SettingsApiWorld): Promise<void> {
         body: JSON.stringify({
           data: fixture.data,
           meta: {
-            applied: Object.keys(payload).filter((field) => !['scanCadence', 'scanIntensity', 'subnets'].includes(field)),
+            applied: Object.keys(payload).filter((field) => !['scanIntensity', 'subnets'].includes(field)),
             restartRequired: fixture.meta.restartRequired,
             rejected: [],
             envOverridden: fixture.meta.envOverridden,
@@ -1025,4 +1025,55 @@ Then('authenticated settings requests with the previous API key fail with status
     return response.status;
   }, this.previousAcceptedApiKey ?? buildFullApiKey('e1f2'));
   expect(status).toBe(Number(statusCode));
+});
+
+// --- Schedule preset steps ---
+
+When(
+  'the operator selects {string} from {string}',
+  async function (this: SettingsApiWorld, optionLabel: string, testId: string) {
+    await settingsLocator(this, testId).selectOption({ label: optionLabel });
+  },
+);
+
+Then('{string} displays {string}', async function (this: SettingsApiWorld, testId: string, expectedText: string) {
+  const locator = settingsLocator(this, testId);
+  // For <select> elements, check the selected option's text; for other elements, check textContent
+  const tagName = await locator.evaluate((el) => el.tagName.toLowerCase());
+  if (tagName === 'select') {
+    const selectedText = await locator.evaluate(
+      (el) => (el as HTMLSelectElement).options[(el as HTMLSelectElement).selectedIndex]?.text ?? '',
+    );
+    expect(selectedText).toBe(expectedText);
+  } else {
+    await expect(locator).toContainText(expectedText);
+  }
+});
+
+Then('{string} has value {string}', async function (this: SettingsApiWorld, testId: string, expectedValue: string) {
+  await expect(settingsLocator(this, testId)).toHaveValue(expectedValue);
+});
+
+Then('{string} defaults to {string}', async function (this: SettingsApiWorld, testId: string, expectedText: string) {
+  const locator = settingsLocator(this, testId);
+  const tagName = await locator.evaluate((el) => el.tagName.toLowerCase());
+  if (tagName === 'select') {
+    const selectedText = await locator.evaluate(
+      (el) => (el as HTMLSelectElement).options[(el as HTMLSelectElement).selectedIndex]?.text ?? '',
+    );
+    expect(selectedText).toBe(expectedText);
+  } else {
+    await expect(locator).toHaveValue(expectedText);
+  }
+});
+
+Then('{string} is not visible', async function (this: SettingsApiWorld, testId: string) {
+  await expect(settingsLocator(this, testId)).not.toBeVisible();
+});
+
+Then('scanCadence is NOT listed as restart-required', function (this: SettingsApiWorld) {
+  const _lastUpdate = this.interceptedConfigUpdates?.at(-1);
+  // The mock response meta should not include scanCadence in restartRequired
+  const fixture = currentFixture(this);
+  expect(fixture.meta.restartRequired ?? []).not.toContain('scanCadence');
 });

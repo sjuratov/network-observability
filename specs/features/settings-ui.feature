@@ -38,11 +38,13 @@ Feature: Settings runtime config and General tab wiring
     Given an authenticated settings API client
     When the client updates the runtime settings with:
       | field             | value        |
-      | scanCadence       | 0 */1 * * * |
+      | scanCadence       | 0 */1 * * *  |
+      | scanIntensity     | thorough     |
       | dataRetentionDays | 180          |
     Then the response status is 200
+    And the settings update response lists "scanCadence" as applied
     And the settings update response lists "dataRetentionDays" as applied
-    And the settings update response lists "scanCadence" as restart-required
+    And the settings update response lists "scanIntensity" as restart-required
 
   @settings-ui @config-foundation @error
   Scenario Outline: Invalid values return field-level validation details
@@ -92,7 +94,7 @@ Feature: Settings runtime config and General tab wiring
     When the operator opens the Settings page
     Then "settings-loading" appears while the General settings are loading
     And "panel-general" becomes visible
-    And "input-cron" displays "0 */4 * * *"
+    And "select-schedule-preset" displays "Every 4 hours"
     And "radio-thorough" is selected
     And "input-retention-days" displays "180"
 
@@ -108,35 +110,36 @@ Feature: Settings runtime config and General tab wiring
   @settings-ui @general-settings @smoke @happy
   Scenario: Saving a changed General field sends only the modified setting
     Given the Settings page has loaded General settings with scan cadence "0 */6 * * *", scan intensity "normal", and retention "365" days
-    When the operator changes "input-cron" to "0 */1 * * *"
+    When the operator selects "Every hour" from "select-schedule-preset"
     And the operator activates "btn-save-general"
     Then "btn-save-general" becomes disabled during the save request
-    And the General settings update includes only "scanCadence" with value "0 */1 * * *"
+    And the General settings update includes only "scanCadence" with value "0 * * * *"
     And the operator sees "Settings saved successfully"
 
   @settings-ui @general-settings @happy
   Scenario: Saving restart-required General fields highlights follow-up actions
     Given the Settings page has loaded General settings with scan cadence "0 */6 * * *" and scan intensity "normal"
-    When the operator changes "input-cron" to "0 */1 * * *"
+    When the operator selects "Every hour" from "select-schedule-preset"
     And the operator selects "radio-thorough"
     And the operator activates "btn-save-general"
     Then "restart-required-banner" displays "Some changes require a restart"
-    And "field-scan-cadence-restart" is visible
     And "field-scan-intensity-restart" is visible
+    And scanCadence is NOT listed as restart-required
 
   @settings-ui @general-settings @error
   Scenario: A failed General settings save shows an error banner
     Given the Settings page has loaded General settings with scan cadence "0 */6 * * *"
     And the next General settings save will fail with "Unable to save settings. Check server connection."
-    When the operator changes "input-cron" to "0 */1 * * *"
+    When the operator selects "Every hour" from "select-schedule-preset"
     And the operator activates "btn-save-general"
     Then the operator sees "Unable to save settings. Check server connection."
     And "btn-save-general" becomes enabled again
 
   @settings-ui @general-settings @error
-  Scenario: Invalid General settings show field-level validation
+  Scenario: Invalid custom cron expression shows field-level validation
     Given the Settings page has loaded General settings with scan cadence "0 */6 * * *", scan intensity "normal", and retention "365" days
-    When the operator changes "input-cron" to "bad-cron"
+    When the operator selects "Custom (cron)…" from "select-schedule-preset"
+    And the operator changes "input-cron" to "bad-cron"
     And the operator activates "btn-save-general"
     Then "field-scan-cadence-error" displays "Invalid cron expression"
     And "input-retention-days" keeps "365"
@@ -147,10 +150,78 @@ Feature: Settings runtime config and General tab wiring
     When the operator opens the Settings page
     Then "field-scan-cadence-env-managed" is visible
     And "field-scan-intensity-env-managed" is visible
-    And "input-cron" is read-only
+    And "select-schedule-preset" is disabled
     And "radio-quick" is disabled
     And "radio-normal" is disabled
     And "radio-thorough" is disabled
+
+  # ext-006b — Friendly scan schedule presets
+
+  @settings-ui @general-settings @schedule-preset @smoke @happy
+  Scenario: Known cron expression hydrates as a friendly preset
+    Given the effective settings configuration includes scan cadence "0 */4 * * *"
+    When the operator opens the Settings page
+    Then "select-schedule-preset" displays "Every 4 hours"
+    And "hour-picker-group" is not visible
+    And "custom-cron-group" is not visible
+
+  @settings-ui @general-settings @schedule-preset @happy
+  Scenario: Daily cron hydrates with correct hour
+    Given the effective settings configuration includes scan cadence "0 14 * * *"
+    When the operator opens the Settings page
+    Then "select-schedule-preset" displays "Once a day"
+    And "select-schedule-hour" displays "14:00"
+    And "custom-cron-group" is not visible
+
+  @settings-ui @general-settings @schedule-preset @happy
+  Scenario: Selecting "Once a day" reveals hour picker
+    Given the Settings page has loaded General settings with scan cadence "0 */6 * * *"
+    When the operator selects "Once a day" from "select-schedule-preset"
+    Then "hour-picker-group" is visible
+    And "select-schedule-hour" defaults to "00:00"
+    And "cron-preview" displays "Runs once a day at 00:00"
+
+  @settings-ui @general-settings @schedule-preset @happy
+  Scenario: Saving daily schedule with selected hour
+    Given the Settings page has loaded General settings with scan cadence "0 */6 * * *"
+    When the operator selects "Once a day" from "select-schedule-preset"
+    And the operator selects "14:00" from "select-schedule-hour"
+    And the operator activates "btn-save-general"
+    Then the General settings update includes only "scanCadence" with value "0 14 * * *"
+    And the operator sees "Settings saved successfully"
+
+  @settings-ui @general-settings @schedule-preset @happy
+  Scenario: Selecting "Custom (cron)…" reveals raw cron input
+    Given the Settings page has loaded General settings with scan cadence "0 */6 * * *"
+    When the operator selects "Custom (cron)…" from "select-schedule-preset"
+    Then "custom-cron-group" is visible
+    And "input-cron" displays "0 */6 * * *"
+    And "hour-picker-group" is not visible
+
+  @settings-ui @general-settings @schedule-preset @edge @edge-case
+  Scenario: Unknown cron expression falls back to custom mode
+    Given the effective settings configuration includes scan cadence "5 4 * * 1"
+    When the operator opens the Settings page
+    Then "select-schedule-preset" displays "Custom (cron)…"
+    And "custom-cron-group" is visible
+    And "input-cron" displays "5 4 * * 1"
+
+  @settings-ui @general-settings @schedule-preset @edge @edge-case
+  Scenario: Env-managed schedule disables the preset dropdown and hour picker
+    Given the server reports that "scanCadence" is managed by environment variables
+    And the effective settings configuration includes scan cadence "0 14 * * *"
+    When the operator opens the Settings page
+    Then "select-schedule-preset" is disabled
+    And "select-schedule-preset" displays "Once a day"
+    And "select-schedule-hour" is disabled
+
+  @settings-ui @general-settings @schedule-preset @happy
+  Scenario: Changing scan schedule does not require a restart
+    Given the Settings page has loaded General settings with scan cadence "0 */6 * * *" and scan intensity "normal"
+    When the operator selects "Every 5 minutes" from "select-schedule-preset"
+    And the operator activates "btn-save-general"
+    Then the operator sees "Settings saved successfully"
+    And "restart-required-banner" is not visible
 
   # ext-007 — Settings Network and Alerts tab wiring
 

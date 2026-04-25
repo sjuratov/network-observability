@@ -59,13 +59,10 @@ test.describe('@flow:configure-scan-settings @frd:frd-settings-ui Settings Gener
 
     await settings.goto();
 
-    // Traceability note: the older flow-walkthrough still names legacy
-    // Scanning/Retention tabs, but ext-006 is approved for the current
-    // General tab vocabulary and selectors.
     await expect(settings.pageContainer).toBeVisible();
     await expect(settings.settingsForm).toBeVisible();
     await expect(settings.panelGeneral).toBeVisible();
-    await expect(settings.inputCron).toHaveValue('0 */4 * * *');
+    await expect(settings.selectSchedulePreset).toHaveValue('every-4h');
     await expect(settings.radioThorough).toBeChecked();
     await expect(settings.inputRetentionDays).toHaveValue('180');
   });
@@ -74,19 +71,20 @@ test.describe('@flow:configure-scan-settings @frd:frd-settings-ui Settings Gener
     await seedGeneralSettings(request, apiKey, BASELINE_SETTINGS);
 
     await settings.goto();
-    await settings.changeScanCadence('0 */1 * * *');
+    await settings.selectPreset('Every hour');
     await settings.selectScanIntensity('thorough');
     await settings.changeRetentionDays('180');
     await settings.saveGeneral();
 
     await expect(settings.alertBanner).toContainText('Settings saved successfully');
     await expect(settings.restartRequiredBanner).toContainText('Some changes require a restart');
-    await expect(settings.scanCadenceRestartIndicator).toBeVisible();
+    // scanCadence is no longer restart-required — only scanIntensity is
+    await expect(settings.scanCadenceRestartIndicator).not.toBeVisible();
     await expect(settings.scanIntensityRestartIndicator).toBeVisible();
 
     const config = await fetchEffectiveConfig(request, apiKey);
     expect(config.data).toMatchObject({
-      scanCadence: '0 */1 * * *',
+      scanCadence: '0 * * * *',
       scanIntensity: 'thorough',
       dataRetentionDays: 180,
     });

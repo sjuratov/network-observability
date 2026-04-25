@@ -20,12 +20,14 @@ import type {
   SettingsWebhookTestResponse,
 } from '@shared/types/settings-ui.js';
 import type { AppConfig } from '@shared/types/config.js';
+import type { ScanScheduler } from '../scanner/scheduler.js';
 
 type AppWithConfig = FastifyInstance & {
   appConfig: AppConfig;
+  scanScheduler?: ScanScheduler;
 };
 
-const RESTART_REQUIRED_FIELDS = new Set(['scanCadence', 'scanIntensity', 'subnets']);
+const RESTART_REQUIRED_FIELDS = new Set(['scanIntensity', 'subnets']);
 const KNOWN_MUTABLE_FIELDS = new Set<keyof SettingsConfigUpdateRequest>([
   'subnets',
   'scanCadence',
@@ -265,6 +267,14 @@ export async function configRoutes(fastify: FastifyInstance) {
       Object.assign(config, filteredPayload);
       writeRuntimeConfig(config.dbPath, filteredPayload);
     }));
+
+    // Hot-reload scheduler if scanCadence changed
+    if (filteredPayload.scanCadence) {
+      const scheduler = (fastify as AppWithConfig).scanScheduler;
+      if (scheduler?.reschedule) {
+        scheduler.reschedule(filteredPayload.scanCadence as string);
+      }
+    }
 
     return {
       data: toConfigResponse(config).data,

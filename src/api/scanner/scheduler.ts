@@ -11,6 +11,7 @@ export interface SchedulerOptions {
 export interface ScanScheduler {
   start(): void;
   stop(): void;
+  reschedule(newCadence: string): void;
   triggerManualScan(): Promise<ScanRecord>;
   isRunning(): boolean;
   getStatus(): ScanStatus;
@@ -75,6 +76,14 @@ export function createScheduler(options: SchedulerOptions): ScanScheduler {
     },
     stop() {
       cronJob?.stop();
+    },
+    reschedule(newCadence: string) {
+      cronJob?.stop();
+      options.cadence = newCadence;
+      cronJob = new Cron(newCadence, { paused: true }, () => {
+        void triggerScan('scheduled');
+      });
+      cronJob.resume();
     },
     async triggerManualScan(): Promise<ScanRecord> {
       return triggerScan('manual');

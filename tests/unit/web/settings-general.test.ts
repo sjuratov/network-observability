@@ -87,14 +87,15 @@ describe('Settings General tab client contract', () => {
         dataRetentionDays: 365,
       },
       meta: {
-        applied: [],
-        restartRequired: ['scanCadence'],
+        applied: ['scanCadence'],
+        restartRequired: [],
       },
     });
 
     const result = await client.updateSettings({ scanCadence: '0 */1 * * *' });
 
-    expect(result.meta.restartRequired).toEqual(['scanCadence']);
+    expect(result.meta.applied).toContain('scanCadence');
+    expect(result.meta.restartRequired).not.toContain('scanCadence');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       `${BASE_URL}/config`,
       expect.objectContaining({

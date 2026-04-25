@@ -72,6 +72,11 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 | F14.15 | Server-side validation errors are surfaced in the UI per field | Should | e.g., "Invalid cron expression", "Retention must be ≥ 30 days" |
 | F14.16 | Runtime config changes are persisted to a runtime config store (survives restart) | Must | See persistence design below |
 | F14.17 | `GET /api/v1/config/api-key` returns the full (unredacted) API key | Must | Requires authentication; used by the "Reveal" toggle |
+| F14.18 | Scan schedule is presented as a friendly preset dropdown instead of a raw cron input | Must | Presets: Every 5/15/30 min, 1/4/6/12 hours, Once a day, Custom (cron). See Preset Mapping below |
+| F14.19 | "Once a day" preset reveals an hour picker (00:00–23:00) for selecting the daily scan time | Must | Default hour is 00:00; maps to cron `0 {hour} * * *` |
+| F14.20 | "Custom (cron)" preset reveals a raw cron text input with human-readable preview | Must | Fallback for power users; same validation as before |
+| F14.21 | Scan cadence changes are applied at runtime without requiring a container restart | Must | Server hot-reloads the scheduler when `scanCadence` is updated via `PATCH /api/v1/config` |
+| F14.22 | On load, the current cron expression is reverse-mapped to a preset if it matches a known pattern | Must | Unknown cron patterns default to "Custom (cron)" with the raw expression shown |
 
 ## Acceptance Criteria
 
@@ -82,12 +87,12 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 - **And** the API key field shows the redacted form (e.g., `nobs_****...a1b2`)
 
 ### AC-2: Save General Settings
-- **Given** the General tab is active and the user changes scan cadence from "every 6 hours" to "every 1 hour"
+- **Given** the General tab is active and the user selects "Every hour" from the scan schedule dropdown
 - **When** the user clicks "Save Changes"
-- **Then** `PATCH /api/v1/config` is sent with `{ scanCadence: "0 */1 * * *" }`
+- **Then** `PATCH /api/v1/config` is sent with `{ scanCadence: "0 * * * *" }`
 - **And** a success toast "Settings saved successfully" appears
 - **And** the save button is disabled during the request (loading state)
-- **And** a "Requires restart" indicator is shown for scan cadence
+- **And** the scan cadence change is applied at runtime (no restart indicator for scan cadence)
 
 ### AC-3: Save Network Settings
 - **Given** the Network tab shows auto-detected subnets and configured subnets
@@ -134,17 +139,18 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 - **And** the frontend updates its stored API key for subsequent requests
 
 ### AC-10: Validation Errors
-- **Given** the user enters an invalid cron expression in the scan cadence field
+- **Given** the user selects "Custom (cron)" and enters an invalid cron expression
 - **When** the user clicks "Save Changes"
 - **Then** the server returns a 400 with validation errors
 - **And** the UI shows per-field error messages (e.g., "Invalid cron expression")
 - **And** the config is NOT updated
 
 ### AC-11: Restart-Required Indicators
-- **Given** the user changes a restart-required setting (scan cadence, subnets, intensity)
+- **Given** the user changes a restart-required setting (subnets, intensity)
 - **When** the save succeeds
 - **Then** the UI shows an informational banner: "Some changes require a restart to take effect"
 - **And** the affected fields have a visual indicator (e.g., info icon with tooltip)
+- **Note:** scan cadence is NOT restart-required — it is hot-reloaded at runtime
 
 ### AC-12: Error Handling — Network Failure
 - **Given** the backend is unreachable
@@ -158,6 +164,58 @@ The UI scaffold is complete. The backend config system loads config at startup. 
 - **Then** auto-detected subnets are shown with a "Detected" badge (read-only)
 - **And** user-configured subnets are shown with edit/remove controls
 - **And** the user can add new subnets via the add form
+
+### AC-14: Friendly Schedule Preset Selection
+- **Given** the General tab is active
+- **When** the settings are loaded and the effective `scanCadence` is `0 */6 * * *`
+- **Then** the schedule dropdown shows "Every 6 hours" selected
+- **And** no raw cron input is visible
+
+### AC-15: Daily Schedule with Hour Selection
+- **Given** the user selects "Once a day" from the schedule dropdown
+- **When** the user selects "14:00" from the hour picker
+- **Then** the underlying `scanCadence` value is set to `0 14 * * *`
+- **And** the cron preview shows "Runs once a day at 14:00"
+
+### AC-16: Custom Cron Fallback
+- **Given** the user selects "Custom (cron)…" from the schedule dropdown
+- **When** a raw cron text input is revealed
+- **Then** the user can enter any valid 5-field cron expression
+- **And** a human-readable preview is shown beneath the input
+
+### AC-17: Unknown Cron Hydration
+- **Given** the effective `scanCadence` is `5 4 * * 1` (not a known preset)
+- **When** settings are loaded
+- **Then** the dropdown shows "Custom (cron)…" selected
+- **And** the raw cron input shows `5 4 * * 1`
+
+### AC-18: Env-Managed Schedule Dropdown
+- **Given** `scanCadence` is set via environment variable
+- **When** settings are loaded
+- **Then** the schedule dropdown is disabled with "Set via environment variable" badge
+- **And** the hour picker (if visible) is also disabled
+
+### AC-19: Runtime Cadence Hot-Reload
+- **Given** the user changes the scan schedule via the UI and saves
+- **When** the server processes the `PATCH /api/v1/config` with a new `scanCadence`
+- **Then** the scheduler is restarted with the new cadence without triggering an immediate startup scan
+- **And** `scanCadence` does NOT appear in `meta.restartRequired`
+
+## Schedule Preset Mapping
+
+The frontend presents friendly preset labels; the backend always stores/validates standard 5-field cron expressions. The API contract is unchanged.
+
+| Preset ID | Label | Cron Expression |
+|-----------|-------|-----------------|
+| `every-5min` | Every 5 minutes | `*/5 * * * *` |
+| `every-15min` | Every 15 minutes | `*/15 * * * *` |
+| `every-30min` | Every 30 minutes | `*/30 * * * *` |
+| `every-hour` | Every hour | `0 * * * *` |
+| `every-4h` | Every 4 hours | `0 */4 * * *` |
+| `every-6h` | Every 6 hours | `0 */6 * * *` |
+| `every-12h` | Every 12 hours | `0 */12 * * *` |
+| `once-a-day` | Once a day | `0 {hour} * * *` |
+| `custom` | Custom (cron)… | user-entered |
 
 ## API Contract
 
@@ -357,7 +415,7 @@ Runtime configuration changes made via the Settings UI are persisted to a **`con
 | `presenceOfflineThreshold` | ✅ Yes | Applied on next scan completion |
 | `dataRetentionDays` | ✅ Yes | Applied on next cleanup cycle |
 | `logLevel` | ✅ Yes | Changes log verbosity immediately |
-| `scanCadence` | ❌ Restart required | Scheduler initialized at startup |
+| `scanCadence` | ✅ Yes | Scheduler hot-reloaded at runtime (no restart) |
 | `scanIntensity` | ❌ Restart required | Scan profile compiled at startup |
 | `subnets` | ❌ Restart required | Scanner targets set at startup |
 | `webUiPort` | ❌ Read-only | HTTP server binds port at startup |
