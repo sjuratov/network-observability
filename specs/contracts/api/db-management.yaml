@@ -1,0 +1,134 @@
+openapi: '3.0.3'
+info:
+  title: Network Observability — DB Management API
+  version: '1.0'
+  description: Database statistics, manual cleanup, and factory reset endpoints.
+
+paths:
+  /api/v1/db/stats:
+    get:
+      summary: Get database statistics
+      description: Returns row counts per table, DB file size, WAL size, retention config, and last cleanup timestamp.
+      responses:
+        '200':
+          description: Database statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DbStatsResponse'
+        '401':
+          description: Unauthorized
+
+  /api/v1/db/cleanup:
+    post:
+      summary: Manual data cleanup
+      description: >
+        Delete temporal data (scans, scan_results, device_history) older than keepDays.
+        keepDays=0 deletes all temporal data. Preserves devices, device_tags, runtime_config, schema_migrations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keepDays]
+              properties:
+                keepDays:
+                  type: integer
+                  minimum: 0
+                  description: Number of days of data to keep. 0 = delete all temporal data.
+      responses:
+        '200':
+          description: Cleanup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/db/factory-reset:
+    post:
+      summary: Factory reset — wipe all user data
+      description: >
+        Deletes ALL user data: devices, device_tags, scans, scan_results, device_history.
+        Preserves runtime_config and schema_migrations. Requires confirm=true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: boolean
+                  description: Must be true to proceed with factory reset.
+      responses:
+        '200':
+          description: Factory reset completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FactoryResetResponse'
+        '400':
+          description: Validation error (confirm not true)
+        '401':
+          description: Unauthorized
+
+components:
+  schemas:
+    DbStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            tables:
+              type: object
+              properties:
+                devices: { type: integer }
+                scans: { type: integer }
+                scan_results: { type: integer }
+                device_history: { type: integer }
+                device_tags: { type: integer }
+            dbSizeBytes: { type: integer }
+            walSizeBytes: { type: integer }
+            retentionDays: { type: integer }
+            lastCleanupAt: { type: string, format: date-time, nullable: true }
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CleanupResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            scansDeleted: { type: integer }
+            scanResultsDeleted: { type: integer }
+            historyDeleted: { type: integer }
+            durationMs: { type: integer }
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    FactoryResetResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            devicesDeleted: { type: integer }
+            scansDeleted: { type: integer }
+            scanResultsDeleted: { type: integer }
+            deviceHistoryDeleted: { type: integer }
+            deviceTagsDeleted: { type: integer }
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Meta:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }

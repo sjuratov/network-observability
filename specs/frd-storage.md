@@ -31,7 +31,9 @@ Persist all network scan results and device state changes in an embedded SQLite 
 | F4.7 | Support schema migrations for future upgrades | Should | Versioned migration files applied on startup |
 | F4.8 | Database file stored in a configurable path for Docker volume mounting | Must | Default: `/data/network-observability.db` |
 | F4.9 | Record per-device per-scan snapshots linking devices to scan results | Must | Captures the state of each device at each scan point |
-| F4.10 | Provide database health metrics (size, row counts, last vacuum) | Should | Exposed via API and logs |
+| F4.10 | Provide database health metrics (size, row counts, last vacuum) | Should | Exposed via `GET /api/v1/db/stats` |
+| F4.11 | Provide an on-demand manual cleanup endpoint | Should | `POST /api/v1/db/cleanup` with `keepDays` parameter. Deletes temporal data (scans, scan_results, device_history) older than N days. `keepDays: 0` deletes all temporal data. Preserves devices, device_tags, runtime_config, schema_migrations. |
+| F4.12 | Provide a factory reset endpoint | Should | `POST /api/v1/db/factory-reset` wipes ALL user data (devices, device_tags, scans, scan_results, device_history). Preserves only runtime_config and schema_migrations. Requires confirmation parameter. |
 
 ## Acceptance Criteria
 
@@ -72,6 +74,51 @@ Persist all network scan results and device state changes in an embedded SQLite 
 - **Given** the database is stored at `/data/network-observability.db`
 - **When** the Docker container is stopped and restarted with the same volume mount
 - **Then** all previously stored data is intact and queryable
+
+### AC-7: Database Statistics Endpoint (F4.10)
+- **Given** the application is running with data in the database
+- **When** a GET request is made to `/api/v1/db/stats` with a valid API key
+- **Then** the response contains row counts for each table (devices, scans, scan_results, device_history, device_tags)
+- **And** the response contains the database file size in bytes
+- **And** the response contains the WAL file size in bytes
+- **And** the response contains the configured retention period in days
+- **And** the response contains the timestamp of the last retention cleanup (or null if never run)
+
+### AC-8: Manual Cleanup Endpoint (F4.11)
+- **Given** the application is running with expired data in the database
+- **When** a POST request is made to `/api/v1/db/cleanup` with `{ "keepDays": 7 }`
+- **Then** all scans, scan_results, and device_history older than 7 days are deleted
+- **And** scans, scan_results, and device_history from the last 7 days are preserved
+- **And** device records are NOT deleted (permanent identities)
+- **And** device_tags are NOT deleted (user configuration)
+- **And** the response contains counts of deleted rows and duration in milliseconds
+
+### AC-9: Manual Cleanup Delete All Temporal Data (F4.11)
+- **Given** the application is running with data in the database
+- **When** a POST request is made to `/api/v1/db/cleanup` with `{ "keepDays": 0 }`
+- **Then** all scans, scan_results, and device_history are deleted
+- **And** device records are preserved
+- **And** device_tags are preserved
+
+### AC-10: Manual Cleanup Validation (F4.11)
+- **Given** a POST request is made to `/api/v1/db/cleanup`
+- **When** the request body contains an invalid keepDays value (negative or non-integer)
+- **Then** the response is 400 with error code `VALIDATION_ERROR`
+- **And** no data is deleted
+
+### AC-11: Factory Reset (F4.12)
+- **Given** the application is running with devices, scans, and tags in the database
+- **When** a POST request is made to `/api/v1/db/factory-reset` with `{ "confirm": true }`
+- **Then** all rows from devices, device_tags, scans, scan_results, and device_history are deleted
+- **And** runtime_config is preserved
+- **And** schema_migrations is preserved
+- **And** the response confirms the reset with row counts deleted per table
+
+### AC-12: Factory Reset Requires Confirmation (F4.12)
+- **Given** a POST request is made to `/api/v1/db/factory-reset`
+- **When** the request body is missing or `confirm` is not `true`
+- **Then** the response is 400 with error code `VALIDATION_ERROR`
+- **And** no data is deleted
 
 ## Technical Considerations
 

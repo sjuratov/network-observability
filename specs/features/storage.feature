@@ -175,3 +175,101 @@ Feature: Historical Data Storage
     Given no database path is configured
     When the application starts
     Then the database is created at the default path "/data/network-observability.db"
+
+  # --- Database Management API (F4.10, F4.11, F4.12) ---
+
+  @should
+  Scenario: Database stats returns table row counts
+    Given the application has started successfully
+    And devices and scan data exist in the database
+    When a GET request is made to "/api/v1/db/stats"
+    Then the response status is 200
+    And the response contains row counts for tables:
+      | table          |
+      | devices        |
+      | scans          |
+      | scan_results   |
+      | device_history |
+      | device_tags    |
+
+  @should
+  Scenario: Database stats returns size and retention info
+    Given the application has started successfully
+    When a GET request is made to "/api/v1/db/stats"
+    Then the response contains "dbSizeBytes" as a number
+    And the response contains "walSizeBytes" as a number
+    And the response contains "retentionDays" as a number
+    And the response contains "lastCleanupAt"
+
+  @should
+  Scenario: Manual cleanup keeps last N days and purges the rest
+    Given scan records exist from 200 days ago
+    And scan records exist from 5 days ago
+    When a POST request is made to "/api/v1/db/cleanup" with body:
+      | field    | value |
+      | keepDays | 7     |
+    Then the response status is 200
+    And the response contains "scansDeleted" greater than 0
+    And the response contains "durationMs" as a number
+    And scan records from 5 days ago are retained
+    And device records are not deleted
+
+  @should
+  Scenario: Manual cleanup with keepDays 0 deletes all temporal data
+    Given scan records and device_history records exist
+    When a POST request is made to "/api/v1/db/cleanup" with body:
+      | field    | value |
+      | keepDays | 0     |
+    Then the response status is 200
+    And all scans are deleted
+    And all scan_results are deleted
+    And all device_history entries are deleted
+    And device records are not deleted
+    And device_tags are not deleted
+
+  @should
+  Scenario: Manual cleanup rejects negative keepDays
+    When a POST request is made to "/api/v1/db/cleanup" with body:
+      | field    | value |
+      | keepDays | -5    |
+    Then the response status is 400
+    And the response error code is "VALIDATION_ERROR"
+
+  @should
+  Scenario: Factory reset wipes all user data with confirmation
+    Given devices, scans, and tags exist in the database
+    When a POST request is made to "/api/v1/db/factory-reset" with body:
+      | field   | value |
+      | confirm | true  |
+    Then the response status is 200
+    And all devices are deleted
+    And all device_tags are deleted
+    And all scans are deleted
+    And all scan_results are deleted
+    And all device_history entries are deleted
+    And runtime_config is preserved
+    And schema_migrations is preserved
+
+  @should
+  Scenario: Factory reset requires confirmation parameter
+    When a POST request is made to "/api/v1/db/factory-reset" with body:
+      | field   | value |
+      | confirm | false |
+    Then the response status is 400
+    And the response error code is "VALIDATION_ERROR"
+    And no data is deleted
+
+  @should
+  Scenario: Database stats requires authentication
+    When a GET request is made to "/api/v1/db/stats" without an API key
+    Then the response status is 401
+
+  @should
+  Scenario: Manual cleanup requires authentication
+    When a POST request is made to "/api/v1/db/cleanup" without an API key
+    Then the response status is 401
+
+  @should
+  Scenario: Factory reset requires authentication
+    When a POST request is made to "/api/v1/db/factory-reset" without an API key
+    Then the response status is 401
