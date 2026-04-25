@@ -71,6 +71,25 @@
   .empty-state h3 { font-size: 1.125rem; font-weight: 600; color: #e6edf3; margin-bottom: 0.25rem; }
   .empty-state p { font-size: 0.875rem; color: #8b949e; margin-bottom: 1rem; }
 
+  /* ---------- Filtered empty state (hidden) ---------- */
+  .filtered-empty-state {
+    display: none; text-align: center; padding: 3rem 0;
+  }
+  .filtered-empty-state p { font-size: 0.875rem; color: #8b949e; }
+
+  /* ---------- Status filter ---------- */
+  .status-filter { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .status-filter label {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6e7681;
+  }
+  .status-filter select {
+    padding: 0.25rem 0.5rem; border-radius: 6px;
+    border: 1px solid #30363d; background: #1c2128;
+    font-size: 0.875rem; color: #e6edf3; cursor: pointer;
+    font-family: inherit;
+  }
+  .status-filter select:focus { outline: none; border-color: #1f6feb; }
+
   /* ---------- Table ---------- */
   table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
   th {
@@ -115,8 +134,19 @@
   .detail-subnets { margin-top: 0.5rem; font-size: 0.75rem; color: #6e7681; }
 
   /* ---------- Pagination ---------- */
-  .pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 0.75rem; margin-top: 1rem; font-size: 0.8125rem; color: #8b949e;
+  }
+  .pagination-left { display: flex; align-items: center; gap: 0.5rem; }
+  .pagination-left label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6e7681; }
+  .pagination-left select {
+    padding: 0.25rem 0.5rem; font-size: 0.875rem; background: #1c2128; border: 1px solid #30363d;
+    border-radius: 6px; color: #e6edf3; font-family: inherit; cursor: pointer;
+  }
+  .pagination-left select:focus { outline: none; border-color: #1f6feb; }
   .pagination-info { font-size: 0.75rem; color: #8b949e; }
+  .pagination-right { display: flex; align-items: center; gap: 0.25rem; }
   .page-btns { display: flex; gap: 0.25rem; }
   .page-btn {
     padding: 0.25rem 0.75rem; font-size: 0.875rem; border-radius: 6px;
@@ -126,6 +156,7 @@
   .page-btn:hover:not(.active):not(:disabled) { border-color: #1f6feb; }
   .page-btn.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
   .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .page-ellipsis { padding: 0.25rem 0.5rem; color: #6e7681; font-size: 0.875rem; }
 
   /* ---------- Export ---------- */
   .export-row { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
@@ -168,6 +199,23 @@
         <button data-testid="empty-state-action" class="btn-primary">⟳ Scan Now</button>
       </div>
 
+      <!-- Status filter -->
+      <div class="status-filter" data-testid="scan-status-filter-wrapper">
+        <label for="scan-status-filter">Status</label>
+        <select id="scan-status-filter" data-testid="scan-status-filter">
+          <option value="all">All</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+
+      <!-- Filtered empty state (hidden — shown when filter yields no results) -->
+      <div data-testid="filtered-empty-state" class="filtered-empty-state" id="filteredEmptyState">
+        <p>No scans match the selected status filter.</p>
+      </div>
+
       <!-- Scan history table -->
       <table data-testid="scan-history-table">
         <thead>
@@ -184,7 +232,7 @@
         </thead>
         <tbody>
           <!-- Scan 1 — in-progress -->
-          <tr class="scan-row" data-testid="scan-history-table-row-scan-001" onclick="toggleDetail('scan-001')">
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-001" data-status="in-progress" onclick="toggleDetail('scan-001')">
             <td data-testid="scan-history-table-row-scan-001-expand" class="expand-cell">▸</td>
             <td class="mono">a1b2c3d4</td>
             <td data-testid="scan-history-table-row-scan-001-time">Apr 25, 2026, 02:30:00 PM</td>
@@ -203,7 +251,7 @@
           </tr>
 
           <!-- Scan 2 — completed, 3 new devices -->
-          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-002" onclick="toggleDetail('scan-002')">
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-002" data-status="completed" onclick="toggleDetail('scan-002')">
             <td data-testid="scan-history-table-row-scan-002-expand" class="expand-cell">▸</td>
             <td class="mono">b2c3d4e5</td>
             <td data-testid="scan-history-table-row-scan-002-time">Apr 25, 2026, 08:15:00 AM</td>
@@ -223,7 +271,7 @@
           </tr>
 
           <!-- Scan 3 — completed, 0 new -->
-          <tr class="scan-row" data-testid="scan-history-table-row-scan-003" onclick="toggleDetail('scan-003')">
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-003" data-status="completed" onclick="toggleDetail('scan-003')">
             <td data-testid="scan-history-table-row-scan-003-expand" class="expand-cell">▸</td>
             <td class="mono">c3d4e5f6</td>
             <td data-testid="scan-history-table-row-scan-003-time">Apr 24, 2026, 08:00:00 PM</td>
@@ -243,7 +291,7 @@
           </tr>
 
           <!-- Scan 4 — failed -->
-          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-004" onclick="toggleDetail('scan-004')">
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-004" data-status="failed" onclick="toggleDetail('scan-004')">
             <td data-testid="scan-history-table-row-scan-004-expand" class="expand-cell">▸</td>
             <td class="mono">d4e5f6a7</td>
             <td data-testid="scan-history-table-row-scan-004-time">Apr 24, 2026, 02:00:00 PM</td>
@@ -262,7 +310,7 @@
           </tr>
 
           <!-- Scan 5 — completed, 0 new -->
-          <tr class="scan-row" data-testid="scan-history-table-row-scan-005" onclick="toggleDetail('scan-005')">
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-005" data-status="completed" onclick="toggleDetail('scan-005')">
             <td data-testid="scan-history-table-row-scan-005-expand" class="expand-cell">▸</td>
             <td class="mono">e5f6a7b8</td>
             <td data-testid="scan-history-table-row-scan-005-time">Apr 24, 2026, 08:00:00 AM</td>
@@ -282,7 +330,7 @@
           </tr>
 
           <!-- Scan 6 — completed, 1 new -->
-          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-006" onclick="toggleDetail('scan-006')">
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-006" data-status="completed" onclick="toggleDetail('scan-006')">
             <td data-testid="scan-history-table-row-scan-006-expand" class="expand-cell">▸</td>
             <td class="mono">f6a7b8c9</td>
             <td data-testid="scan-history-table-row-scan-006-time">Apr 23, 2026, 08:00:00 PM</td>
@@ -304,14 +352,22 @@
       </table>
 
       <!-- Pagination -->
-      <div data-testid="pagination" class="pagination">
-        <span data-testid="pagination-info" class="pagination-info">Showing 1–6 of 24</span>
-        <div class="page-btns">
+      <div data-testid="pagination" class="pagination" id="paginationContainer">
+        <div class="pagination-left">
+          <label for="pagination-page-size">Rows per page</label>
+          <select data-testid="pagination-page-size" id="pageSizeSelect">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="All">All</option>
+          </select>
+          <span data-testid="pagination-info" class="pagination-info" id="paginationInfo">Showing 1–6 of 6 scans</span>
+        </div>
+        <div class="pagination-right" id="pageButtonsContainer">
           <button data-testid="pagination-prev" class="page-btn" disabled>← Prev</button>
           <button data-testid="pagination-page-1" class="page-btn active">1</button>
-          <button data-testid="pagination-page-2" class="page-btn">2</button>
-          <button data-testid="pagination-page-3" class="page-btn">3</button>
-          <button data-testid="pagination-next" class="page-btn">Next →</button>
+          <button data-testid="pagination-next" class="page-btn" disabled>Next →</button>
         </div>
       </div>
 
@@ -326,6 +382,7 @@
 </div>
 
 <script>
+/* ── Expand/collapse detail rows ── */
 function toggleDetail(id) {
   var row = document.getElementById('detail-' + id);
   var parentRow = row.previousElementSibling;
@@ -338,6 +395,161 @@ function toggleDetail(id) {
     arrow.textContent = '▾';
   }
 }
+
+/* ── Status filter + pagination logic ── */
+(function() {
+  var statusFilter = document.getElementById('scan-status-filter');
+  var pageSizeSelect = document.getElementById('pageSizeSelect');
+  var paginationInfo = document.getElementById('paginationInfo');
+  var pageButtonsContainer = document.getElementById('pageButtonsContainer');
+  var filteredEmptyState = document.getElementById('filteredEmptyState');
+  var table = document.querySelector('[data-testid="scan-history-table"]');
+
+  var allScanRows = Array.from(document.querySelectorAll('tr.scan-row'));
+  var currentPage = 1;
+
+  function getDetailRow(scanRow) {
+    return scanRow.nextElementSibling && scanRow.nextElementSibling.classList.contains('detail-row')
+      ? scanRow.nextElementSibling : null;
+  }
+
+  function getStatus(scanRow) {
+    return scanRow.getAttribute('data-status') || '';
+  }
+
+  function getFilteredRows() {
+    var status = statusFilter.value;
+    return allScanRows.filter(function(row) {
+      return status === 'all' || getStatus(row) === status;
+    });
+  }
+
+  function getPageSize() {
+    var val = pageSizeSelect.value;
+    return val === 'All' ? Infinity : parseInt(val, 10);
+  }
+
+  function render() {
+    var filtered = getFilteredRows();
+    var pageSize = getPageSize();
+    var totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    var from = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    var to = filtered.length === 0 ? 0 : Math.min(currentPage * pageSize, filtered.length);
+
+    /* Hide all rows first */
+    allScanRows.forEach(function(row) {
+      row.style.display = 'none';
+      var detail = getDetailRow(row);
+      if (detail) detail.style.display = 'none';
+    });
+
+    /* Show only the current page of filtered rows */
+    var start = (currentPage - 1) * (pageSize === Infinity ? 0 : pageSize);
+    var end = pageSize === Infinity ? filtered.length : start + pageSize;
+    var visible = filtered.slice(start, end);
+
+    visible.forEach(function(row, idx) {
+      row.style.display = '';
+      /* Reapply alternating odd stripe */
+      row.classList.toggle('odd', idx % 2 === 1);
+      var detail = getDetailRow(row);
+      if (detail && detail.classList.contains('open')) detail.style.display = '';
+    });
+
+    /* Empty states */
+    if (filtered.length === 0 && statusFilter.value !== 'all') {
+      filteredEmptyState.style.display = 'block';
+      table.style.display = 'none';
+    } else {
+      filteredEmptyState.style.display = 'none';
+      table.style.display = '';
+    }
+
+    /* Update pagination info */
+    paginationInfo.textContent = filtered.length === 0
+      ? 'Showing 0–0 of 0 scans'
+      : 'Showing ' + from + '–' + to + ' of ' + filtered.length + ' scans';
+
+    /* Rebuild page buttons */
+    renderPageButtons(totalPages);
+  }
+
+  function renderPageButtons(totalPages) {
+    pageButtonsContainer.innerHTML = '';
+
+    if (totalPages <= 1 && getPageSize() === Infinity) {
+      /* No page buttons when showing "All" */
+      return;
+    }
+
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'page-btn';
+    prevBtn.setAttribute('data-testid', 'pagination-prev');
+    prevBtn.textContent = '← Prev';
+    prevBtn.disabled = currentPage <= 1;
+    prevBtn.addEventListener('click', function() { currentPage--; render(); });
+    pageButtonsContainer.appendChild(prevBtn);
+
+    /* Build page numbers with capping (first, last, current±1, ellipsis) */
+    var pages = buildPageNumbers(currentPage, totalPages);
+    pages.forEach(function(p) {
+      if (p === '...') {
+        var ellipsis = document.createElement('span');
+        ellipsis.className = 'page-ellipsis';
+        ellipsis.textContent = '…';
+        pageButtonsContainer.appendChild(ellipsis);
+      } else {
+        var btn = document.createElement('button');
+        btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+        btn.setAttribute('data-testid', 'pagination-page-' + p);
+        btn.textContent = p;
+        btn.addEventListener('click', function() { currentPage = p; render(); });
+        pageButtonsContainer.appendChild(btn);
+      }
+    });
+
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'page-btn';
+    nextBtn.setAttribute('data-testid', 'pagination-next');
+    nextBtn.textContent = 'Next →';
+    nextBtn.disabled = currentPage >= totalPages;
+    nextBtn.addEventListener('click', function() { currentPage++; render(); });
+    pageButtonsContainer.appendChild(nextBtn);
+  }
+
+  function buildPageNumbers(current, total) {
+    if (total <= 7) {
+      var arr = [];
+      for (var i = 1; i <= total; i++) arr.push(i);
+      return arr;
+    }
+    var pages = [1];
+    if (current > 3) pages.push('...');
+    for (var j = Math.max(2, current - 1); j <= Math.min(total - 1, current + 1); j++) {
+      pages.push(j);
+    }
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+    return pages;
+  }
+
+  /* ── Event listeners ── */
+  statusFilter.addEventListener('change', function() {
+    currentPage = 1;
+    render();
+  });
+
+  pageSizeSelect.addEventListener('change', function() {
+    currentPage = 1;
+    render();
+  });
+
+  /* Initial render */
+  render();
+})();
 </script>
 </body>
 </html>
