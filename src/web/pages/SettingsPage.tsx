@@ -660,7 +660,7 @@ export function SettingsPage() {
 
         <div
           data-testid="settings-loading"
-          className="mb-4 rounded-md border border-[#30363d] bg-[#161b22] px-4 py-2 text-sm text-[#8b949e]"
+          className={`mb-4 rounded-md border border-[#30363d] bg-[#161b22] px-4 py-2 text-sm text-[#8b949e] ${isLoading ? '' : 'hidden'}`}
         >
           Loading settings...
         </div>
