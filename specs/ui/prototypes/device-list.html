@@ -1,272 +1,611 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetObserver — Device List</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
-  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
-  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
-  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
-  nav a:hover, nav a.active { color: #e2e8f0; }
-  .page { max-width: 1280px; margin: 0 auto; padding: 1.5rem; }
-  h2 { font-size: 1.25rem; margin-bottom: 1rem; }
-  /* ---------- Toolbar ---------- */
-  .toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
-  .search-box { flex: 1; min-width: 220px; padding: 0.5rem 0.75rem; background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 0.875rem; }
-  .search-box::placeholder { color: #64748b; }
-  .search-box:focus { outline: none; border-color: #0ea5e9; }
-  /* ---------- Filters ---------- */
-  .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
-  .chip { padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; }
-  .chip:hover { border-color: #0ea5e9; color: #e2e8f0; }
-  .chip.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
-  select.filter-select { padding: 0.3rem 0.5rem; border-radius: 6px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 0.75rem; cursor: pointer; }
-  select.filter-select:focus { outline: none; border-color: #0ea5e9; }
-  /* ---------- Buttons ---------- */
-  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
-  .btn-primary { background: #0ea5e9; color: #fff; }
-  .btn-primary:hover { background: #0284c7; }
-  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
-  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
-  .btn-danger { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
-  /* ---------- Bulk bar ---------- */
-  .bulk-bar { background: #1e293b; border: 1px solid #0ea5e9; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
-  .bulk-bar .count { color: #0ea5e9; font-weight: 600; }
-  /* ---------- Table ---------- */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th { text-align: left; padding: 0.6rem 0.75rem; color: #94a3b8; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #334155; }
-  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1e293b; }
-  tr:nth-child(even) td { background: #1e293b; }
-  tr:hover td { background: #334155; }
-  /* Status dots */
-  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-  .status-online { background: #22c55e; }
-  .status-offline { background: #ef4444; }
-  .status-new { background: #eab308; }
-  /* Tag pills */
-  .tag { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.7rem; background: rgba(14,165,233,0.15); color: #0ea5e9; margin-right: 0.25rem; }
-  /* Checkbox */
-  input[type="checkbox"] { accent-color: #0ea5e9; width: 15px; height: 15px; cursor: pointer; }
-  /* Pagination */
-  .pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; }
-  .page-btns { display: flex; gap: 0.25rem; }
-  .page-btn { padding: 0.3rem 0.6rem; border: 1px solid #334155; background: transparent; color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-  .page-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
-  .page-btn:hover:not(.active) { border-color: #0ea5e9; color: #e2e8f0; }
-  /* Export row */
-  .export-row { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devices — NetObserver</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-page: #0d1117;
+      --bg-card: #161b22;
+      --bg-input: #1c2128;
+      --bg-elevated: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --border: #30363d;
+      --accent: #1f6feb;
+      --accent-hover: #388bfd;
+      --status-online: #3fb950;
+      --status-online-bg: #0d3117;
+      --status-offline: #f85149;
+      --status-offline-bg: #3d1116;
+      --status-warning: #d29922;
+      --status-warning-bg: #3d2e00;
+      --status-info: #58a6ff;
+      --status-info-bg: #0d2645;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      --selected-row-bg: rgba(27, 75, 145, 0.3);
+    }
+    html, body { height: 100%; }
+    body { font-family: var(--font-sans); background: var(--bg-page); color: var(--text-primary); font-size: 14px; line-height: 1.5; }
+
+    /* Layout */
+    .app-layout { display: flex; height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-card); display: flex; flex-direction: column; }
+    .sidebar-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-header .logo-icon { font-size: 18px; }
+    .sidebar-header .logo-text { font-size: 18px; font-weight: 600; color: var(--text-primary); text-decoration: none; }
+    .sidebar-nav { flex: 1; padding: 8px 0; }
+    .sidebar-nav ul { list-style: none; }
+    .sidebar-nav li + li { margin-top: 2px; }
+    .nav-link { display: block; padding: 8px 16px; font-size: 14px; text-decoration: none; border-left: 3px solid transparent; color: var(--text-secondary); transition: background 0.15s, color 0.15s; }
+    .nav-link:hover { background: var(--border); color: var(--text-primary); }
+    .nav-link.active { border-left-color: var(--accent); background: rgba(31, 111, 235, 0.1); color: var(--text-primary); }
+
+    /* Main content */
+    .main-content { flex: 1; overflow: auto; }
+    .content-wrapper { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+    /* Page header */
+    .page-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .page-header h2 { font-size: 20px; font-weight: 700; white-space: nowrap; }
+
+    /* Search bar */
+    .search-bar { flex: 1; min-width: 220px; position: relative; }
+    .search-bar input {
+      width: 100%; padding: 8px 32px 8px 12px; font-size: 13px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-primary); outline: none; transition: border-color 0.15s;
+    }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar .clear-btn {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none; padding: 2px 4px;
+    }
+    .search-bar .clear-btn:hover { color: var(--text-primary); }
+    .search-bar.has-value .clear-btn { display: block; }
+
+    /* Filter chips */
+    .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .filter-label { font-size: 12px; color: var(--text-muted); }
+    .filter-btn {
+      display: inline-flex; align-items: center; padding: 4px 12px; font-size: 12px;
+      border-radius: 9999px; border: 1px solid var(--border); background: transparent;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.15s; font-family: var(--font-sans);
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-select {
+      padding: 4px 12px; font-size: 12px; border-radius: 9999px;
+      border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+      cursor: pointer; font-family: var(--font-sans); appearance: none;
+      background-image: none; -webkit-appearance: none;
+    }
+    .filter-select:hover { border-color: var(--accent); color: var(--text-primary); }
+    .filter-select option { background: var(--bg-elevated); color: var(--text-primary); }
+    .clear-filters {
+      background: none; border: none; color: var(--text-secondary); cursor: pointer;
+      font-size: 12px; text-decoration: underline; font-family: var(--font-sans); display: none;
+    }
+    .clear-filters:hover { color: var(--text-primary); }
+    .clear-filters.visible { display: inline; }
+
+    /* Bulk action bar */
+    .bulk-action-bar {
+      display: none; align-items: center; gap: 12px; padding: 8px 16px;
+      border: 1px solid var(--accent); background: var(--bg-card); border-radius: 8px; margin-bottom: 16px;
+    }
+    .bulk-action-bar.visible { display: flex; }
+    .bulk-count { font-size: 13px; color: var(--accent); font-weight: 500; }
+    .bulk-btn {
+      padding: 4px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;
+      font-family: var(--font-sans); border: 1px solid var(--border); background: transparent; color: var(--text-primary);
+    }
+    .bulk-btn:hover { border-color: var(--accent); }
+    .bulk-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .bulk-btn.primary:hover { background: var(--accent-hover); }
+    .bulk-btn.ghost { border: none; color: var(--text-secondary); }
+    .bulk-btn.ghost:hover { color: var(--text-primary); }
+
+    /* Device count */
+    .device-count { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+
+    /* Device table */
+    .device-table { width: 100%; border-collapse: collapse; }
+    .device-table thead th {
+      text-align: left; font-size: 11px; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .device-table thead th.sortable { cursor: pointer; user-select: none; }
+    .device-table thead th.sortable:hover { color: var(--text-primary); }
+    .sort-indicator { color: var(--text-muted); margin-left: 2px; }
+    .device-table tbody tr { border-bottom: 1px solid var(--bg-elevated); cursor: pointer; transition: background 0.1s; }
+    .device-table tbody tr:nth-child(odd) { background: var(--bg-input); }
+    .device-table tbody tr:hover { background: var(--border); }
+    .device-table tbody tr.selected { background: var(--selected-row-bg); }
+    .device-table tbody td { padding: 8px 12px; font-size: 13px; vertical-align: middle; }
+    .col-checkbox { width: 40px; }
+    .col-status { width: 60px; }
+    .device-table input[type="checkbox"] {
+      accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px;
+      padding: 2px 8px; font-size: 12px; font-weight: 500;
+    }
+    .status-badge .dot { display: inline-block; width: 6px; height: 6px; border-radius: 9999px; }
+    .status-badge.online { background: var(--status-online-bg); color: var(--status-online); }
+    .status-badge.online .dot { background: var(--status-online); }
+    .status-badge.offline { background: var(--status-offline-bg); color: var(--status-offline); }
+    .status-badge.offline .dot { background: var(--status-offline); }
+    .status-badge.unknown { background: var(--status-warning-bg); color: var(--status-warning); }
+    .status-badge.unknown .dot { background: var(--status-warning); }
+
+    /* Lifecycle badge */
+    .lifecycle-badge {
+      display: inline-flex; border-radius: 9999px; padding: 2px 8px;
+      font-size: 12px; font-weight: 500; margin-left: 6px;
+      border: 1px solid rgba(210, 153, 34, 0.4); background: var(--status-warning-bg); color: var(--status-warning);
+    }
+
+    /* Name link */
+    .device-name-link { color: var(--status-info); text-decoration: none; }
+    .device-name-link:hover { text-decoration: underline; }
+
+    /* Mono text */
+    .mono { font-family: var(--font-mono); font-size: 12px; }
+
+    /* Tag pill */
+    .tag-pill {
+      display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px;
+      background: var(--border); padding: 2px 8px; font-size: 12px; color: var(--text-primary);
+    }
+    .tags-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 12px; padding: 12px 0; font-size: 13px; color: var(--text-secondary);
+    }
+    .pagination-left { display: flex; align-items: center; gap: 8px; }
+    .pagination-left label { font-size: 12px; }
+    .pagination-left select {
+      padding: 4px 8px; font-size: 12px; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary); font-family: var(--font-sans);
+    }
+    .pagination-left select option { background: var(--bg-elevated); }
+    .pagination-info { font-size: 12px; }
+    .pagination-right { display: flex; align-items: center; gap: 4px; }
+    .page-btn {
+      padding: 4px 10px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px;
+      background: transparent; color: var(--text-secondary); cursor: pointer; font-family: var(--font-sans);
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text-primary); }
+    .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Export actions */
+    .export-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .export-btn {
+      padding: 6px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px;
+      background: transparent; color: var(--text-secondary); cursor: pointer; font-family: var(--font-sans);
+    }
+    .export-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+  </style>
 </head>
 <body>
-<header data-testid="header">
-  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
-  <nav data-testid="nav">
-    <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
-    <a href="device-list.html" class="active" data-testid="nav-devices">Devices</a>
-    <a href="scan-history.html" data-testid="nav-scans">Scans</a>
-    <a href="settings.html" data-testid="nav-settings">Settings</a>
-  </nav>
-</header>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" data-testid="nav-sidebar">
+      <div class="sidebar-header" data-testid="nav-header">
+        <span class="logo-icon">🔭</span>
+        <a href="#" class="logo-text" data-testid="nav-header-logo">NetObserver</a>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="dashboard.html" class="nav-link" data-testid="nav-header-link-dashboard">Dashboard</a></li>
+          <li><a href="device-list.html" class="nav-link active" data-testid="nav-header-link-devices">Devices</a></li>
+          <li><a href="scan-history.html" class="nav-link" data-testid="nav-header-link-scans">Scans</a></li>
+          <li><a href="settings.html" class="nav-link" data-testid="nav-header-link-settings">Settings</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-<div class="page">
-  <div class="toolbar">
-    <h2 style="margin-bottom:0;">Devices</h2>
-    <input type="text" class="search-box" placeholder="Search by name, MAC, IP, vendor, tag…" data-testid="search-input" />
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="content-wrapper" data-testid="page-device-list">
+
+        <!-- Header + Search -->
+        <div class="page-header">
+          <h2>Devices</h2>
+          <div class="search-bar" id="searchBar" data-testid="search-bar">
+            <input type="text" placeholder="Search by name, MAC, IP, vendor, tag…" data-testid="search-bar-input" id="searchInput" />
+            <button class="clear-btn" data-testid="search-bar-clear" id="searchClear">×</button>
+          </div>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="filter-chips" data-testid="filter-chips">
+          <span class="filter-label">Status:</span>
+          <span data-testid="filter-chips-status">
+            <button class="filter-btn active" data-testid="filter-chips-status-all" data-status="all">All</button>
+            <button class="filter-btn" data-testid="filter-chips-status-online" data-status="online">Online</button>
+            <button class="filter-btn" data-testid="filter-chips-status-offline" data-status="offline">Offline</button>
+            <button class="filter-btn" data-testid="filter-chips-status-new" data-status="new">New</button>
+          </span>
+          <select class="filter-select" data-testid="filter-chips-tag" id="tagFilter">
+            <option value="">Tags ▾</option>
+            <option value="IoT">IoT</option>
+            <option value="Media">Media</option>
+            <option value="Infrastructure">Infrastructure</option>
+            <option value="Server">Server</option>
+            <option value="Trusted">Trusted</option>
+            <option value="Smart Home">Smart Home</option>
+          </select>
+          <select class="filter-select" data-testid="filter-chips-vendor" id="vendorFilter">
+            <option value="">Vendor ▾</option>
+            <option value="Apple">Apple</option>
+            <option value="Cisco">Cisco</option>
+            <option value="Espressif">Espressif</option>
+            <option value="Google">Google</option>
+            <option value="HP">HP</option>
+            <option value="Intel">Intel</option>
+            <option value="Samsung">Samsung</option>
+            <option value="TP-Link">TP-Link</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+          <button class="clear-filters" data-testid="filter-chips-clear" id="clearFilters">Clear filters</button>
+        </div>
+
+        <!-- Bulk Action Bar -->
+        <div class="bulk-action-bar" id="bulkBar" data-testid="bulk-action-bar">
+          <span class="bulk-count" data-testid="bulk-action-bar-count" id="bulkCount">0 selected</span>
+          <button class="bulk-btn primary" data-testid="bulk-action-bar-tag">Tag Selected</button>
+          <button class="bulk-btn" data-testid="bulk-action-bar-export">Export Selected</button>
+          <button class="bulk-btn ghost" data-testid="bulk-action-bar-clear" id="bulkClear">Clear Selection</button>
+        </div>
+
+        <!-- Device Count -->
+        <div class="device-count" data-testid="device-table-row-count" id="deviceCount">10 devices</div>
+
+        <!-- Device Table -->
+        <table class="device-table" data-testid="device-table">
+          <thead>
+            <tr data-testid="device-table-header">
+              <th class="col-checkbox"><input type="checkbox" id="selectAll" data-testid="device-table-select-all" /></th>
+              <th class="col-status sortable" data-testid="device-table-sort-status" data-sort="status">Status</th>
+              <th class="sortable" data-testid="device-table-sort-name" data-sort="name">Name</th>
+              <th>MAC Address</th>
+              <th class="sortable" data-testid="device-table-sort-ip" data-sort="ip">IP Address<span class="sort-indicator"> ▲</span></th>
+              <th class="sortable" data-testid="device-table-sort-vendor" data-sort="vendor">Vendor</th>
+              <th>Tags</th>
+              <th class="sortable" data-sort="firstSeen">First Seen</th>
+              <th class="sortable" data-testid="device-table-sort-last-seen" data-sort="lastSeen">Last Seen</th>
+            </tr>
+          </thead>
+          <tbody data-testid="device-table-body" id="deviceTableBody">
+            <!-- Row 1: dev-001 -->
+            <tr data-testid="device-row-dev-001" data-id="dev-001" data-status="online" data-vendor="Samsung" data-tags="Media,IoT" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-001-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-001-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-001-name"><a href="device-detail.html?id=dev-001" class="device-name-link">Living Room TV</a></td>
+              <td data-testid="device-row-dev-001-mac" class="mono">AA:BB:CC:11:22:33</td>
+              <td data-testid="device-row-dev-001-ip" class="mono">192.168.1.42</td>
+              <td data-testid="device-row-dev-001-vendor">Samsung</td>
+              <td data-testid="device-row-dev-001-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-media"><span data-testid="tag-pill-media-label">Media</span></span><span class="tag-pill" data-testid="tag-pill-iot"><span data-testid="tag-pill-iot-label">IoT</span></span></div></td>
+              <td>Jan 15, 2024</td>
+              <td data-testid="device-row-dev-001-last-seen">Apr 25, 2026 14:30</td>
+            </tr>
+            <!-- Row 2: dev-002 -->
+            <tr data-testid="device-row-dev-002" data-id="dev-002" data-status="online" data-vendor="Apple" data-tags="Trusted" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-002-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-002-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-002-name"><a href="device-detail.html?id=dev-002" class="device-name-link">MacBook Pro</a></td>
+              <td data-testid="device-row-dev-002-mac" class="mono">AA:BB:CC:11:22:44</td>
+              <td data-testid="device-row-dev-002-ip" class="mono">192.168.1.10</td>
+              <td data-testid="device-row-dev-002-vendor">Apple</td>
+              <td data-testid="device-row-dev-002-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-trusted"><span data-testid="tag-pill-trusted-label">Trusted</span></span></div></td>
+              <td>Dec 1, 2023</td>
+              <td data-testid="device-row-dev-002-last-seen">Apr 25, 2026 14:28</td>
+            </tr>
+            <!-- Row 3: dev-003 -->
+            <tr data-testid="device-row-dev-003" data-id="dev-003" data-status="online" data-vendor="Espressif" data-tags="IoT,Smart Home" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-003-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-003-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-003-name"><a href="device-detail.html?id=dev-003" class="device-name-link">Smart Thermostat</a></td>
+              <td data-testid="device-row-dev-003-mac" class="mono">AA:BB:CC:11:22:55</td>
+              <td data-testid="device-row-dev-003-ip" class="mono">192.168.1.105</td>
+              <td data-testid="device-row-dev-003-vendor">Espressif</td>
+              <td data-testid="device-row-dev-003-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-iot"><span data-testid="tag-pill-iot-label">IoT</span></span><span class="tag-pill" data-testid="tag-pill-smart-home"><span data-testid="tag-pill-smart-home-label">Smart Home</span></span></div></td>
+              <td>Mar 10, 2024</td>
+              <td data-testid="device-row-dev-003-last-seen">Apr 25, 2026 14:15</td>
+            </tr>
+            <!-- Row 4: dev-004 — Unknown + New lifecycle badge -->
+            <tr data-testid="device-row-dev-004" data-id="dev-004" data-status="unknown" data-vendor="Unknown" data-tags="" data-is-new="true">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-004-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-004-status">
+                <span class="status-badge unknown" data-testid="status-badge-unknown"><span class="dot" data-testid="status-badge-unknown-dot"></span><span data-testid="status-badge-unknown-label">Unknown</span></span>
+              </td>
+              <td data-testid="device-row-dev-004-name"><a href="device-detail.html?id=dev-004" class="device-name-link">Unknown Device</a><span class="lifecycle-badge" data-testid="device-row-dev-004-lifecycle-label">New</span></td>
+              <td data-testid="device-row-dev-004-mac" class="mono">AA:BB:CC:11:22:66</td>
+              <td data-testid="device-row-dev-004-ip" class="mono">192.168.1.201</td>
+              <td data-testid="device-row-dev-004-vendor">Unknown</td>
+              <td data-testid="device-row-dev-004-tags"><div class="tags-cell"></div></td>
+              <td>Apr 25, 2026</td>
+              <td data-testid="device-row-dev-004-last-seen">Apr 25, 2026 12:00</td>
+            </tr>
+            <!-- Row 5: dev-005 -->
+            <tr data-testid="device-row-dev-005" data-id="dev-005" data-status="online" data-vendor="Intel" data-tags="Server,Infrastructure" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-005-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-005-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-005-name"><a href="device-detail.html?id=dev-005" class="device-name-link">NAS Server</a></td>
+              <td data-testid="device-row-dev-005-mac" class="mono">AA:BB:CC:11:22:77</td>
+              <td data-testid="device-row-dev-005-ip" class="mono">192.168.1.50</td>
+              <td data-testid="device-row-dev-005-vendor">Intel</td>
+              <td data-testid="device-row-dev-005-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-server"><span data-testid="tag-pill-server-label">Server</span></span><span class="tag-pill" data-testid="tag-pill-infrastructure"><span data-testid="tag-pill-infrastructure-label">Infrastructure</span></span></div></td>
+              <td>Jun 20, 2023</td>
+              <td data-testid="device-row-dev-005-last-seen">Apr 25, 2026 14:32</td>
+            </tr>
+            <!-- Row 6: dev-006 -->
+            <tr data-testid="device-row-dev-006" data-id="dev-006" data-status="offline" data-vendor="HP" data-tags="Infrastructure" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-006-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-006-status">
+                <span class="status-badge offline" data-testid="status-badge-offline"><span class="dot" data-testid="status-badge-offline-dot"></span><span data-testid="status-badge-offline-label">Offline</span></span>
+              </td>
+              <td data-testid="device-row-dev-006-name"><a href="device-detail.html?id=dev-006" class="device-name-link">WiFi Printer</a></td>
+              <td data-testid="device-row-dev-006-mac" class="mono">AA:BB:CC:11:22:88</td>
+              <td data-testid="device-row-dev-006-ip" class="mono">192.168.1.120</td>
+              <td data-testid="device-row-dev-006-vendor">HP</td>
+              <td data-testid="device-row-dev-006-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-infrastructure"><span data-testid="tag-pill-infrastructure-label">Infrastructure</span></span></div></td>
+              <td>Aug 5, 2023</td>
+              <td data-testid="device-row-dev-006-last-seen">Apr 24, 2026 09:15</td>
+            </tr>
+            <!-- Row 7: dev-007 -->
+            <tr data-testid="device-row-dev-007" data-id="dev-007" data-status="online" data-vendor="Apple" data-tags="Trusted" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-007-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-007-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-007-name"><a href="device-detail.html?id=dev-007" class="device-name-link">iPad Air</a></td>
+              <td data-testid="device-row-dev-007-mac" class="mono">AA:BB:CC:11:22:99</td>
+              <td data-testid="device-row-dev-007-ip" class="mono">192.168.1.15</td>
+              <td data-testid="device-row-dev-007-vendor">Apple</td>
+              <td data-testid="device-row-dev-007-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-trusted"><span data-testid="tag-pill-trusted-label">Trusted</span></span></div></td>
+              <td>Feb 14, 2024</td>
+              <td data-testid="device-row-dev-007-last-seen">Apr 25, 2026 13:45</td>
+            </tr>
+            <!-- Row 8: dev-008 -->
+            <tr data-testid="device-row-dev-008" data-id="dev-008" data-status="online" data-vendor="TP-Link" data-tags="IoT" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-008-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-008-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-008-name"><a href="device-detail.html?id=dev-008" class="device-name-link">Security Camera</a></td>
+              <td data-testid="device-row-dev-008-mac" class="mono">AA:BB:CC:11:23:AA</td>
+              <td data-testid="device-row-dev-008-ip" class="mono">192.168.1.150</td>
+              <td data-testid="device-row-dev-008-vendor">TP-Link</td>
+              <td data-testid="device-row-dev-008-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-iot"><span data-testid="tag-pill-iot-label">IoT</span></span></div></td>
+              <td>Nov 1, 2023</td>
+              <td data-testid="device-row-dev-008-last-seen">Apr 25, 2026 14:31</td>
+            </tr>
+            <!-- Row 9: dev-009 -->
+            <tr data-testid="device-row-dev-009" data-id="dev-009" data-status="online" data-vendor="Google" data-tags="IoT,Smart Home" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-009-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-009-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-009-name"><a href="device-detail.html?id=dev-009" class="device-name-link">Google Home</a></td>
+              <td data-testid="device-row-dev-009-mac" class="mono">AA:BB:CC:11:23:BB</td>
+              <td data-testid="device-row-dev-009-ip" class="mono">192.168.1.88</td>
+              <td data-testid="device-row-dev-009-vendor">Google</td>
+              <td data-testid="device-row-dev-009-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-iot"><span data-testid="tag-pill-iot-label">IoT</span></span><span class="tag-pill" data-testid="tag-pill-smart-home"><span data-testid="tag-pill-smart-home-label">Smart Home</span></span></div></td>
+              <td>Jan 30, 2024</td>
+              <td data-testid="device-row-dev-009-last-seen">Apr 25, 2026 14:20</td>
+            </tr>
+            <!-- Row 10: dev-010 -->
+            <tr data-testid="device-row-dev-010" data-id="dev-010" data-status="online" data-vendor="Cisco" data-tags="Infrastructure" data-is-new="false">
+              <td class="col-checkbox"><input type="checkbox" data-testid="device-row-dev-010-checkbox" /></td>
+              <td class="col-status" data-testid="device-row-dev-010-status">
+                <span class="status-badge online" data-testid="status-badge-online"><span class="dot" data-testid="status-badge-online-dot"></span><span data-testid="status-badge-online-label">Online</span></span>
+              </td>
+              <td data-testid="device-row-dev-010-name"><a href="device-detail.html?id=dev-010" class="device-name-link">Network Switch</a></td>
+              <td data-testid="device-row-dev-010-mac" class="mono">AA:BB:CC:11:23:CC</td>
+              <td data-testid="device-row-dev-010-ip" class="mono">192.168.1.1</td>
+              <td data-testid="device-row-dev-010-vendor">Cisco</td>
+              <td data-testid="device-row-dev-010-tags"><div class="tags-cell"><span class="tag-pill" data-testid="tag-pill-infrastructure"><span data-testid="tag-pill-infrastructure-label">Infrastructure</span></span></div></td>
+              <td>May 15, 2023</td>
+              <td data-testid="device-row-dev-010-last-seen">Apr 25, 2026 14:32</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination" data-testid="pagination">
+          <div class="pagination-left">
+            <label>Rows per page:</label>
+            <select data-testid="pagination-page-size" id="pageSizeSelect">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="All">All</option>
+            </select>
+            <span class="pagination-info" data-testid="pagination-info" id="paginationInfo">Showing 1-10 of 47 devices</span>
+          </div>
+          <div class="pagination-right">
+            <button class="page-btn" data-testid="pagination-prev" disabled>← Prev</button>
+            <button class="page-btn active" data-testid="pagination-page-1">1</button>
+            <button class="page-btn" data-testid="pagination-page-2">2</button>
+            <button class="page-btn" data-testid="pagination-page-3">3</button>
+            <button class="page-btn" data-testid="pagination-page-4">4</button>
+            <button class="page-btn" data-testid="pagination-page-5">5</button>
+            <button class="page-btn" data-testid="pagination-next">Next →</button>
+          </div>
+        </div>
+
+        <!-- Export Actions -->
+        <div class="export-actions" data-testid="export-actions">
+          <button class="export-btn" data-testid="export-button-csv">Export CSV</button>
+          <button class="export-btn" data-testid="export-button-json">Export JSON</button>
+        </div>
+
+      </div>
+    </main>
   </div>
 
-  <!-- Filters -->
-  <div class="filters" data-testid="filters">
-    <span style="font-size:0.75rem;color:#64748b;margin-right:0.25rem;">Status:</span>
-    <button class="chip active" data-testid="filter-status-all">All</button>
-    <button class="chip" data-testid="filter-status-online">Online</button>
-    <button class="chip" data-testid="filter-status-offline">Offline</button>
-    <button class="chip" data-testid="filter-status-new">New</button>
-    <select class="filter-select" data-testid="filter-tags">
-      <option value="">Tags ▾</option>
-      <option>IoT</option>
-      <option>Critical</option>
-      <option>Printer</option>
-      <option>Media</option>
-      <option>Workstation</option>
-      <option>Network</option>
-      <option>Trusted</option>
-      <option>Guest</option>
-    </select>
-    <select class="filter-select" data-testid="filter-vendor">
-      <option value="">Vendor ▾</option>
-      <option>Apple</option>
-      <option>Samsung</option>
-      <option>TP-Link</option>
-      <option>Raspberry Pi</option>
-      <option>HP</option>
-      <option>Intel</option>
-      <option>Sonos</option>
-      <option>Unknown</option>
-    </select>
-  </div>
+  <script>
+    /* ── State ── */
+    const rows = Array.from(document.querySelectorAll('#deviceTableBody tr'));
+    const searchInput = document.getElementById('searchInput');
+    const searchBar = document.getElementById('searchBar');
+    const searchClear = document.getElementById('searchClear');
+    const statusBtns = document.querySelectorAll('[data-testid^="filter-chips-status-"]');
+    const tagFilter = document.getElementById('tagFilter');
+    const vendorFilter = document.getElementById('vendorFilter');
+    const clearFilters = document.getElementById('clearFilters');
+    const bulkBar = document.getElementById('bulkBar');
+    const bulkCount = document.getElementById('bulkCount');
+    const bulkClear = document.getElementById('bulkClear');
+    const selectAll = document.getElementById('selectAll');
+    const deviceCount = document.getElementById('deviceCount');
 
-  <!-- Bulk action bar (shown when items selected) -->
-  <div class="bulk-bar" data-testid="bulk-actions">
-    <span class="count">3 selected</span>
-    <button class="btn btn-primary" data-testid="bulk-tag">Tag Selected</button>
-    <button class="btn btn-outline" data-testid="bulk-mark-known">Mark Known</button>
-    <button class="btn btn-outline" data-testid="bulk-export">Export Selected</button>
-  </div>
+    let activeStatus = 'all';
 
-  <!-- Device Table -->
-  <div class="table-wrap">
-    <table data-testid="device-table">
-      <thead>
-        <tr>
-          <th><input type="checkbox" data-testid="select-all" /></th>
-          <th>Status</th>
-          <th>Name</th>
-          <th>MAC Address</th>
-          <th>IP Address</th>
-          <th>Vendor</th>
-          <th>Tags</th>
-          <th>First Seen</th>
-          <th>Last Seen</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr data-testid="device-row-1">
-          <td><input type="checkbox" data-testid="select-device-1" checked /></td>
-          <td><span class="status-dot status-online" data-testid="status-1"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-1">Living Room TV</a></td>
-          <td>AA:BB:CC:11:22:33</td>
-          <td>192.168.1.42</td>
-          <td>Samsung</td>
-          <td><span class="tag">Media</span><span class="tag">IoT</span></td>
-          <td>2024-01-15</td>
-          <td>2024-06-15 14:30</td>
-        </tr>
-        <tr data-testid="device-row-2">
-          <td><input type="checkbox" data-testid="select-device-2" checked /></td>
-          <td><span class="status-dot status-online" data-testid="status-2"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-2">Office MacBook</a></td>
-          <td>A4:83:E7:2F:00:B1</td>
-          <td>192.168.1.10</td>
-          <td>Apple</td>
-          <td><span class="tag">Workstation</span><span class="tag">Trusted</span></td>
-          <td>2024-02-01</td>
-          <td>2024-06-15 14:32</td>
-        </tr>
-        <tr data-testid="device-row-3">
-          <td><input type="checkbox" data-testid="select-device-3" checked /></td>
-          <td><span class="status-dot status-offline" data-testid="status-3"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-3">Office Printer</a></td>
-          <td>C8:B5:AD:10:20:30</td>
-          <td>192.168.1.15</td>
-          <td>HP</td>
-          <td><span class="tag">Printer</span><span class="tag">Critical</span></td>
-          <td>2024-01-20</td>
-          <td>2024-06-15 13:10</td>
-        </tr>
-        <tr data-testid="device-row-4">
-          <td><input type="checkbox" data-testid="select-device-4" /></td>
-          <td><span class="status-dot status-online" data-testid="status-4"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-4">WiFi Router</a></td>
-          <td>14:CC:20:AA:BB:CC</td>
-          <td>192.168.1.1</td>
-          <td>TP-Link</td>
-          <td><span class="tag">Network</span><span class="tag">Critical</span></td>
-          <td>2024-01-10</td>
-          <td>2024-06-15 14:32</td>
-        </tr>
-        <tr data-testid="device-row-5">
-          <td><input type="checkbox" data-testid="select-device-5" /></td>
-          <td><span class="status-dot status-offline" data-testid="status-5"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-5">Raspberry Pi 4</a></td>
-          <td>DC:A6:32:FF:EE:DD</td>
-          <td>192.168.1.30</td>
-          <td>Raspberry Pi</td>
-          <td><span class="tag">IoT</span></td>
-          <td>2024-03-05</td>
-          <td>2024-06-15 14:14</td>
-        </tr>
-        <tr data-testid="device-row-6">
-          <td><input type="checkbox" data-testid="select-device-6" /></td>
-          <td><span class="status-dot status-online" data-testid="status-6"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-6">Kitchen Speaker</a></td>
-          <td>B8:E9:37:12:34:56</td>
-          <td>192.168.1.60</td>
-          <td>Sonos</td>
-          <td><span class="tag">Media</span></td>
-          <td>2024-04-10</td>
-          <td>2024-06-15 14:28</td>
-        </tr>
-        <tr data-testid="device-row-7">
-          <td><input type="checkbox" data-testid="select-device-7" /></td>
-          <td><span class="status-dot status-new" data-testid="status-7"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-7">Samsung Galaxy</a></td>
-          <td>DD:EE:FF:44:55:66</td>
-          <td>192.168.1.55</td>
-          <td>Samsung</td>
-          <td></td>
-          <td>2024-06-15</td>
-          <td>2024-06-15 14:30</td>
-        </tr>
-        <tr data-testid="device-row-8">
-          <td><input type="checkbox" data-testid="select-device-8" /></td>
-          <td><span class="status-dot status-online" data-testid="status-8"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-8">NAS Server</a></td>
-          <td>00:11:32:AB:CD:EF</td>
-          <td>192.168.1.50</td>
-          <td>Intel</td>
-          <td><span class="tag">Critical</span><span class="tag">Trusted</span></td>
-          <td>2024-01-12</td>
-          <td>2024-06-15 14:31</td>
-        </tr>
-        <tr data-testid="device-row-9">
-          <td><input type="checkbox" data-testid="select-device-9" /></td>
-          <td><span class="status-dot status-new" data-testid="status-9"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-9">Unknown Device</a></td>
-          <td>F0:F0:F0:AA:BB:CC</td>
-          <td>192.168.1.71</td>
-          <td>Unknown</td>
-          <td></td>
-          <td>2024-06-15</td>
-          <td>2024-06-15 14:30</td>
-        </tr>
-        <tr data-testid="device-row-10">
-          <td><input type="checkbox" data-testid="select-device-10" /></td>
-          <td><span class="status-dot status-online" data-testid="status-10"></span></td>
-          <td><a href="device-detail.html" data-testid="device-link-10">Guest iPhone</a></td>
-          <td>3C:06:30:11:22:33</td>
-          <td>192.168.1.80</td>
-          <td>Apple</td>
-          <td><span class="tag">Guest</span><span class="tag">Mobile</span></td>
-          <td>2024-06-14</td>
-          <td>2024-06-15 14:20</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    /* ── Search ── */
+    searchInput.addEventListener('input', () => {
+      searchBar.classList.toggle('has-value', searchInput.value.length > 0);
+      applyFilters();
+    });
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      searchBar.classList.remove('has-value');
+      applyFilters();
+    });
 
-  <!-- Pagination -->
-  <div class="pagination" data-testid="pagination">
-    <span>Showing 1–10 of 47 devices</span>
-    <div class="page-btns">
-      <button class="page-btn" data-testid="page-prev">← Prev</button>
-      <button class="page-btn active" data-testid="page-1">1</button>
-      <button class="page-btn" data-testid="page-2">2</button>
-      <button class="page-btn" data-testid="page-3">3</button>
-      <button class="page-btn" data-testid="page-4">4</button>
-      <button class="page-btn" data-testid="page-5">5</button>
-      <button class="page-btn" data-testid="page-next">Next →</button>
-    </div>
-  </div>
+    /* ── Status filters ── */
+    statusBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        statusBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeStatus = btn.dataset.status;
+        applyFilters();
+      });
+    });
 
-  <!-- Export buttons -->
-  <div class="export-row" data-testid="export-actions">
-    <button class="btn btn-outline" data-testid="export-csv">↓ Export CSV</button>
-    <button class="btn btn-outline" data-testid="export-json">↓ Export JSON</button>
-  </div>
-</div>
+    /* ── Dropdown filters ── */
+    tagFilter.addEventListener('change', applyFilters);
+    vendorFilter.addEventListener('change', applyFilters);
+
+    /* ── Clear all filters ── */
+    clearFilters.addEventListener('click', () => {
+      searchInput.value = '';
+      searchBar.classList.remove('has-value');
+      activeStatus = 'all';
+      statusBtns.forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-testid="filter-chips-status-all"]').classList.add('active');
+      tagFilter.value = '';
+      vendorFilter.value = '';
+      applyFilters();
+    });
+
+    function applyFilters() {
+      const query = searchInput.value.toLowerCase();
+      const selectedTag = tagFilter.value;
+      const selectedVendor = vendorFilter.value;
+      let visible = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const status = row.dataset.status;
+        const vendor = row.dataset.vendor;
+        const tags = row.dataset.tags;
+        const isNew = row.dataset.isNew === 'true';
+
+        let show = true;
+        if (query && !text.includes(query)) show = false;
+        if (activeStatus === 'online' && status !== 'online') show = false;
+        if (activeStatus === 'offline' && status !== 'offline') show = false;
+        if (activeStatus === 'new' && !isNew) show = false;
+        if (selectedTag && !tags.split(',').includes(selectedTag)) show = false;
+        if (selectedVendor && vendor !== selectedVendor) show = false;
+
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      deviceCount.textContent = visible + ' device' + (visible !== 1 ? 's' : '');
+      const anyActive = activeStatus !== 'all' || selectedTag || selectedVendor || query;
+      clearFilters.classList.toggle('visible', anyActive);
+    }
+
+    /* ── Row selection ── */
+    function updateBulkBar() {
+      const checked = document.querySelectorAll('#deviceTableBody input[type="checkbox"]:checked');
+      const count = checked.length;
+      bulkBar.classList.toggle('visible', count > 0);
+      bulkCount.textContent = count + ' selected';
+      selectAll.indeterminate = count > 0 && count < rows.length;
+      selectAll.checked = count === rows.length && count > 0;
+      rows.forEach(row => {
+        const cb = row.querySelector('input[type="checkbox"]');
+        row.classList.toggle('selected', cb && cb.checked);
+      });
+    }
+
+    rows.forEach(row => {
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (cb) {
+        cb.addEventListener('click', e => e.stopPropagation());
+        cb.addEventListener('change', updateBulkBar);
+      }
+    });
+
+    selectAll.addEventListener('change', () => {
+      const checked = selectAll.checked;
+      rows.forEach(row => {
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb && row.style.display !== 'none') cb.checked = checked;
+      });
+      updateBulkBar();
+    });
+
+    bulkClear.addEventListener('click', () => {
+      rows.forEach(row => {
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = false;
+      });
+      selectAll.checked = false;
+      updateBulkBar();
+    });
+
+    /* ── Sort ── */
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        document.querySelectorAll('.sort-indicator').forEach(s => s.remove());
+        const existing = th.querySelector('.sort-indicator');
+        const indicator = document.createElement('span');
+        indicator.className = 'sort-indicator';
+        indicator.textContent = ' ▲';
+        th.appendChild(indicator);
+      });
+    });
+  </script>
 </body>
 </html>

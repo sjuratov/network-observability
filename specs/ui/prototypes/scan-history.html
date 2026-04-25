@@ -6,211 +6,330 @@
 <title>NetObserver — Scan History</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
-  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
-  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
-  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
-  nav a:hover, nav a.active { color: #e2e8f0; }
-  .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-  .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-  h2 { font-size: 1.25rem; }
-  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
-  .btn-primary { background: #0ea5e9; color: #fff; }
-  .btn-primary:hover { background: #0284c7; }
-  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
-  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
-  /* Table */
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th { text-align: left; padding: 0.6rem 0.75rem; color: #94a3b8; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #334155; }
-  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1e293b; }
-  tr:nth-child(even) > td { background: #1e293b; }
-  tr.scan-row { cursor: pointer; }
-  tr.scan-row:hover > td { background: #334155; }
-  /* Badges */
-  .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
-  .badge-completed { background: rgba(34,197,94,0.15); color: #22c55e; }
-  .badge-failed { background: rgba(239,68,68,0.15); color: #ef4444; }
-  .badge-in-progress { background: rgba(14,165,233,0.15); color: #0ea5e9; }
-  /* Spinner */
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0d1117; color: #e6edf3; }
+
+  /* ---------- Layout: sidebar + main ---------- */
+  .layout { display: flex; height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: #161b22; border-right: 1px solid #30363d;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 1rem; border-bottom: 1px solid #30363d;
+  }
+  .sidebar-logo .icon { font-size: 1.125rem; }
+  .sidebar-logo .text { font-size: 1.125rem; font-weight: 600; color: #e6edf3; }
+  .sidebar nav { flex: 1; padding: 0.5rem 0; }
+  .sidebar nav ul { list-style: none; }
+  .sidebar nav li { margin-bottom: 2px; }
+  .sidebar nav a {
+    display: flex; align-items: center;
+    padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 500;
+    text-decoration: none; transition: all 0.15s;
+    border-left: 3px solid transparent; color: #8b949e;
+  }
+  .sidebar nav a:hover { background: #30363d; color: #e6edf3; }
+  .sidebar nav a.active {
+    border-left-color: #1f6feb; color: #e6edf3;
+    background: rgba(31,111,235,0.1);
+  }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; overflow: auto; }
+  .main-inner { max-width: 1280px; margin: 0 auto; padding: 1.5rem; }
+
+  /* ---------- Page header ---------- */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .page-header h1 { font-size: 1.25rem; font-weight: 700; color: #e6edf3; }
+
+  /* ---------- Buttons ---------- */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    padding: 0.5rem 0.875rem; border: none; border-radius: 6px;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    background: #1f6feb; color: #fff; transition: background 0.15s;
+  }
+  .btn-primary:hover { background: #388bfd; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    padding: 0.375rem 0.75rem; border: 1px solid #30363d; border-radius: 6px;
+    font-size: 0.875rem; font-weight: 400; cursor: pointer;
+    background: transparent; color: #e6edf3; transition: all 0.15s;
+  }
+  .btn-outline:hover { border-color: #1f6feb; color: #58a6ff; }
+
+  /* ---------- Empty state (hidden) ---------- */
+  .empty-state {
+    display: none; text-align: center; padding: 4rem 0;
+  }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .empty-state h3 { font-size: 1.125rem; font-weight: 600; color: #e6edf3; margin-bottom: 0.25rem; }
+  .empty-state p { font-size: 0.875rem; color: #8b949e; margin-bottom: 1rem; }
+
+  /* ---------- Table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th {
+    text-align: left; padding: 0.5rem 0.75rem;
+    font-size: 0.75rem; font-weight: 600; color: #8b949e;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid #30363d;
+  }
+  td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #21262d; }
+  tr.scan-row { cursor: pointer; transition: background 0.15s; }
+  tr.scan-row:hover > td { background: #30363d; }
+  tr.odd > td { background: #161b22; }
+  tr.odd:hover > td { background: #30363d; }
+  .expand-cell { color: #8b949e; }
+  .mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.75rem; }
+
+  /* ---------- Status badges ---------- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    padding: 0.125rem 0.5rem; border-radius: 9999px;
+    font-size: 0.75rem; font-weight: 500; text-transform: uppercase;
+  }
+  .badge-completed { background: #0d3117; color: #3fb950; }
+  .badge-failed { background: #3d1116; color: #f85149; }
+  .badge-in-progress { background: #0d2645; color: #58a6ff; }
+  .badge-pending { background: #3d2e00; color: #d29922; }
+
+  /* ---------- Spinner ---------- */
   @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #0ea5e9; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
-  /* Expandable detail */
-  .scan-detail { display: none; }
-  .scan-detail.open { display: table-row; }
-  .scan-detail td { background: #0f172a; padding: 1rem 1.5rem; }
-  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.8rem; }
-  @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
-  .detail-item { display: flex; gap: 0.5rem; }
-  .detail-item .label { color: #64748b; min-width: 100px; }
-  .sub-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.75rem; }
-  .sub-table th { font-size: 0.7rem; padding: 0.4rem 0.5rem; }
-  .sub-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #334155; }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-  .dot-new { background: #eab308; }
-  .dot-online { background: #22c55e; }
-  .dot-changed { background: #0ea5e9; }
-  /* Export */
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid #58a6ff; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+
+  /* ---------- Detail rows ---------- */
+  .detail-row { display: none; }
+  .detail-row.open { display: table-row; }
+  .detail-row td { background: #0d1117; padding: 1rem 1.5rem; border-bottom: 1px solid #21262d; }
+  .detail-text { font-size: 0.875rem; color: #8b949e; }
+  .detail-error { font-size: 0.875rem; color: #f85149; }
+  .detail-subnets { margin-top: 0.5rem; font-size: 0.75rem; color: #6e7681; }
+
+  /* ---------- Pagination ---------- */
+  .pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+  .pagination-info { font-size: 0.75rem; color: #8b949e; }
+  .page-btns { display: flex; gap: 0.25rem; }
+  .page-btn {
+    padding: 0.25rem 0.75rem; font-size: 0.875rem; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+    border: 1px solid #30363d; background: transparent; color: #e6edf3;
+  }
+  .page-btn:hover:not(.active):not(:disabled) { border-color: #1f6feb; }
+  .page-btn.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ---------- Export ---------- */
   .export-row { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
 </style>
 </head>
 <body>
-<header data-testid="header">
-  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
-  <nav data-testid="nav">
-    <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
-    <a href="device-list.html" data-testid="nav-devices">Devices</a>
-    <a href="scan-history.html" class="active" data-testid="nav-scans">Scans</a>
-    <a href="settings.html" data-testid="nav-settings">Settings</a>
-  </nav>
-</header>
 
-<div class="page">
-  <div class="page-header">
-    <h2>Scan History</h2>
-    <button class="btn btn-primary" data-testid="btn-scan-now">⟳ Scan Now</button>
-  </div>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside data-testid="nav-sidebar" class="sidebar">
+    <div data-testid="nav-header" class="sidebar-logo">
+      <span class="icon" aria-hidden="true">🔭</span>
+      <span data-testid="nav-header-logo" class="text">NetObserver</span>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html" data-testid="nav-header-link-dashboard">Dashboard</a></li>
+        <li><a href="device-list.html" data-testid="nav-header-link-devices">Devices</a></li>
+        <li><a href="scan-history.html" class="active" data-testid="nav-header-link-scans">Scans</a></li>
+        <li><a href="settings.html" data-testid="nav-header-link-settings">Settings</a></li>
+      </ul>
+    </nav>
+  </aside>
 
-  <table data-testid="scan-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Scan ID</th>
-        <th>Start Time</th>
-        <th>End Time</th>
-        <th>Duration</th>
-        <th>Status</th>
-        <th>Devices Found</th>
-        <th>New Devices</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Scan 1 — in progress -->
-      <tr class="scan-row" data-testid="scan-row-1" onclick="toggleDetail('detail-1')">
-        <td data-testid="expand-1">▸</td>
-        <td data-testid="scan-id-1">s-f8a3e1</td>
-        <td>Jun 15, 2024 14:28:20</td>
-        <td>—</td>
-        <td>—</td>
-        <td><span class="badge badge-in-progress" data-testid="scan-status-1"><span class="spinner"></span> In Progress</span></td>
-        <td>32</td>
-        <td>1</td>
-      </tr>
-      <tr class="scan-detail" id="detail-1" data-testid="scan-detail-1">
-        <td colspan="8">
-          <div style="color:#94a3b8;font-size:0.85rem;">Scan in progress… 32 of ~47 devices discovered so far.</div>
-        </td>
-      </tr>
+  <!-- Main content -->
+  <main class="main">
+    <div class="main-inner" data-testid="page-scan-history">
 
-      <!-- Scan 2 — completed -->
-      <tr class="scan-row" data-testid="scan-row-2" onclick="toggleDetail('detail-2')">
-        <td data-testid="expand-2">▸</td>
-        <td data-testid="scan-id-2">s-c7b2d0</td>
-        <td>Jun 15, 2024 14:00:00</td>
-        <td>Jun 15, 2024 14:03:45</td>
-        <td>3m 45s</td>
-        <td><span class="badge badge-completed" data-testid="scan-status-2">Completed</span></td>
-        <td>47</td>
-        <td>3</td>
-      </tr>
-      <tr class="scan-detail" id="detail-2" data-testid="scan-detail-2">
-        <td colspan="8">
-          <table class="sub-table">
-            <thead><tr><th></th><th>Device</th><th>MAC</th><th>IP</th><th>Change</th></tr></thead>
-            <tbody>
-              <tr><td><span class="status-dot dot-new"></span></td><td>Samsung Galaxy</td><td>DD:EE:FF:44:55:66</td><td>192.168.1.55</td><td>New device</td></tr>
-              <tr><td><span class="status-dot dot-new"></span></td><td>Unknown Device</td><td>F0:F0:F0:AA:BB:CC</td><td>192.168.1.71</td><td>New device</td></tr>
-              <tr><td><span class="status-dot dot-new"></span></td><td>Guest iPhone</td><td>3C:06:30:11:22:33</td><td>192.168.1.80</td><td>New device</td></tr>
-              <tr><td><span class="status-dot dot-changed"></span></td><td>Living Room TV</td><td>AA:BB:CC:11:22:33</td><td>192.168.1.42</td><td>IP changed</td></tr>
-            </tbody>
-          </table>
-        </td>
-      </tr>
+      <!-- Header -->
+      <div class="page-header">
+        <h1>Scan History</h1>
+        <button data-testid="btn-scan-now" class="btn-primary">⟳ Scan Now</button>
+      </div>
 
-      <!-- Scan 3 -->
-      <tr class="scan-row" data-testid="scan-row-3" onclick="toggleDetail('detail-3')">
-        <td data-testid="expand-3">▸</td>
-        <td data-testid="scan-id-3">s-a1e9f4</td>
-        <td>Jun 15, 2024 10:00:00</td>
-        <td>Jun 15, 2024 10:04:12</td>
-        <td>4m 12s</td>
-        <td><span class="badge badge-completed" data-testid="scan-status-3">Completed</span></td>
-        <td>44</td>
-        <td>0</td>
-      </tr>
-      <tr class="scan-detail" id="detail-3" data-testid="scan-detail-3">
-        <td colspan="8">
-          <div style="color:#94a3b8;font-size:0.85rem;">No new devices or changes detected.</div>
-        </td>
-      </tr>
+      <!-- Empty state (hidden in prototype) -->
+      <div data-testid="empty-state" class="empty-state">
+        <div data-testid="empty-state-icon" class="icon">📡</div>
+        <h3 data-testid="empty-state-title">No Scans Yet</h3>
+        <p data-testid="empty-state-message">Run your first network scan to discover devices.</p>
+        <button data-testid="empty-state-action" class="btn-primary">⟳ Scan Now</button>
+      </div>
 
-      <!-- Scan 4 — failed -->
-      <tr class="scan-row" data-testid="scan-row-4" onclick="toggleDetail('detail-4')">
-        <td data-testid="expand-4">▸</td>
-        <td data-testid="scan-id-4">s-d4c0b8</td>
-        <td>Jun 15, 2024 06:00:00</td>
-        <td>Jun 15, 2024 06:00:32</td>
-        <td>32s</td>
-        <td><span class="badge badge-failed" data-testid="scan-status-4">Failed</span></td>
-        <td>0</td>
-        <td>0</td>
-      </tr>
-      <tr class="scan-detail" id="detail-4" data-testid="scan-detail-4">
-        <td colspan="8">
-          <div style="color:#ef4444;font-size:0.85rem;">Error: Network interface eth0 unavailable. Check network connectivity and retry.</div>
-        </td>
-      </tr>
+      <!-- Scan history table -->
+      <table data-testid="scan-history-table">
+        <thead>
+          <tr data-testid="scan-history-table-header">
+            <th style="width:2rem;"></th>
+            <th>Scan ID</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Devices Found</th>
+            <th>New Devices</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Scan 1 — in-progress -->
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-001" onclick="toggleDetail('scan-001')">
+            <td data-testid="scan-history-table-row-scan-001-expand" class="expand-cell">▸</td>
+            <td class="mono">a1b2c3d4</td>
+            <td data-testid="scan-history-table-row-scan-001-time">Apr 25, 2026, 02:30:00 PM</td>
+            <td>—</td>
+            <td data-testid="scan-history-table-row-scan-001-duration">—</td>
+            <td data-testid="scan-history-table-row-scan-001-status">
+              <span class="badge badge-in-progress"><span class="spinner"></span> In Progress</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-001-devices">32</td>
+            <td data-testid="scan-history-table-row-scan-001-new">1</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-001" data-testid="scan-history-table-row-scan-001-details">
+            <td colspan="8">
+              <div class="detail-text">Scan in progress… 32 devices discovered so far.</div>
+            </td>
+          </tr>
 
-      <!-- Scan 5 -->
-      <tr class="scan-row" data-testid="scan-row-5" onclick="toggleDetail('detail-5')">
-        <td data-testid="expand-5">▸</td>
-        <td data-testid="scan-id-5">s-b3f7a2</td>
-        <td>Jun 14, 2024 22:00:00</td>
-        <td>Jun 14, 2024 22:03:50</td>
-        <td>3m 50s</td>
-        <td><span class="badge badge-completed" data-testid="scan-status-5">Completed</span></td>
-        <td>44</td>
-        <td>0</td>
-      </tr>
-      <tr class="scan-detail" id="detail-5" data-testid="scan-detail-5">
-        <td colspan="8">
-          <div style="color:#94a3b8;font-size:0.85rem;">No new devices or changes detected.</div>
-        </td>
-      </tr>
+          <!-- Scan 2 — completed, 3 new devices -->
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-002" onclick="toggleDetail('scan-002')">
+            <td data-testid="scan-history-table-row-scan-002-expand" class="expand-cell">▸</td>
+            <td class="mono">b2c3d4e5</td>
+            <td data-testid="scan-history-table-row-scan-002-time">Apr 25, 2026, 08:15:00 AM</td>
+            <td>Apr 25, 2026, 08:18:22 AM</td>
+            <td data-testid="scan-history-table-row-scan-002-duration">3m 22s</td>
+            <td data-testid="scan-history-table-row-scan-002-status">
+              <span class="badge badge-completed">Completed</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-002-devices">47</td>
+            <td data-testid="scan-history-table-row-scan-002-new">3</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-002" data-testid="scan-history-table-row-scan-002-details">
+            <td colspan="8">
+              <div class="detail-text">3 new devices found. 47 total.</div>
+              <div class="detail-subnets">Subnets: 192.168.1.0/24, 192.168.2.0/24 · Intensity: normal</div>
+            </td>
+          </tr>
 
-      <!-- Scan 6 -->
-      <tr class="scan-row" data-testid="scan-row-6" onclick="toggleDetail('detail-6')">
-        <td data-testid="expand-6">▸</td>
-        <td data-testid="scan-id-6">s-e2d1c9</td>
-        <td>Jun 14, 2024 18:00:00</td>
-        <td>Jun 14, 2024 18:03:30</td>
-        <td>3m 30s</td>
-        <td><span class="badge badge-completed" data-testid="scan-status-6">Completed</span></td>
-        <td>45</td>
-        <td>1</td>
-      </tr>
-      <tr class="scan-detail" id="detail-6" data-testid="scan-detail-6">
-        <td colspan="8">
-          <table class="sub-table">
-            <thead><tr><th></th><th>Device</th><th>MAC</th><th>IP</th><th>Change</th></tr></thead>
-            <tbody>
-              <tr><td><span class="status-dot dot-online"></span></td><td>Raspberry Pi 4</td><td>DC:A6:32:FF:EE:DD</td><td>192.168.1.30</td><td>Returned online</td></tr>
-            </tbody>
-          </table>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+          <!-- Scan 3 — completed, 0 new -->
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-003" onclick="toggleDetail('scan-003')">
+            <td data-testid="scan-history-table-row-scan-003-expand" class="expand-cell">▸</td>
+            <td class="mono">c3d4e5f6</td>
+            <td data-testid="scan-history-table-row-scan-003-time">Apr 24, 2026, 08:00:00 PM</td>
+            <td>Apr 24, 2026, 08:03:45 PM</td>
+            <td data-testid="scan-history-table-row-scan-003-duration">3m 45s</td>
+            <td data-testid="scan-history-table-row-scan-003-status">
+              <span class="badge badge-completed">Completed</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-003-devices">44</td>
+            <td data-testid="scan-history-table-row-scan-003-new">0</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-003" data-testid="scan-history-table-row-scan-003-details">
+            <td colspan="8">
+              <div class="detail-text">No new devices or changes detected.</div>
+              <div class="detail-subnets">Subnets: 192.168.1.0/24 · Intensity: normal</div>
+            </td>
+          </tr>
 
-  <div class="export-row" data-testid="export-actions">
-    <button class="btn btn-outline" data-testid="export-scans-csv">↓ Export CSV</button>
-    <button class="btn btn-outline" data-testid="export-scans-json">↓ Export JSON</button>
-  </div>
+          <!-- Scan 4 — failed -->
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-004" onclick="toggleDetail('scan-004')">
+            <td data-testid="scan-history-table-row-scan-004-expand" class="expand-cell">▸</td>
+            <td class="mono">d4e5f6a7</td>
+            <td data-testid="scan-history-table-row-scan-004-time">Apr 24, 2026, 02:00:00 PM</td>
+            <td>Apr 24, 2026, 02:00:15 PM</td>
+            <td data-testid="scan-history-table-row-scan-004-duration">15s</td>
+            <td data-testid="scan-history-table-row-scan-004-status">
+              <span class="badge badge-failed">Failed</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-004-devices">0</td>
+            <td data-testid="scan-history-table-row-scan-004-new">0</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-004" data-testid="scan-history-table-row-scan-004-details">
+            <td colspan="8">
+              <div class="detail-error">Error: Network interface eth0 not available</div>
+            </td>
+          </tr>
+
+          <!-- Scan 5 — completed, 0 new -->
+          <tr class="scan-row" data-testid="scan-history-table-row-scan-005" onclick="toggleDetail('scan-005')">
+            <td data-testid="scan-history-table-row-scan-005-expand" class="expand-cell">▸</td>
+            <td class="mono">e5f6a7b8</td>
+            <td data-testid="scan-history-table-row-scan-005-time">Apr 24, 2026, 08:00:00 AM</td>
+            <td>Apr 24, 2026, 08:03:30 AM</td>
+            <td data-testid="scan-history-table-row-scan-005-duration">3m 30s</td>
+            <td data-testid="scan-history-table-row-scan-005-status">
+              <span class="badge badge-completed">Completed</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-005-devices">44</td>
+            <td data-testid="scan-history-table-row-scan-005-new">0</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-005" data-testid="scan-history-table-row-scan-005-details">
+            <td colspan="8">
+              <div class="detail-text">No new devices or changes detected.</div>
+              <div class="detail-subnets">Subnets: 192.168.1.0/24 · Intensity: normal</div>
+            </td>
+          </tr>
+
+          <!-- Scan 6 — completed, 1 new -->
+          <tr class="scan-row odd" data-testid="scan-history-table-row-scan-006" onclick="toggleDetail('scan-006')">
+            <td data-testid="scan-history-table-row-scan-006-expand" class="expand-cell">▸</td>
+            <td class="mono">f6a7b8c9</td>
+            <td data-testid="scan-history-table-row-scan-006-time">Apr 23, 2026, 08:00:00 PM</td>
+            <td>Apr 23, 2026, 08:03:50 PM</td>
+            <td data-testid="scan-history-table-row-scan-006-duration">3m 50s</td>
+            <td data-testid="scan-history-table-row-scan-006-status">
+              <span class="badge badge-completed">Completed</span>
+            </td>
+            <td data-testid="scan-history-table-row-scan-006-devices">45</td>
+            <td data-testid="scan-history-table-row-scan-006-new">1</td>
+          </tr>
+          <tr class="detail-row" id="detail-scan-006" data-testid="scan-history-table-row-scan-006-details">
+            <td colspan="8">
+              <div class="detail-text">1 new device found. 45 total.</div>
+              <div class="detail-subnets">Subnets: 192.168.1.0/24, 192.168.2.0/24 · Intensity: normal</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div data-testid="pagination" class="pagination">
+        <span data-testid="pagination-info" class="pagination-info">Showing 1–6 of 24</span>
+        <div class="page-btns">
+          <button data-testid="pagination-prev" class="page-btn" disabled>← Prev</button>
+          <button data-testid="pagination-page-1" class="page-btn active">1</button>
+          <button data-testid="pagination-page-2" class="page-btn">2</button>
+          <button data-testid="pagination-page-3" class="page-btn">3</button>
+          <button data-testid="pagination-next" class="page-btn">Next →</button>
+        </div>
+      </div>
+
+      <!-- Export actions -->
+      <div data-testid="export-actions" class="export-row">
+        <button data-testid="export-scans-csv" class="btn-outline">↓ Export CSV</button>
+        <button data-testid="export-scans-json" class="btn-outline">↓ Export JSON</button>
+      </div>
+
+    </div>
+  </main>
 </div>
 
 <script>
 function toggleDetail(id) {
-  const row = document.getElementById(id);
-  const arrow = row.previousElementSibling.querySelector('td:first-child');
+  var row = document.getElementById('detail-' + id);
+  var parentRow = row.previousElementSibling;
+  var arrow = parentRow.querySelector('[data-testid$="-expand"]');
   if (row.classList.contains('open')) {
     row.classList.remove('open');
     arrow.textContent = '▸';

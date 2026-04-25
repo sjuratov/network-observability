@@ -6,192 +6,567 @@
 <title>NetObserver — Dashboard</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
-  /* ---------- Header ---------- */
-  header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; }
-  .logo { font-weight: 700; font-size: 1.25rem; color: #0ea5e9; margin-right: 2rem; text-decoration: none; }
-  nav a { color: #94a3b8; text-decoration: none; margin-right: 1.25rem; font-size: 0.875rem; }
-  nav a:hover, nav a.active { color: #e2e8f0; }
-  /* ---------- Layout ---------- */
-  .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-  h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0d1117; color: #e6edf3; }
+
+  /* ---------- Layout: Sidebar + Main ---------- */
+  .app-layout { display: flex; height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid #30363d;
+    background: #161b22;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid #30363d;
+  }
+  .sidebar-header .logo-emoji { font-size: 1.125rem; }
+  .sidebar-header .logo-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #e6edf3;
+  }
+  .sidebar nav { flex: 1; padding: 0.5rem 0; }
+  .sidebar nav ul { list-style: none; }
+  .sidebar nav li + li { margin-top: 2px; }
+  .sidebar nav a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+    border-left: 3px solid transparent;
+    color: #8b949e;
+  }
+  .sidebar nav a:hover {
+    background: #30363d;
+    color: #e6edf3;
+  }
+  .sidebar nav a.active {
+    border-left-color: #1f6feb;
+    color: #e6edf3;
+    background: rgba(31, 111, 235, 0.1);
+  }
+
+  /* ---------- Main Content ---------- */
+  .main-content {
+    flex: 1;
+    overflow: auto;
+  }
+  .main-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  h1.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ---------- API Key Prompt (hidden by default) ---------- */
+  .api-key-prompt {
+    display: none;
+    max-width: 28rem;
+    margin: 6rem auto 0;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+  }
+  .api-key-prompt h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 0.5rem;
+  }
+  .api-key-prompt p {
+    font-size: 0.875rem;
+    color: #8b949e;
+    margin-bottom: 1rem;
+  }
+  .api-key-prompt input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    background: #1c2128;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+  }
+  .api-key-prompt input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #1f6feb;
+  }
+  .api-key-prompt button {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: #1f6feb;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .api-key-prompt button:hover { background: #388bfd; }
+
+  /* ---------- Alert Banner ---------- */
+  .alert-banner {
+    display: none;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #3d1116;
+    border-left: 3px solid #f85149;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #f85149;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .alert-banner.visible { display: flex; }
+  .alert-banner button {
+    background: none;
+    border: none;
+    color: #f85149;
+    cursor: pointer;
+    margin-left: 1rem;
+    font-size: 0.875rem;
+  }
+  .alert-banner button:hover { color: #e6edf3; }
+
+  /* ---------- Empty State (hidden by default) ---------- */
+  .empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 0;
+    text-align: center;
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty-state h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 0.5rem;
+  }
+  .empty-state p {
+    font-size: 0.875rem;
+    color: #8b949e;
+    margin-bottom: 1.5rem;
+    max-width: 24rem;
+  }
+  .empty-state button {
+    padding: 0.5rem 1.5rem;
+    background: #1f6feb;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .empty-state button:hover { background: #388bfd; }
+
   /* ---------- Metric Cards ---------- */
-  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
-  @media (max-width: 1024px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
-  .metric-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; }
-  .metric-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem; }
-  .metric-card .value { font-size: 2rem; font-weight: 700; }
-  .metric-card .sub { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
-  .value.primary { color: #0ea5e9; }
-  .value.success { color: #22c55e; }
-  .value.danger { color: #ef4444; }
-  .value.warning { color: #eab308; }
-  .value.online { color: #22c55e; }
-  /* ---------- Two-column ---------- */
-  .columns { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
-  @media (max-width: 768px) { .columns { grid-template-columns: 1fr; } }
-  /* ---------- Card ---------- */
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
-  .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-  /* ---------- Activity list ---------- */
-  .activity-list { list-style: none; }
-  .activity-list li { padding: 0.6rem 0; border-bottom: 1px solid #334155; display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.875rem; }
-  .activity-list li:last-child { border-bottom: none; }
-  .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
-  .dot-green { background: #22c55e; }
-  .dot-red { background: #ef4444; }
-  .dot-blue { background: #0ea5e9; }
-  .dot-yellow { background: #eab308; }
-  .activity-time { color: #64748b; font-size: 0.75rem; margin-left: auto; white-space: nowrap; }
-  /* ---------- Buttons ---------- */
-  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; text-decoration: none; }
-  .btn-primary { background: #0ea5e9; color: #fff; }
-  .btn-primary:hover { background: #0284c7; }
-  .btn-outline { background: transparent; border: 1px solid #334155; color: #e2e8f0; }
-  .btn-outline:hover { border-color: #0ea5e9; color: #0ea5e9; }
-  .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-  /* ---------- Status badge ---------- */
-  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
-  .badge-success { background: rgba(34,197,94,0.15); color: #22c55e; }
-  /* ---------- Dropdown ---------- */
-  .dropdown { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.8rem; color: #e2e8f0; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.5rem center; padding-right: 1.75rem; }
-  .dropdown:focus { outline: none; border-color: #0ea5e9; }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  @media (min-width: 640px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1024px) { .metrics { grid-template-columns: repeat(5, 1fr); } }
+  .metric-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .metric-card:hover { background: #30363d; }
+  .metric-card .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e;
+    margin-bottom: 0.25rem;
+  }
+  .metric-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .metric-card .value.size-xl { font-size: 1.25rem; }
+  .metric-card .trend {
+    font-size: 0.75rem;
+    color: #6e7681;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .color-green { color: #3fb950; }
+  .color-yellow { color: #d29922; }
+  .color-red { color: #f85149; }
+  .color-blue { color: #58a6ff; }
+
+  /* ---------- Badge ---------- */
+  .badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-green-bg { background: #0d3117; color: #3fb950; }
+  .badge-red-bg { background: #3d1116; color: #f85149; }
+  .badge-blue-bg { background: #0d2645; color: #58a6ff; }
+
+  /* ---------- Device Breakdown ---------- */
+  .device-breakdown {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .breakdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .breakdown-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e6edf3;
+  }
+  .breakdown-select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    color: #e6edf3;
+    cursor: pointer;
+  }
+  .breakdown-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #1f6feb;
+  }
+
   /* ---------- Bar chart ---------- */
   .bar-chart { display: flex; flex-direction: column; gap: 0.5rem; }
-  .bar-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
-  .bar-label { width: 120px; text-align: right; color: #94a3b8; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bar-track { flex: 1; background: #334155; border-radius: 4px; height: 22px; position: relative; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; font-size: 0.7rem; font-weight: 600; color: #fff; min-width: 28px; }
-  .bar-count { width: 32px; text-align: right; color: #e2e8f0; font-weight: 600; font-size: 0.8rem; flex-shrink: 0; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    height: 24px;
+  }
+  .bar-label {
+    width: 120px;
+    text-align: right;
+    color: #8b949e;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    flex: 1;
+    height: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    min-width: 28px;
+  }
+  .bar-count {
+    width: 32px;
+    text-align: right;
+    color: #6e7681;
+    font-weight: 600;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Two-column layout ---------- */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    .two-col { grid-template-columns: 2fr 1fr; }
+  }
+
+  /* ---------- Card ---------- */
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+  }
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ---------- Activity list ---------- */
+  .activity-list { list-style: none; }
+  .activity-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid #30363d;
+    font-size: 0.875rem;
+  }
+  .activity-list li:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    margin-top: 0.375rem;
+    flex-shrink: 0;
+  }
+  .dot-green { background: #3fb950; }
+  .dot-red { background: #f85149; }
+  .dot-blue { background: #58a6ff; }
+  .activity-text { color: #e6edf3; font-size: 0.875rem; }
+  .activity-time {
+    color: #6e7681;
+    font-size: 0.75rem;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* ---------- Quick Action Buttons ---------- */
+  .quick-actions-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    width: 100%;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .btn-primary { background: #1f6feb; color: #fff; }
+  .btn-primary:hover { background: #388bfd; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+  }
+  .btn-outline:hover { border-color: #58a6ff; color: #58a6ff; }
 </style>
 </head>
 <body>
-<header data-testid="header">
-  <a href="index.html" class="logo" data-testid="logo">NetObserver</a>
-  <nav data-testid="nav">
-    <a href="dashboard.html" class="active" data-testid="nav-dashboard">Dashboard</a>
-    <a href="device-list.html" data-testid="nav-devices">Devices</a>
-    <a href="scan-history.html" data-testid="nav-scans">Scans</a>
-    <a href="settings.html" data-testid="nav-settings">Settings</a>
-  </nav>
-</header>
 
-<div class="page">
-  <h2>Dashboard</h2>
-
-  <!-- Metric Cards — 5 cards: Total, New, Online, Offline, Last Scan -->
-  <div class="metrics" data-testid="metrics">
-    <div class="metric-card" data-testid="metric-total-devices">
-      <div class="label">Total Devices</div>
-      <div class="value primary">47</div>
-      <div class="sub">across all subnets</div>
+<div class="app-layout">
+  <!-- Sidebar Navigation -->
+  <aside data-testid="nav-sidebar" class="sidebar">
+    <div data-testid="nav-header" class="sidebar-header">
+      <span class="logo-emoji" aria-hidden="true">🔭</span>
+      <span data-testid="nav-header-logo" class="logo-text">NetObserver</span>
     </div>
-    <div class="metric-card" data-testid="metric-new-devices">
-      <div class="label">New (24h)</div>
-      <div class="value warning">3</div>
-      <div class="sub">since yesterday</div>
-    </div>
-    <div class="metric-card" data-testid="metric-online-devices">
-      <div class="label">Online</div>
-      <div class="value online">45</div>
-      <div class="sub">currently online</div>
-    </div>
-    <div class="metric-card" data-testid="metric-offline-devices">
-      <div class="label">Offline</div>
-      <div class="value danger">2</div>
-      <div class="sub">currently offline</div>
-    </div>
-    <div class="metric-card" data-testid="metric-last-scan">
-      <div class="label">Last Scan</div>
-      <div class="value" style="font-size:1.25rem;">14:32:05</div>
-      <div class="sub"><span class="badge badge-success">Completed</span> · 3 min 45 sec</div>
-    </div>
-  </div>
-
-  <!-- Device Breakdown — full-width bar chart with dropdown -->
-  <div class="card" data-testid="device-breakdown" style="margin-bottom: 1.5rem;">
-    <div class="card-header">
-      <div class="card-title" style="margin-bottom:0;">Device Breakdown</div>
-      <select class="dropdown" data-testid="breakdown-select" id="breakdownSelect" onchange="switchBreakdown(this.value)">
-        <option value="vendor" selected>By Vendor</option>
-        <option value="tag">By Tag</option>
-        <option value="status">By Status</option>
-        <option value="method">By Discovery Method</option>
-        <option value="age">By Device Age</option>
-        <option value="known">By Known / Unknown</option>
-      </select>
-    </div>
-    <div id="breakdownChart" class="bar-chart">
-      <!-- Default: By Vendor (sorted DESC) -->
-    </div>
-  </div>
-
-  <div class="columns">
-    <!-- Recent Activity -->
-    <div class="card" data-testid="recent-activity">
-      <div class="card-title">Recent Activity</div>
-      <ul class="activity-list">
-        <li data-testid="activity-item-1">
-          <span class="activity-dot dot-green"></span>
-          <span><strong>New device found</strong> — Samsung Galaxy (AA:BB:CC:11:22:33) on 192.168.1.55</span>
-          <span class="activity-time">2 min ago</span>
-        </li>
-        <li data-testid="activity-item-2">
-          <span class="activity-dot dot-green"></span>
-          <span><strong>New device found</strong> — Unknown (DD:EE:FF:44:55:66) on 192.168.1.71</span>
-          <span class="activity-time">2 min ago</span>
-        </li>
-        <li data-testid="activity-item-3">
-          <span class="activity-dot dot-red"></span>
-          <span><strong>Device offline</strong> — Raspberry Pi 4 (last seen 192.168.1.30)</span>
-          <span class="activity-time">18 min ago</span>
-        </li>
-        <li data-testid="activity-item-4">
-          <span class="activity-dot dot-blue"></span>
-          <span><strong>Scan completed</strong> — 47 devices found, 3 new</span>
-          <span class="activity-time">20 min ago</span>
-        </li>
-        <li data-testid="activity-item-5">
-          <span class="activity-dot dot-red"></span>
-          <span><strong>Device offline</strong> — Office Printer (last seen 192.168.1.15)</span>
-          <span class="activity-time">1 hr ago</span>
-        </li>
-        <li data-testid="activity-item-6">
-          <span class="activity-dot dot-yellow"></span>
-          <span><strong>Port change</strong> — NAS Server: port 8080 opened</span>
-          <span class="activity-time">2 hr ago</span>
-        </li>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html" class="active" data-testid="nav-header-link-dashboard">Dashboard</a></li>
+        <li><a href="device-list.html" data-testid="nav-header-link-devices">Devices</a></li>
+        <li><a href="scan-history.html" data-testid="nav-header-link-scans">Scans</a></li>
+        <li><a href="settings.html" data-testid="nav-header-link-settings">Settings</a></li>
       </ul>
-    </div>
+    </nav>
+  </aside>
 
-    <!-- Quick Actions -->
-    <div>
-      <div class="card" data-testid="quick-actions">
-        <div class="card-title">Quick Actions</div>
-        <div class="actions" style="flex-direction:column;">
-          <button class="btn btn-primary" data-testid="btn-scan-now">⟳ Scan Now</button>
-          <button class="btn btn-outline" data-testid="btn-export-devices">↓ Export Devices</button>
-        </div>
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="main-inner" data-testid="page-dashboard">
+
+      <!-- API Key Prompt (hidden by default, shown when no key) -->
+      <div data-testid="api-key-prompt" class="api-key-prompt" id="apiKeyPrompt">
+        <h2>API Key Required</h2>
+        <p>Enter your NetObserver API key to connect.</p>
+        <input data-testid="api-key-input" type="password" placeholder="Enter API key">
+        <button data-testid="api-key-save">Save &amp; Connect</button>
       </div>
-    </div>
-  </div>
+
+      <!-- Dashboard Content (visible by default) -->
+      <div id="dashboardContent">
+        <h1 class="page-title">Dashboard</h1>
+
+        <!-- Error Banner (hidden by default) -->
+        <div data-testid="alert-banner" class="alert-banner" id="alertBanner">
+          <span data-testid="alert-banner-message">Failed to load dashboard data. Check your connection.</span>
+          <button data-testid="alert-banner-dismiss" onclick="document.getElementById('alertBanner').classList.remove('visible')">✕</button>
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div data-testid="empty-state" class="empty-state" id="emptyState">
+          <span data-testid="empty-state-icon" class="icon">🔍</span>
+          <h2 data-testid="empty-state-title">No Devices Yet</h2>
+          <p data-testid="empty-state-message">No devices discovered yet. Run your first scan to discover devices on your network!</p>
+          <button data-testid="empty-state-action">Run First Scan</button>
+        </div>
+
+        <!-- Main dashboard sections (visible by default) -->
+        <div id="mainSections">
+
+          <!-- Metric Cards — 5 cards: Total, New, Online, Offline, Last Scan -->
+          <div data-testid="metrics" class="metrics">
+            <div data-testid="metric-card-total-devices" class="metric-card">
+              <div data-testid="metric-card-total-devices-label" class="label">Total Devices</div>
+              <div data-testid="metric-card-total-devices-value" class="value color-green">47</div>
+              <div data-testid="metric-card-total-devices-trend" class="trend"><span>across all subnets</span></div>
+            </div>
+            <div data-testid="metric-card-new-devices" class="metric-card">
+              <div data-testid="metric-card-new-devices-label" class="label">New (24h)</div>
+              <div data-testid="metric-card-new-devices-value" class="value color-yellow">3</div>
+              <div data-testid="metric-card-new-devices-trend" class="trend"><span>since yesterday</span></div>
+            </div>
+            <div data-testid="metric-card-online-devices" class="metric-card">
+              <div data-testid="metric-card-online-devices-label" class="label">Online</div>
+              <div data-testid="metric-card-online-devices-value" class="value color-green">45</div>
+              <div data-testid="metric-card-online-devices-trend" class="trend"><span>currently online</span></div>
+            </div>
+            <div data-testid="metric-card-offline-devices" class="metric-card">
+              <div data-testid="metric-card-offline-devices-label" class="label">Offline</div>
+              <div data-testid="metric-card-offline-devices-value" class="value color-red">2</div>
+              <div data-testid="metric-card-offline-devices-trend" class="trend"><span>currently offline</span></div>
+            </div>
+            <div data-testid="metric-card-last-scan" class="metric-card">
+              <div data-testid="metric-card-last-scan-label" class="label">Last Scan</div>
+              <div data-testid="metric-card-last-scan-value" class="value size-xl color-blue">14:32:05</div>
+              <div data-testid="metric-card-last-scan-trend" class="trend">
+                <span class="badge badge-green-bg">completed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device Breakdown — full-width bar chart with dropdown -->
+          <div data-testid="device-breakdown" class="device-breakdown">
+            <div class="breakdown-header">
+              <h3>Device Breakdown</h3>
+              <select data-testid="breakdown-select" class="breakdown-select" id="breakdownSelect" onchange="switchBreakdown(this.value)">
+                <option value="vendor" selected>By Vendor</option>
+                <option value="tag">By Tag</option>
+                <option value="status">By Status</option>
+                <option value="method">By Discovery Method</option>
+                <option value="age">By Device Age</option>
+                <option value="known">By Known / Unknown</option>
+              </select>
+            </div>
+            <div data-testid="breakdown-chart" id="breakdownChart" class="bar-chart"></div>
+          </div>
+
+          <!-- Two-column layout: Recent Activity + Quick Actions -->
+          <div class="two-col">
+            <!-- Recent Activity -->
+            <div data-testid="recent-activity" class="card">
+              <h3>Recent Activity</h3>
+              <ul class="activity-list">
+                <li data-testid="activity-item-1">
+                  <span class="activity-dot dot-green"></span>
+                  <span class="activity-text"><strong>Scan completed</strong> — 47 devices found, 3 new</span>
+                  <span class="activity-time">14:32:05</span>
+                </li>
+                <li data-testid="activity-item-2">
+                  <span class="activity-dot dot-green"></span>
+                  <span class="activity-text"><strong>Scan completed</strong> — 44 devices found</span>
+                  <span class="activity-time">08:15:22</span>
+                </li>
+                <li data-testid="activity-item-3">
+                  <span class="activity-dot dot-red"></span>
+                  <span class="activity-text"><strong>Scan failed</strong> — 0 devices found</span>
+                  <span class="activity-time">Yesterday</span>
+                </li>
+                <li data-testid="activity-item-4">
+                  <span class="activity-dot dot-green"></span>
+                  <span class="activity-text"><strong>Scan completed</strong> — 44 devices found</span>
+                  <span class="activity-time">Yesterday</span>
+                </li>
+                <li data-testid="activity-item-5">
+                  <span class="activity-dot dot-green"></span>
+                  <span class="activity-text"><strong>Scan completed</strong> — 45 devices found, 1 new</span>
+                  <span class="activity-time">Apr 23</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Quick Actions -->
+            <div data-testid="quick-actions" class="card">
+              <h3>Quick Actions</h3>
+              <div class="quick-actions-btns">
+                <button data-testid="btn-scan-now" class="btn btn-primary"><span>⟳</span> Scan Now</button>
+                <button data-testid="btn-export-devices" class="btn btn-outline">↓ Export Devices</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /mainSections -->
+      </div><!-- /dashboardContent -->
+
+    </div><!-- /main-inner -->
+  </main>
 </div>
 
 <script>
-  const COLORS = ['#0ea5e9', '#22c55e', '#eab308', '#ef4444', '#a78bfa', '#2dd4bf', '#f97316', '#ec4899'];
+  var CHART_COLORS = ['#58a6ff', '#3fb950', '#d29922', '#f85149', '#bc8cff', '#39d2c0', '#f97316', '#ec4899'];
 
-  const breakdownData = {
+  var breakdownData = {
     vendor: [
       { label: 'Apple', count: 12 },
       { label: 'Samsung', count: 8 },
-      { label: 'TP-Link', count: 7 },
-      { label: 'Intel', count: 5 },
-      { label: 'Raspberry Pi', count: 4 },
-      { label: 'Synology', count: 3 },
-      { label: 'HP', count: 3 },
-      { label: 'Unknown', count: 5 },
+      { label: 'Intel', count: 6 },
+      { label: 'TP-Link', count: 5 },
+      { label: 'Cisco', count: 4 },
+      { label: 'Espressif', count: 3 },
+      { label: 'Google', count: 3 },
+      { label: 'Unknown', count: 6 }
     ],
     tag: [
       { label: 'IoT', count: 14 },
@@ -199,49 +574,48 @@
       { label: 'Mobile', count: 8 },
       { label: 'Server', count: 5 },
       { label: 'Printer', count: 3 },
-      { label: 'Untagged', count: 7 },
+      { label: 'Untagged', count: 7 }
     ],
     status: [
       { label: 'Online', count: 45 },
-      { label: 'Offline', count: 2 },
+      { label: 'Offline', count: 2 }
     ],
     method: [
       { label: 'ARP', count: 38 },
       { label: 'Ping', count: 6 },
-      { label: 'mDNS', count: 3 },
+      { label: 'mDNS', count: 3 }
     ],
     age: [
       { label: '30+ days', count: 28 },
       { label: '7–30 days', count: 10 },
       { label: '1–7 days', count: 6 },
-      { label: '< 1 day', count: 3 },
+      { label: '< 1 day', count: 3 }
     ],
     known: [
       { label: 'Known', count: 32 },
-      { label: 'Unknown', count: 15 },
-    ],
+      { label: 'Unknown', count: 15 }
+    ]
   };
 
   function renderBars(items) {
-    const chart = document.getElementById('breakdownChart');
-    const max = Math.max(...items.map(i => i.count));
-    chart.innerHTML = items.map((item, idx) => {
-      const pct = max > 0 ? (item.count / max) * 100 : 0;
-      const color = COLORS[idx % COLORS.length];
-      return `
-        <div class="bar-row">
-          <span class="bar-label" title="${item.label}">${item.label}</span>
-          <div class="bar-track">
-            <div class="bar-fill" style="width:${pct}%; background:${color};"></div>
-          </div>
-          <span class="bar-count">${item.count}</span>
-        </div>`;
+    var chart = document.getElementById('breakdownChart');
+    var max = Math.max.apply(null, items.map(function(i) { return i.count; }));
+    chart.innerHTML = items.map(function(item, idx) {
+      var pct = max > 0 ? (item.count / max) * 100 : 0;
+      var color = CHART_COLORS[idx % CHART_COLORS.length];
+      return '<div class="bar-row">' +
+        '<span class="bar-label" title="' + item.label + '">' + item.label + '</span>' +
+        '<div class="bar-track">' +
+          '<div class="bar-fill" style="width:' + pct + '%; background:' + color + ';"></div>' +
+        '</div>' +
+        '<span class="bar-count">' + item.count + '</span>' +
+      '</div>';
     }).join('');
   }
 
   function switchBreakdown(key) {
-    const data = breakdownData[key] || [];
-    const sorted = [...data].sort((a, b) => b.count - a.count);
+    var data = breakdownData[key] || [];
+    var sorted = data.slice().sort(function(a, b) { return b.count - a.count; });
     renderBars(sorted);
   }
 
