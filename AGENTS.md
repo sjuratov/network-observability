@@ -250,12 +250,13 @@ The orchestrator MUST verify ALL of the following before transitioning from Phas
                                                                    main green + deployed
 ```
 
-> **⚠ MANDATORY:** Every step must execute in order. No step may be skipped, reordered, or compressed. Tests from Step 1 are the proof that specs are met — they are the contract. See §9 Test Discipline Gospel.
+> **⚠ MANDATORY:** Every step must execute in order. No step may be skipped, reordered, or compressed. Tests from Step 1 are the proof that specs are met — they are the contract. See §9 Test Discipline Gospel and §9 Pre-Implementation Blocker.
 
 **Step Transition Gates:** Before advancing from one step to the next, verify:
 
 | Transition | Prerequisite Check |
 |------------|-------------------|
+| → Step 1 (entry) | FRD section exists for this feature with acceptance criteria. If missing → write FRD first, get human approval. **No feature work begins without an FRD.** |
 | Step 1 → Step 2 | Test files exist, compile, and FAIL (red baseline). No `test.skip()` in codebase. Existing tests still pass. Human approved Gherkin and test code. |
 | Step 2 → Step 3 | Contract files exist in `specs/contracts/api/`. Shared types compile. Infra contract updated if needed. |
 | Step 3 → Step 4 | ALL tests pass (new + existing). Zero failures. PR review approved by human. |
@@ -678,13 +679,36 @@ For details, see the `research-best-practices` skill in `.github/skills/`.
 
 Tests are the **proof** that specifications have been implemented. They are not optional, not skippable, and not negotiable. Every test in the pipeline exists because a spec demands it. Skipping a test is equivalent to silently removing a requirement.
 
+### Pre-Implementation Blocker (MANDATORY)
+
+**⛔ STOP — before writing ANY production code or test code for a feature, the orchestrator MUST verify ALL of the following. This check is non-negotiable and cannot be skipped regardless of how the user phrases their request.**
+
+When the user says "implement X", "build X", "add X", or any variation — this means **start the spec2cloud pipeline for X at the earliest missing phase**, NOT "write the code for X now". The orchestrator must:
+
+1. **Verify FRD coverage exists.** A `specs/frd-*.md` file must contain a section covering this feature with acceptance criteria. If no FRD section exists → **STOP and write/update the FRD first**. Present to user for approval.
+2. **Verify Gherkin scenarios exist.** A `specs/features/*.feature` file must contain scenarios for this feature. If no scenarios exist → **STOP and generate Gherkin first**. Present to user for approval (human gate).
+3. **Verify human approved Gherkin.** The scenarios must have been presented to and approved by the user in this session or recorded in `state.json`. If not approved → **STOP and present for approval**.
+4. **Verify test scaffolding exists and FAILS.** Test files must exist and produce a red baseline. If no tests exist → **STOP and scaffold tests first**. Present to user for approval (human gate).
+5. **Verify human approved test code.** The test code must have been presented to and approved by the user. If not approved → **STOP and present for approval**.
+6. **Verify contracts exist.** `specs/contracts/api/*.yaml` and shared types must exist for this feature. If not → **STOP and generate contracts first**.
+
+**If ANY item is unchecked → the orchestrator MUST NOT write implementation code. It must complete the missing phases in order.**
+
+This blocker applies to:
+- New features
+- Feature extensions
+- Bug fixes (via bug-fix skill which has its own lighter pipeline)
+- Any code change that adds new behavior
+
+The ONLY exception is fixing a build/lint error in existing code that does not add new behavior.
+
 ### Absolute Rules
 
 1. **Tests are proof of spec completion.** A feature is not done until every test generated from its Gherkin scenarios passes. No exceptions.
 2. **Never skip a test.** Do not use `test.skip()`, `xit()`, `@skip`, `pending`, or any mechanism that bypasses test execution. If a test cannot run, fix the infrastructure — do not skip the test.
 3. **Never delete a test.** Tests are the contract. Deleting a test removes proof that a spec was met. If a spec changes, update the test to match the new spec — do not delete the old one without replacement.
 4. **Never modify a test without human approval.** Tests are human-approved contracts. Any change to a test requires explicit human consent because it changes what "done" means.
-5. **The phase pipeline is sacred.** The sequence Tests → Contracts → Implementation → Verify is not a suggestion. Every increment must pass through every step. The orchestrator must not skip, reorder, or compress these steps.
+5. **The phase pipeline is sacred.** The sequence FRD → Gherkin → Tests → Contracts → Implementation → Verify is not a suggestion. Every increment must pass through every phase. The orchestrator must not skip, reorder, or compress these phases — even when the user says "implement" or "just do it".
 6. **All tests must pass before advancing.** No phase transition, no deployment, no commit to main happens while any test is failing. A red test is a blocking issue.
 7. **Regression is mandatory.** After every change (implementation, bug fix, refactor), the FULL test suite runs. Not just the new tests — all tests.
 

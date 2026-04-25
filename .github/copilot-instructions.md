@@ -30,6 +30,14 @@ is driven by automated tests generated from those specifications.
 - **Always run tests** after making changes — the FULL suite, not just "relevant" tests
 - If a spec seems wrong, flag it — do not silently deviate
 
+### "Implement" Means "Start the Pipeline"
+When the user says "implement X", "build X", "add X", "create X", or any variation:
+- This means **start the spec2cloud pipeline at the earliest missing phase for X**
+- It does **NOT** mean "write the code for X immediately"
+- The orchestrator must check: Does an FRD exist? → Does Gherkin exist? → Are tests scaffolded? → Do contracts exist?
+- Begin at the first missing artifact. Never jump to implementation.
+- See AGENTS.md §9 "Pre-Implementation Blocker" for the full mandatory checklist.
+
 ## Test Discipline Gospel
 Tests are the **proof** that specifications have been implemented correctly. They are not optional, not skippable, and not negotiable. See AGENTS.md §9 for the full protocol.
 
