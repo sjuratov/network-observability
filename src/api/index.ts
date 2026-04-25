@@ -1,5 +1,6 @@
 import { loadConfig, validateConfig } from './config/loader.js';
 import { createDatabase } from './db/database.js';
+import { runRetentionCleanup } from './db/retention.js';
 import { createServer } from './server.js';
 import { createScheduler } from './scanner/scheduler.js';
 import pino from 'pino';
@@ -38,6 +39,24 @@ async function main() {
     .run(new Date().toISOString(), JSON.stringify(['Scan interrupted by container restart']));
   if (orphaned.changes > 0) {
     logger.info({ count: orphaned.changes }, 'Cleaned up orphaned in-progress scans');
+  }
+
+  // Run retention cleanup on startup
+  try {
+    const cleanupResult = runRetentionCleanup(raw, config.dataRetentionDays);
+    if (cleanupResult.scansDeleted > 0 || cleanupResult.scanResultsDeleted > 0 || cleanupResult.historyDeleted > 0) {
+      logger.info(
+        {
+          scansDeleted: cleanupResult.scansDeleted,
+          scanResultsDeleted: cleanupResult.scanResultsDeleted,
+          historyDeleted: cleanupResult.historyDeleted,
+          durationMs: cleanupResult.durationMs,
+        },
+        'Startup retention cleanup completed',
+      );
+    }
+  } catch (err) {
+    logger.error({ err }, 'Startup retention cleanup failed');
   }
 
   // Set up scan scheduler (before server so routes can access it for hot-reload)

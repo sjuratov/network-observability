@@ -4,6 +4,7 @@ export default {
     'specs/features/device-detail-activity.feature',
     'specs/features/device-detail-ports.feature',
     'specs/features/settings-ui.feature',
+    'specs/features/storage.feature',
   ],
   import: [
     'tsx/esm',

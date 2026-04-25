@@ -1,0 +1,158 @@
+openapi: '3.0.3'
+info:
+  title: Network Observability — Export API
+  version: '1.0'
+  description: Export device inventory and scan results in CSV/JSON formats.
+
+paths:
+  /api/v1/export/devices:
+    get:
+      summary: Export device inventory
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [csv, json]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [online, offline]
+      responses:
+        '200':
+          description: Exported data
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            text/csv: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceExportEnvelope'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/export/scans:
+    get:
+      summary: Export scan results
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [csv, json]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Exported data
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            text/csv: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanExportEnvelope'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+components:
+  schemas:
+    DeviceExportEnvelope:
+      type: object
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        totalCount:
+          type: integer
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportedDevice'
+    ExportedDevice:
+      type: object
+      properties:
+        id:
+          type: string
+        macAddress:
+          type: string
+        currentIp:
+          type: string
+        vendor:
+          type: string
+        hostname:
+          type: string
+        displayName:
+          type: string
+        status:
+          type: string
+        isKnown:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        firstSeenAt:
+          type: string
+        lastSeenAt:
+          type: string
+    ScanExportEnvelope:
+      type: object
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        totalCount:
+          type: integer
+        scans:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportedScan'
+    ExportedScan:
+      type: object
+      properties:
+        id:
+          type: string
+        startedAt:
+          type: string
+        completedAt:
+          type: string
+        status:
+          type: string
+        devicesFound:
+          type: integer
+        newDevices:
+          type: integer

@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import type { Database } from '../db/database.js';
+import { runRetentionCleanup } from '../db/retention.js';
 import { armActivityHistoryFailure, armFullInventoryFailure, resetTestSupportState } from './test-support-state.js';
 
 function getDb(fastify: FastifyInstance): Database {
@@ -483,5 +484,80 @@ export async function testSupportRoutes(fastify: FastifyInstance) {
 
     reply.status(202);
     return { data: { ok: true }, meta: { timestamp: now } };
+  });
+
+  // --- Retention cleanup test support ---
+
+  fastify.post('/test-support/seed-old-scans', async (request: FastifyRequest, reply: FastifyReply) => {
+    const raw = getDb(fastify).getDb();
+    const body = request.body as { daysAgo: number; count?: number };
+    const count = body.count ?? 2;
+    const scanIds: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const ts = new Date(Date.now() - body.daysAgo * 86_400_000 - i * 60_000).toISOString();
+      const scanId = randomUUID();
+      scanIds.push(scanId);
+      raw.prepare(`
+        INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(scanId, 'completed', ts, ts, 1000, 1, 0, '["192.168.1.0/24"]', '[]', 'normal', ts);
+
+      raw.prepare(`
+        INSERT INTO scan_results (scan_id, device_id, mac_address, ip_address, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(scanId, 'device-seed-001', 'AA:BB:CC:DD:EE:99', '192.168.1.99', ts);
+
+      raw.prepare(`
+        INSERT INTO device_history (device_id, field_name, old_value, new_value, changed_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('device-seed-001', 'ip_address', `192.168.1.${i}`, `192.168.1.${i + 1}`, ts);
+    }
+
+    reply.status(201);
+    return { scanIds, meta: { timestamp: new Date().toISOString() } };
+  });
+
+  fastify.post('/test-support/seed-old-device', async (request: FastifyRequest, reply: FastifyReply) => {
+    const raw = getDb(fastify).getDb();
+    const body = request.body as { daysAgo: number };
+    const ts = new Date(Date.now() - body.daysAgo * 86_400_000).toISOString();
+    const deviceId = randomUUID();
+
+    raw.prepare(`
+      INSERT OR IGNORE INTO devices (id, mac_address, ip_address, display_name, is_known, is_online, seen_scan_count, missed_scan_count, first_seen_at, last_seen_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(deviceId, `AA:BB:CC:DD:EE:${deviceId.slice(0, 2)}`, '192.168.1.88', 'Old Device', 1, 0, 2, 2, ts, ts, ts, ts);
+
+    reply.status(201);
+    return { deviceId, meta: { timestamp: new Date().toISOString() } };
+  });
+
+  fastify.post('/test-support/trigger-retention-cleanup', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const raw = getDb(fastify).getDb();
+    const retentionDays = (fastify as any).appConfig?.dataRetentionDays ?? 365;
+    const result = runRetentionCleanup(raw, retentionDays);
+
+    reply.status(200);
+    return { result, meta: { timestamp: new Date().toISOString() } };
+  });
+
+  fastify.post('/test-support/trigger-scan-with-cleanup', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const raw = getDb(fastify).getDb();
+    const now = new Date().toISOString();
+
+    // Simulate a completed scan
+    const scanId = randomUUID();
+    raw.prepare(`
+      INSERT INTO scans (id, status, started_at, completed_at, duration_ms, devices_found, new_devices, subnets_scanned, errors, scan_intensity, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(scanId, 'completed', now, now, 500, 0, 0, '["192.168.1.0/24"]', '[]', 'normal', now);
+
+    // Run retention cleanup
+    const retentionDays = (fastify as any).appConfig?.dataRetentionDays ?? 365;
+    const result = runRetentionCleanup(raw, retentionDays);
+
+    reply.status(200);
+    return { scanId, cleanupResult: result, meta: { timestamp: now } };
   });
 }

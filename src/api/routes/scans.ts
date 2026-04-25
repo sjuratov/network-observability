@@ -13,6 +13,7 @@ import {
   resolvePortScanBatchSize,
 } from '../scanner/ports.js';
 import { getPresenceOfflineThreshold } from '../presence/device-status.js';
+import { runRetentionCleanup } from '../db/retention.js';
 
 interface DbScanRow {
   id: string;
@@ -411,7 +412,7 @@ export async function scanRoutes(fastify: FastifyInstance) {
         });
         upsertMany(deviceResults);
 
-        raw.prepare(
+         raw.prepare(
           `UPDATE scans SET status = ?, completed_at = ?, duration_ms = ?, devices_found = ?, new_devices = ?, errors = ?
            WHERE id = ?`,
         ).run(
@@ -423,6 +424,17 @@ export async function scanRoutes(fastify: FastifyInstance) {
           JSON.stringify(scanResult.errors),
           scanId,
         );
+
+        // Run retention cleanup after scan completes (non-blocking)
+        try {
+          const retentionDays = (fastify as any).appConfig?.dataRetentionDays ?? 365;
+          const cleanupResult = runRetentionCleanup(raw, retentionDays);
+          if (cleanupResult.scansDeleted > 0 || cleanupResult.scanResultsDeleted > 0 || cleanupResult.historyDeleted > 0) {
+            console.log(`Post-scan retention cleanup: ${cleanupResult.scansDeleted} scans, ${cleanupResult.scanResultsDeleted} scan_results, ${cleanupResult.historyDeleted} history entries deleted (${cleanupResult.durationMs}ms)`);
+          }
+        } catch (cleanupErr) {
+          console.error('Post-scan retention cleanup failed:', cleanupErr);
+        }
       } catch (err) {
         console.error('Scan pipeline error:', err);
         const completedAt = new Date().toISOString();
