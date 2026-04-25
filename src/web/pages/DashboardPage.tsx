@@ -301,6 +301,8 @@ export function DashboardPage() {
                         fontSize: 12,
                         color: '#e6edf3',
                       }}
+                      itemStyle={{ color: '#e6edf3' }}
+                      labelStyle={{ color: '#e6edf3' }}
                       cursor={{ fill: 'rgba(48, 54, 61, 0.3)' }}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={24}>
