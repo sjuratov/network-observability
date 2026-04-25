@@ -81,9 +81,11 @@ describe('Configuration Management', () => {
   // ─── Environment Variable Override ───
 
   describe('Environment Variable Override', () => {
-    // Scenario: Environment variable overrides default value
+    // Scenario: Environment variable sets initial schedule when no UI override exists
     it('should override defaults with environment variables', async () => {
       process.env['SCAN_CADENCE'] = '0 */2 * * *';
+      // Use a clean temp DB so no runtime config overrides the env seed
+      process.env['STORAGE_DB_PATH'] = path.join(tempDir, 'test.db');
 
       const config = await loadConfig();
 

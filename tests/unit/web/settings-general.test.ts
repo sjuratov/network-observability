@@ -132,7 +132,8 @@ describe('Settings General tab component contract', () => {
 
     const markup = renderToStaticMarkup(createElement(SettingsPage));
 
-    expect(markup).toContain('data-testid="field-scan-cadence-env-managed"');
+    // scanCadence no longer has env-managed badge (managed via UI now)
+    expect(markup).not.toContain('data-testid="field-scan-cadence-env-managed"');
     expect(markup).toContain('data-testid="field-scan-intensity-env-managed"');
     expect(markup).toMatch(/data-testid="btn-save-general"[^>]*disabled/);
   });

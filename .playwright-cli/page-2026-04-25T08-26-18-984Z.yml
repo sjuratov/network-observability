@@ -1,0 +1,33 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 🔭
+      - generic [ref=e7]: NetObserver
+    - navigation [ref=e8]:
+      - list [ref=e9]:
+        - listitem [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /
+        - listitem [ref=e12]:
+          - link "Devices" [ref=e13] [cursor=pointer]:
+            - /url: /devices
+        - listitem [ref=e14]:
+          - link "Scans" [ref=e15] [cursor=pointer]:
+            - /url: /scans
+        - listitem [ref=e16]:
+          - link "Settings" [ref=e17] [cursor=pointer]:
+            - /url: /settings
+  - main [ref=e18]:
+    - generic [ref=e20]:
+      - heading "Settings" [level=1] [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - button "General (active)" [ref=e24]:
+            - text: General
+            - generic [ref=e25]: (active)
+          - button "Network" [ref=e26]
+          - button "Alerts" [ref=e27]
+          - button "API" [ref=e28]
+        - generic [ref=e29]: Unable to load settings. Check server connection.
+        - generic [ref=e30]: Loading settings...
+        - button "Retry" [ref=e33]

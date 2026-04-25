@@ -701,19 +701,12 @@ export function SettingsPage() {
                   >
                     Requires restart
                   </span>
-                  <span
-                    data-testid="field-scan-cadence-env-managed"
-                    className={`rounded-full border border-[#e3b341] px-2 py-0.5 text-[11px] text-[#e3b341] ${envManagedSet.has('scanCadence') ? '' : 'hidden'}`}
-                  >
-                    Set via environment variable
-                  </span>
                 </div>
                 <select
                   id="schedule-preset"
                   data-testid="select-schedule-preset"
                   value={schedulePreset.presetId}
                   onChange={(e) => handlePresetChange(e.target.value)}
-                  disabled={envManagedSet.has('scanCadence')}
                   className={inputClass}
                 >
                   {PRESETS.map((p) => (
@@ -729,7 +722,6 @@ export function SettingsPage() {
                       data-testid="select-schedule-hour"
                       value={schedulePreset.hour ?? 0}
                       onChange={(e) => handleHourChange(Number(e.target.value))}
-                      disabled={envManagedSet.has('scanCadence')}
                       className={inputClass}
                     >
                       {Array.from({ length: 24 }, (_, h) => (
@@ -748,7 +740,6 @@ export function SettingsPage() {
                       data-testid="input-cron"
                       value={customCron}
                       onChange={(e) => handleCustomCronChange(e.target.value)}
-                      readOnly={envManagedSet.has('scanCadence')}
                       className={inputClass}
                     />
                   </div>

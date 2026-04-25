@@ -40,7 +40,6 @@ interface YamlConfig {
 }
 
 const ENV_TO_CONFIG_FIELD = {
-  SCAN_CADENCE: 'scanCadence',
   SCAN_INTENSITY: 'scanIntensity',
   SCAN_SUBNETS: 'subnets',
   PRESENCE_OFFLINE_THRESHOLD: 'presenceOfflineThreshold',
@@ -81,7 +80,8 @@ function applyYaml(base: AppConfig, doc: YamlConfig): AppConfig {
 
 function applyEnv(base: AppConfig): AppConfig {
   const cfg = { ...base };
-  if (process.env['SCAN_CADENCE']) cfg.scanCadence = process.env['SCAN_CADENCE'];
+  // Note: SCAN_CADENCE is intentionally excluded — schedule is managed via UI
+  // and runtime config store. The env var is only used as initial seed (see applyEnvSeed).
   if (process.env['SCAN_INTENSITY']) cfg.scanIntensity = process.env['SCAN_INTENSITY'] as AppConfig['scanIntensity'];
   if (process.env['SCAN_SUBNETS']) cfg.subnets = process.env['SCAN_SUBNETS'].split(',').map(s => s.trim());
   if (process.env['PRESENCE_OFFLINE_THRESHOLD']) cfg.presenceOfflineThreshold = parseInt(process.env['PRESENCE_OFFLINE_THRESHOLD'], 10);
@@ -153,11 +153,14 @@ export async function loadConfig(): Promise<AppConfig> {
   config.dbPath = runtimeDbPath;
   config.configFilePath = configFile;
 
-  // Layer 3: Runtime config store
+  // Layer 3: SCAN_CADENCE env var as initial seed (before runtime, so UI overrides it)
+  if (process.env['SCAN_CADENCE']) config.scanCadence = process.env['SCAN_CADENCE'];
+
+  // Layer 4: Runtime config store (UI changes win over env seed)
   const runtimeConfig = readRuntimeConfig(runtimeDbPath);
   config = applyRuntime(config, runtimeConfig);
 
-  // Layer 4: Environment variables
+  // Layer 5: Environment variables (override everything except scanCadence)
   config = applyEnv(config);
 
   // Auto-detect subnets if none configured
